@@ -1,5 +1,5 @@
 Dependencies:
-1. python 3+ (anaconda recommended; conda create --n nupyprop conda)
+1. python 3+ (anaconda recommended; conda create -n nupyprop conda)
 2. numpy (conda install numpy)
 3. pandas (conda install pandas)
 4. scipy (conda install scipy)
