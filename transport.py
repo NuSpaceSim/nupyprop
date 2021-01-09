@@ -126,7 +126,6 @@ def interaction_type_lep(energy, xc_arr, rho):
     return None
 
 @njit(nogil=True)
-# @jit(nogil=True)
 def find_y(energy,ixc_dict,ip):
     dy = my_rand()
 
@@ -146,7 +145,7 @@ def find_y(energy,ixc_dict,ip):
 # =============================================================================
 #                 Nu propagation
 # =============================================================================
-@njit(nogil=True, parallel=True)
+@njit(nogil=True)
 def propagate_nu(e_init, nu_xc, nu_ixc, depth_max):
 
     part_type = 'nu' # starting off as a neutrino
@@ -234,7 +233,7 @@ def propagate_nu(e_init, nu_xc, nu_ixc, depth_max):
 # =============================================================================
 #                 Tau propagation in water
 # =============================================================================
-@njit(nogil=True, parallel=True)
+@njit(nogil=True)
 # @vectorize()
 def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in, type_loss):
 
@@ -378,7 +377,7 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
 # =============================================================================
 #                 Tau propagation in rock
 # =============================================================================
-@njit(nogil=True, parallel=True)
+@njit(nogil=True)
 def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d_entry, d_in, xalong, cdalong, type_loss):
     if type_loss == 'stochastic':
         e_min = 1e3 # minimum tau energy, in GeV
@@ -507,7 +506,7 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
     # loop for deltax, ask if it decays. If decay, go to regen, if not update energy and distance and keep going. Make sure to not go past the max distance. Ending check for not exceeding the total distance
         return None
 
-@njit(nogil=True, parallel=True)
+@njit(nogil=True)
 def tau_thru_layers(angle, depth, d_water, depth_traj, e_lep_in, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong): # note: angle is now in angle
 
     d_fin = depth_traj
@@ -666,7 +665,7 @@ def distnu(r, ithird): # ithird = 1 => 1/3 or ithird = 2 => dist; rename to deca
 
 #         return None
 
-@njit(nogil=True, parallel=True)
+@njit(nogil=True)
 def regen(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, xc_rock, ixc_water, ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong): # note: angle is now in angle
 
     # find the neutrino energy from the tau decay with tau energy e_lep
