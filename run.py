@@ -96,6 +96,6 @@ Main.angles = angles
 
 if __name__ == "__main__":
     start_time = time.time()
-    prob_dict = Main.main()
+    prob_dict, e_out = Main.main()
     end_time = time.time()
     print(f"It took {end_time-start_time:.2f} seconds to compute")
