@@ -21,7 +21,7 @@ Run parameters are defined in run.py. Different switches are described as follow
 
 5. -m or --material: material used in electromagnetic energy loss; not used in main program, only used for running energy_loss.py individually. Default is rock.
 
-6. -x or --xc: neutrino/anti-neutrino cross-section model used. For a list of model names, see lookup_tables.h5/Neutrino_Cross_Sections. Default is ncteq15. 
+6. -x or --xc_model: neutrino/anti-neutrino cross-section model used. For a list of model names, see lookup_tables.h5/Neutrino_Cross_Sections. Default is ncteq15. 
 
 7. -p or --pn_model: photonuclear energy loss model used. For now, can be either bb (Bezrukov-Bugaev) or allm (Abramowicz, Levin, Levy, Maor). Default is allm.
 
