@@ -1,3 +1,14 @@
+Dependencies:
+1. python 3+ (anaconda recommended; conda create --n nupyprop conda)
+2. numpy (conda install numpy)
+3. pandas (conda install pandas)
+4. scipy (conda install scipy)
+5. matplotlib (conda install matplotlib)
+6. numba (conda install numba)
+7. sympy (conda install sympy)
+8. interpolation (conda install -c conda-forge interpolation)
+9. (optional for GUI HDF5 viewer) vitables (conda install -c conda-forge vitables)
+
 Run parameters are defined in run.py. Different switches are described as follows:
 
 1. -e or --energy: incoming neutrino energy in GeV. Works for single energy or multiple energies. For multiple energies, separate energies with commas eg. 1e7,1e8,1e9. Default energies are 1e7,1e8,1e9,1e10,1e11 GeV.
@@ -6,7 +17,7 @@ Run parameters are defined in run.py. Different switches are described as follow
 
 3. -i or --idepth: depth of ice/water in km. Default value is 4 km.
 
-4. -l or --lepton:  flavor of lepton used to propagate. Can be either muon or tau. Default is tau.
+4. -l or --lepton: flavor of lepton used to propagate. Can be either muon or tau. Default is tau.
 
 5. -m or --material: material used in electromagnetic energy loss; not used in main program, only used for running energy_loss.py individually. Default is rock.
 
@@ -17,3 +28,6 @@ Run parameters are defined in run.py. Different switches are described as follow
 8. -f or --fac_nu: rescaling factor for SM cross-sections. Default is 1.
 
 9. -s or --stat: statistics. Default is 1e7 particles.
+
+Example for running tau propagation for 10^8 GeV neutrinos at 10 degrees with a statistics of 10^8 particles with all other parameters as defaults:
+python run.py -e 1e8 -a 10 -s 1e8
