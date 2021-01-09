@@ -271,7 +271,7 @@ if __name__ == "__main__":
     # futures = main()
     # ray.get(futures)
     # main.remote()
-    prob_dict = main()
+    prob_dict, e_out = main()
     # plot_pexit()
     # print(prob_dict)
     # plot_lep_out(1e8, 5, 'cdf')
