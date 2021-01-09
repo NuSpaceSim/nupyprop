@@ -40,3 +40,15 @@ Currently, the output file contains a full set of tau results ran for neutrino e
 Note: Since the HDF5 files have been written using pandas, the full tables are stored in 'axis1' in all of the branches.
 
 WARNING: Running the code will replace the results of the output.h5 file. Backing up previous output files is recommended (or just download and replace from the repo). Future fixes include overwrite warnings for the user.
+
+For debugging/development:
+The correct order to look at the code is in the following order:
+
+1. data.py: contains the reading/writing modules from/to the hdf5 files.
+2. geometry.py: contains the Earth geometry modules (including PREM).
+3. cross_section.py: contains neutrino/anti-neutrino cross_section models.
+4. energy_loss.py: contains lepton energy loss models.
+5. my_interpolation.py: contains (numba enabled) interpolation functions.
+6. transport.py: heart of the code; contains functions to propagate neutrinos and leptons through the Earth.
+7. main.py: forms the main skeleton of the code; propagates the neutrinos and leptons, and calculates the p_exit and collects outgoing lepton energies.
+8. run.py: contains all the run parameters and variables needed for all the other .py files.
