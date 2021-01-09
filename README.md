@@ -35,7 +35,7 @@ python run.py -e 1e8 -a 10 -s 1e8
 Viewing output results:
 output.h5 will contain the results of the code after it has finished running. 
 
-Currently, the output file contains a full set of tau results ran for neutrino energies of 1e7, 1e8, 1e9 and 1e10 GeV, at 1,3,5,7,10,12,15,17,20,25,30,35 degrees with statistics of 1e8 particles (10^8 GeV ran with 10^7 statistics because of impending memory leak errors.)
+Currently, the output file contains a full set of tau results ran for neutrino energies of 1e7, 1e8, 1e9 and 1e10 GeV, at 1,3,5,7,10,12,15,17,20,25,30,35 degrees with statistics of 1e8 particles (10^9 GeV ran with 10^7 statistics because of impending memory leak errors.)
 
 Note: Since the HDF5 files have been written using pandas, the full tables are stored in 'axis1' in all of the branches.
 
