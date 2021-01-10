@@ -9,16 +9,12 @@ Created on Mon Aug 3 14:17:24 2020
 # mpl.use('Agg') # for clusters
 
 import data as Data
-# import geometry as Geometry
 import cross_section as Cross_section
 
 import numpy as np
-# from scipy.constants import *
-# from pandas import HDFStore
 import pandas as pd
 import scipy.integrate as integrate
 import scipy.constants as scc
-# import scipy as sp
 import multiprocessing as mp
 from multiprocessing import Pool
 import matplotlib.pyplot as plt
@@ -138,8 +134,6 @@ def brem(y, E): # eq. A5
 
         y_dsig_dy = brem * y
 
-        # y_dsig_dy = brem
-
     return (N_A/A) * y_dsig_dy
 
 def cs_brem(y, E):
@@ -198,7 +192,6 @@ def pair_y_xc(E):
 #     Photonuclear Energy Loss (Bezrukov-Bugaev)
 # =============================================================================
 def pn_bb(y, E): # eq. A12
-#    y = sp.symbols("y")
     m1_sq = 0.54 # Gev^2
     m1 = np.sqrt(m1_sq)
     m2_sq = 1.8 # Gev^2
@@ -221,8 +214,6 @@ def cs_pn_bb(y, E):
 #     Photonuclear Energy Loss (ALLM/Custom)
 # =============================================================================
 def pn(lnq2, y, E):
-# def pn_allm( f2):
-    # lnq2, y, E, f2 = f2[0],f2[1],f2[2],f2[3]
     q2 = np.exp(lnq2)
 
     x = q2/(2*m_p*E*y)
@@ -307,15 +298,7 @@ def pn_y_xc(E):
 
 def calc_alpha():
     alpha_arr = np.asarray([alpha_i(i) if i>m_le else 0 for i in E_lep])
-
-    # alpha_dict = {'energy':E_lep,'alpha':alpha}
     Data.add_alpha(alpha_arr, particle=lepton, material=material)
-
-    # alpha_df = pd.DataFrame({'energy':E_lep,'alpha':alpha})
-
-    # hdf = HDFStore('lookup_tables.h5','a')
-    # hdf.put('Energy_Loss/%s/%s/alpha' % (str(lepton),material),alpha_df)
-    # hdf.close()
     return 'Problem in calc_alpha function'
 
 # =============================================================================
@@ -510,9 +493,6 @@ def calc_ixc():
 
     Data.add_xc(str(lepton), xc_dict, material=material)
 
-    # for model in xc_dict.keys():
-        # cross_section().add_xc_entry(str(lepton),model,xc_dict, material = material)
-
     return 'Problem in calc_ixc function'
 
 @njit(nogil=True)
@@ -696,91 +676,8 @@ def plot_cs():
     # plt.savefig('cs.png', format='png', dpi = 300)
     return None
 
-
 # =============================================================================
-# Main Program
-# =============================================================================
-# a = Data()
-# b = Geometry(idepth = 3)
-# c = Cross_section()
-
-# d = Energy_loss(lepton='tau',material='water')
-
-# d.calc_alpha()
-# d.calc_beta_continuous()
-# d.calc_beta_total()
-# d.calc_ixc()
-
-# d.plot_alpha()
-# d.plot_c(model='bb')
-# d.plot_t(model='bb')
-# d.plot_cs()
-
-# d = Energy_loss(lepton='tau',material='water') # do this first!
-
-# d.calc_alpha()
-# d.calc_beta_continuous()
-# d.calc_beta_total()
-# d.calc_ixc()
-
-# d = Energy_loss(lepton='muon',material='rock')
-
-# d.calc_alpha()
-# d.calc_beta_continuous()
-# d.calc_beta_total()
-# d.calc_ixc()
-
-# d = Energy_loss(lepton='muon',material='water')
-
-# d.calc_alpha()
-# d.calc_beta_continuous()
-# d.calc_beta_total()
-# d.calc_ixc()
-
-# d.beta_continuous()
-# brem_t,pair_t,pn_bb_t,pn_t=d.beta_total()
-# xc_dict=d.calc_xc()
-# alpha = d.calc_alpha()
-# d.calc_alpha()
-# d.calc_ixc()
-# beta = d.get_beta('rock')
-
-# plt.figure(1)
-# d.plot_alpha_i(alpha)
-
-# plt.figure(2)
-# d.plot_c(brem_c,pair_c,pn_bb_c, pn_c)
-
-# plt.figure(3)
-# d.plot_t(brem_t,pair_t,pn_bb_t, pn_t)
-
-# plt.figure(4)
-# d.plot_cs(xc_dict)
-
-# f = open("ixc_muon_local.pkl","wb")
-# pickle.dump(ixc,f)
-# f.close()
-
-# ixc = pickle.load(open("ixc_muon.pkl", "rb"))
-# for model in ixc.keys():
-#     Data.add_ixc('energy_loss',model,ixc)
-
-# ixc_muon_water = pickle.load(open("ixc_muon_water.pkl", "rb"))
-# ixc_muon_rock = pickle.load(open("ixc_muon_rock.pkl", "rb"))
-# ixc_tau_water = pickle.load(open("ixc_tau_water.pkl", "rb"))
-# ixc_tau_rock = pickle.load(open("ixc_tau_rock.pkl", "rb"))
-
-# with open('brem_cs_muon_water.npy', 'rb') as f:
-#     xc_muon_water = np.load(f)
-# with open('brem_cs_muon_rock.npy', 'rb') as f:
-#     xc_muon_rock = np.load(f)
-# with open('brem_cs_tau_water.npy', 'rb') as f:
-#     xc_tau_water = np.load(f)
-# with open('brem_cs_tau_rock.npy', 'rb') as f:
-#     xc_tau_rock = np.load(f)
-
-# =============================================================================
-#
+# Test
 # =============================================================================
 if __name__ == "__main__":
     lepton = 'tau'

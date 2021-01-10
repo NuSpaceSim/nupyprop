@@ -90,13 +90,6 @@ def run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, le
     e_out = [] # initialize e_out list
     for i in prange(1,stat+1):
 
-        # jj = (np.abs(E_nu-energy)).argmin() # find the nearest neighbor index
-
-        # enubin[jj] += 1 # energy generated in log bins - count in
-
-
-        # enubin should be E*dN/dE for the flux - since in log bins. Normalize later
-
         depth0 = 0.0 # start with this each time
 
         # 80 continue
@@ -128,16 +121,10 @@ def run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, le
         ipp, dfinal, etauf = Transport.tau_thru_layers(angle, depth, dwater, depth0, etauin, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong) # note: angle is now in betad
 
         dleft = depth-dfinal
-        # cnt+=1
 
         if ipp == 'not_decayed' and dleft <= 0: # a tau has emerged through column depth
-            # eb[ibin,jef] += 1
-            # jef = (np.abs(E_nu-etauf)).argmin() # find the nearest neighbor index
-            # no_regen[jef] += 1 # update the no_regen tau array because this is happening without any regen..?
             no_regen_tot += 1
-            # regen[jef] += 1 # update the regen tau array once
             regen_tot += 1 # update the regen tau array once
-            # e_out = np.concatenate((e_out, np.array([etauf])))
             e_out.append(etauf)
             # go to 10; we are done with the loop
             continue # break outside stat; continue is correct here
@@ -145,39 +132,29 @@ def run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, le
         # 11 continue; beginning of regeneration loop
         # must be a neutrino. Is there still column depth to propagate?
 
-        # if dfinal < depthE: # tau has decayed before the end
-        # while dfinal < depthE: # tau has decayed before the end
         ipp3 = 'dummy_value'
-        # while (dfinal < depthE) and (ipp3!='not_decayed') and (ibin<=0): # tau has decayed before the end
         while (dfinal < depthE) and (ipp3!='not_decayed') and regen_cnt<=10: # tau has decayed before the end
-        # while (dfinal < depthE) and (ipp3!='not_decayed'): # tau has decayed before the end
 
             etauin = etauf # regen finds neutrino energy
 
 
             ipp3, dtau2, ef2 = Transport.regen(angle, etauin, depth, dwater, dfinal, nu_xc, nu_ixc, ithird, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong) # note: angle is now in betad
-
-            # ibin += 1
+            
             regen_cnt +=1
 
             if ipp3 == 'not_decayed': # then we are back to a tau at the end of the road
-                # eb[ibin,jef2] += 1 # regenerated taus with round 1
-                # jef2 = (np.abs(E_nu-ef2)).argmin() # find the nearest neighbor index
-                # regen[jef2] += 1 # update the regen tau array
                 regen_tot += 1
-                # e_out = np.concatenate((e_out, np.array([ef2])))
                 e_out.append(ef2)
 
                 # go to 10; we are done with the loop
                 continue # need to check if this breaks out of stat loop or not. Yes??
 
-            if regen_cnt > 10:
-                continue # only if regen > 10, break and go to run_stat for next iteration
+            if regen_cnt > 6: # 6 rounds of regeneration
+                continue # only if regen > 6, break and go to run_stat for next iteration
 
             etauf = ef2
             dfinal = dtau2 # go to 11
 
-    # return no_regen, regen, e_out
     return no_regen_tot, regen_tot, e_out
 
 def main():
@@ -216,12 +193,12 @@ def main():
             regen_arr.append(prob_regen)
 
             lep_dict = {'lep_energy':np.asarray(e_out)}
-            Data.add_lep_out(energy, angle, lep_dict)
+            # Data.add_lep_out(energy, angle, lep_dict)
 
         # # end of for loop for angles
 
         prob_dict_single = {'angle':np.asarray(angle_arr),'no_regen':np.asarray(no_regen_arr),'regen':np.asarray(regen_arr)}
-        Data.add_pexit(energy, prob_dict_single)
+        # Data.add_pexit(energy, prob_dict_single)
 
         angle_arr = []
         no_regen_arr = []
@@ -246,8 +223,6 @@ if __name__ == "__main__":
     start_time = time.time()
     angles = np.array([5])
     # angles = np.array([1,3,5,7,10,12,15,17,20,25,30,35])
-    # angles = np.array([10,12,15,17,20,25,30,35])
-    # angles = np.arange(10,41)
     E_prop = np.array([1e7])
 
     idepth = 4
@@ -262,20 +237,10 @@ if __name__ == "__main__":
     Transport.fac_nu = fac_nu
     c_tau = Transport.c_tau = 8.703e-3
 
-    # NUMBA_DEBUG_ARRAY_OPT_STATS=1
-
     nu_xc, xc_water, xc_rock, alpha_water, alpha_rock, beta_water, beta_rock = init_xc(lepton, cross_section_model, pn_model)
 
     nu_ixc, lep_ixc_water, lep_ixc_rock = init_ixc(lepton, cross_section_model, pn_model)
-
-    # futures = main()
-    # ray.get(futures)
-    # main.remote()
     prob_dict, e_out = main()
-    # plot_pexit()
-    # print(prob_dict)
-    # plot_lep_out(1e8, 5, 'cdf')
-    # enubin, eb = main()
-    # main.parallel_diagnostics(level=4)
+    
     end_time = time.time()
     print(f"It took {end_time-start_time:.2f} seconds to compute")

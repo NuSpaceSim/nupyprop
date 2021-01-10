@@ -32,31 +32,6 @@ rho_water = 1.02 # density of water in g/cm^3
 beta_arr = np.asarray([float('{:.1f}'.format(i)) for i in np.concatenate((np.linspace(0.1,5,50), np.linspace(6,90,85)))])
 
 
-    # if idepth is None:idepth = Geometry.def_idepth # use the def_idepth of 4
-    # else:idepth = Geometry.def_idepth = idepth # so that the change is carried out in other classes
-
-    # Re = Geometry.Re
-    # Rlay = Geometry.Rlay
-    # rho_water = Geometry.rho_water
-    # betad = Geometry.betad
-
-# def sagitta(tnadir):
-#     '''
-
-#     Parameters
-#     ----------
-#     tnadir : float
-#         tnadir in rad.
-
-#     Returns
-#     -------
-#     sagitta : float
-#         The sagitta in km.
-
-#     '''
-#     sagitta = Re*(1.0 - np.sin(tnadir))
-#     return sagitta
-
 def sagitta_deg(beta_deg):
     '''
 
@@ -126,8 +101,6 @@ def PREMdensity(Rin):
         Density in g/cm^3.
 
     '''
-    # global Rlay # be very careful here!
-    # Rlay2 = Rlay
     Rlay_2 = np.copy(Rlay)
     Rlay_2[8] = 6368.0+(3.0-float(idepth))
 
@@ -169,70 +142,6 @@ def PREMdensity(Rin):
     else:
         # edens=0.
         return 0.
-    # rhoOUT=edens
-    # return rhoOUT
-
-# def PREMgramVSang(z):
-#     '''
-
-#     Parameters
-#     ----------
-#     z : float or integer
-#         Angle in degrees of trajectory (relative to tangent to surface).
-
-#     Returns
-#     -------
-#     gramlen : float
-#         The "grammage", column density in g/cm2.
-
-#     '''
-#     Rlay_3 = np.copy(Rlay)
-#     Rlay_3[8] = 6368.0+(3.0-float(idepth))
-#     y = z*(np.pi/180)
-#     Chord = 2.0*Re*np.sin(y)
-#     Depth = Re-(0.5*np.sqrt(4.0*Re**2-Chord**2))
-#     Rdep = Re-Depth
-
-#     Rlen = np.zeros(10)
-#     RlenS = np.zeros(10)
-#     clen = np.zeros(10)
-#     glen = np.zeros(10)
-
-#     ilay = np.asarray([1 if Rdep<Rlay_3[i] else 0 for i in range(len(Rlay_3))])
-#     gramlen = 0
-#     j = 0
-#     for i in range(10):
-#         if Rdep < Rlay_3[i] and ilay[i]==1 and j==0: # run once only; check by j==0
-#             j=i+1
-#             Rlen[i] = Rlay_3[i] - Rdep
-#             clen[i] = 2*np.sqrt(Rlay_3[i]**2 - (Rlay_3[i] - Rlen[i])**2)
-#             # print(clen[i])
-#             Rin = Rlay_3[i] - (Rlen[i]/2.0)
-#             rho = PREMdensity(Rin)
-#             glen[i] = clen[i]*1e5*rho
-#             # print(glen)
-#         # elif Rdep < Rlay_3[i]:
-#         elif ilay[i]>0: # changed 21/12/2020
-#             Rlen[i] = Rlay_3[i] - Rlay_3[i-1]
-#             print('i = ', i)
-#             # print(Rlen) # works until here!
-#             print(Rlen[i])
-#             RlenS[i] = Rlen[i]
-#             print(RlenS)
-
-#             for k in range(j,i):
-#                 RlenS[i] = RlenS[i] + Rlen[k]
-#                 # print(RlenS[i])
-#             clen[i] = 2.0*np.sqrt(Rlay_3[i]**2 - (Rlay_3[i] - RlenS[i])**2)
-#             # print(clen[i])
-#             for k in range(j,i):
-#                 clen[i] = clen[i]-clen[k]
-#             Rin = Rlay_3[i] - (Rlen[i]/2.0)
-#             rho = PREMdensity(Rin)
-#             glen[i] = clen[i]*1e5*rho
-#         gramlen = gramlen + glen[i]
-#     return gramlen
-
 
 def PREMgramVSang(z):
     '''
@@ -280,28 +189,22 @@ def PREMgramVSang(z):
 
             for j in range(ifirst,i):
                 RlenS[i] = RlenS[i] + Rlen[j]
-                # print(RlenS[i])
 
             clen[i] = 2.0*np.sqrt(Rlay_3[i]**2 - (Rlay_3[i] - RlenS[i])**2)
             # print(clen[i])
 
             for j in range(ifirst,i):
                 clen[i] = clen[i] - clen[j]
-                # print(clen[i])
 
             Rin = Rlay_3[i] - (Rlen[i]/2.0)
             rhoOUT = PREMdensity(Rin)
-            # print(rhoOUT)
             glen[i] = clen[i]*1e5*rhoOUT
-            # print(glen[i])
 
         gramlen += glen[i]
-        # print(gramlen)
 
     return gramlen
 
 def columndepth(beta_deg):
-# def columndepth(tnadir):
     '''
 
     Parameters
@@ -315,14 +218,10 @@ def columndepth(beta_deg):
         Column density in g/cm^2.
 
     '''
-    # tnadird = tnadir * (180.0/np.pi)
-    # z = 90.0 - tnadird
     z = beta_deg
-    # print('z = ', z)
     if z<0.5:
         z1 = 1.0
         c = PREMgramVSang(z1)
-        # columndepth = c*(z/z1)
         columndepth = c*(z/z1-1.0/6.0*(z/z1)**3)
     else:
         columndepth = PREMgramVSang(z)
@@ -345,7 +244,6 @@ def densityatx(x, beta_deg):
         Density at the position x, in g/cm^3.
 
     '''
-    # ell = trajlength(beta_deg)
     tnadir = (90.0-beta_deg)*(np.pi/180.0)
     ell = Re*np.cos(tnadir)*2
     r2 = x**2 - (ell*x) + Re**2
@@ -433,117 +331,12 @@ def create_traj_table():
         beta_water, chord, water = gen_water_trajs()
         dataset_water = pd.DataFrame({'beta':beta_water, 'chord':chord, 'water':water})
 
-        # hdf = HDFStore('lookup_tables.h5','a') # create an add_trajs function in data file
-        # hdf.put('Earth/traj_%s/Column_Trajectories' % str(int(idepth)),dataset_col)
-        # hdf.put('Earth/traj_%s/Water_Trajectories' % str(int(idepth)),dataset_water)
-        # hdf.close()
-
         Data.add_trajs('col', int(idepth), dataset_col)
         Data.add_trajs('water', int(idepth), dataset_water) # yikes! fixed!
         return None
 
-
-# def interpcd2distd(angle, depth):
-#     dataset = pd.read_hdf('lookup_tables.h5','Earth/traj_%s/Column_Trajectories' % str(int(idepth))) # create an get_trajs function in data file
-#     dataset = Data.get_trajs('col', int(idepth))
-
-#     dataset_sliced = dataset[dataset['beta']==angle] # filter according to i/p angle
-#     xalong = np.asarray(dataset_sliced['xalong'])
-#     cdalong= np.asarray(dataset_sliced['cdalong'])
-
-#     f3 = interpolate.interp1d(cdalong, xalong, kind = 'quadratic')
-#     if depth < min(cdalong):
-#         x = (depth/cdalong[0])*xalong[0]
-#     elif depth > max(cdalong):
-#         x = max(xalong)
-#     else:
-#         x = f3(depth)
-#     # return xalong,cdalong,x
-#     return x
-
-# def get_traj(**kwargs):
-#     dataset = pd.read_hdf('lookup_tables.h5','Earth/traj_%s/Column_Trajectories' % str(int(idepth)))
-
-#     if "angle" not in kwargs:
-#         dataset_sliced = dataset
-#         try:
-#             if kwargs['output'] == 'dat':
-#                 np.savetxt('column_%s.dat' % str(int(idepth)), dataset.values, fmt='%.4e', delimiter="\t", header="beta\txalong\tcdalong")
-#                 return print("column_%s.dat created" % str(int(idepth)))
-#             else:
-#                 dataset.to_html('column_%s.html' % str(int(idepth)))
-#                 return print("column_%s.html created" % str(int(idepth)))
-
-#         except KeyError:
-#             dataset.to_html('column_%s.html' % str(int(idepth)))
-#             return print("column_%s.html created" % str(int(idepth)))
-#     else:
-#         dataset_sliced = dataset[dataset['beta']==float(kwargs['angle'])]
-#         try:
-#             if kwargs['output'] == 'dat':
-#                 np.savetxt('column_%s_%sdeg.dat' % (str(int(idepth)), str(kwargs['angle'])), dataset_sliced.values, fmt='%.4e', delimiter="\t", header="beta\txalong\tcdalong")
-#                 return print("column_%s_%sdeg.dat created" % (str(int(idepth)), str(kwargs['angle'])))
-#             else:
-#                 dataset_sliced.to_html('column_%s_%sdeg.html' % (str(int(idepth)), str(kwargs['angle'])))
-#                 return print("column_%s_%sdeg.html created" % (str(int(idepth)), str(kwargs['angle'])))
-#         except KeyError:
-#             dataset_sliced.to_html('column_%s_%sdeg.html' % (str(int(idepth)), str(kwargs['angle'])))
-#             return print("column_%s_%sdeg.html created" % (str(int(idepth)), str(kwargs['angle'])))
-
-#     return print("Error! Please enter an acceptable value of beta or leave blank for all angles")
-
-# def get_water(**kwargs):
-#     dataset = pd.read_hdf('lookup_tables.h5','Earth/traj_%s/Water_Trajectories' % str(int(idepth)))
-
-#     if "angle" not in kwargs:
-#         dataset_sliced = dataset
-#         chord = np.asarray(dataset['chord'])
-#         water= np.asarray(dataset['water'])
-#         try:
-#             if kwargs['output'] == 'dat':
-#                 np.savetxt('water_%s.dat' % str(int(idepth)), dataset.values, fmt='%.4e', delimiter="\t", header="beta\tchord\twater")
-#                 return print("water_%s.dat created" % str(int(idepth)))
-#             else:
-#                 dataset.to_html('column_%s.html' % str(int(idepth)))
-#                 return print("water_%s.html created" % str(int(idepth)))
-
-#         except KeyError:
-#             dataset.to_html('water_%s.html' % str(int(idepth)))
-#             return print("water_%s.html created" % str(int(idepth)))
-#     else:
-#         dataset_sliced = dataset[dataset['beta']==float(kwargs['angle'])]
-#         chord = float(dataset_sliced['chord'])
-#         water = np.float(dataset_sliced['water'])
-#         s = '''\
-#             beta = {beta} deg,
-#             chord = {chord},
-#             water = {water}\
-#             '''.format(beta=str(kwargs['angle']), chord=str(chord), water=str(water))
-#         return print(s)
-#         # return print("beta = %.4e deg,\n chord = %.4e,\n water = %.4e", float(kwargs['angle']), chord, water)
-
-#     return print("Error! Please enter acceptable an value of beta or leave blank for all angles")
-
 # =============================================================================
-# Test Zone!!
-# =============================================================================
-# print(find_interface())
-# idepths = np.asarray([0,1,2,3,4,5,6,7,8,9,10])
-# for i in idepths:
-#     a = Geometry(idepth=i)
-#     a.create_traj_table()
-
-# a = Data()
-# b = Geometry(idepth = 4)
-# b.create_traj_table()
-# b.get_traj(angle='0',output='dat')
-# b.get_water(output='dat')
-# b.my_fun(arg1 = 'first')
-# print("For idepth = %d, " % a.idepth +  "the water/rock transition occurs at",'{:.2f}'.format(b.find_interface()[0]) + str(' deg'))
-# x=b.interpcd2distd(1,2.2684E+07)
-
-# =============================================================================
-#
+# Test
 # =============================================================================
 if __name__ == "__main__":
     # import data as Data

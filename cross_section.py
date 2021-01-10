@@ -5,21 +5,11 @@ Created on Wed Jun 24 18:37:16 2020
 
 @author: sam
 """
-# =============================================================================
-# Move add_x & get_x functions to a new file - done!
-# =============================================================================
 import data as Data
-# import geometry as Geometry
-
 import numpy as np
-# from pandas import HDFStore
 import pandas as pd
-# from scipy.constants import *
 import scipy.constants as scc
-# import scipy as scp
 pd.set_option("display.max_rows", None, "display.max_columns", None)
-
-# import matplotlib.pyplot as plt
 
 E_nu = Data.E_nu
 m_p = scc.physical_constants["proton mass energy equivalent in MeV"][0]*1e-3 # GeV
@@ -200,118 +190,9 @@ def ncteq15_lhapdf_ixc(): # Directly from data files
 
     return None
 
-# def get_cross_section(**kwargs):
-#     which = kwargs['which'] # xc or ymin
-#     model = kwargs['model'] # allms, block, cteq6, nct15, soyza, soyzg, soyzs, or nct15_lhapdf
-#     particle = kwargs['particle'] # neutrino or anti-neutrino
-#     if particle=='anti-neutrino':particle='anti_neutrino'
-#     else:pass
-#     if particle=='neutrino':particle_prefix='nu' # required for output file creation
-#     else:particle_prefix='anu' # required for output file creation
-
-#     current = kwargs['current'] # cc or nc
-#     pd.options.display.float_format = '{:.4e}'.format # non-cluttered output tables
-
-#     dataset = pd.read_hdf('lookup_tables.h5','Neutrino_Cross_Sections/%s/%s/%s_%s' % (particle,which,model,current))
-
-#     if which == 'ymin':
-
-#         if "energy" not in kwargs:
-#             dataset.columns = ['{:.4e}'.format(i) for i in dataset.columns]
-#             try:
-#                 if kwargs['output'] == 'dat':
-#                     np.savetxt('%s_%s%s_ymin.dat' % (model,particle_prefix,current), dataset.values, fmt='%.4e', delimiter="\t")
-#                     return print("%s_%s%s_ymin.dat created" % (model,particle_prefix,current))
-#                 else:
-#                     dataset.to_html('%s_%s%s_ymin.html' % (model,particle_prefix,current))
-#                     return print("%s_%s%s_ymin.html created" % (model,particle_prefix,current))
-#             except KeyError:
-#                 dataset.to_html('%s_%s%s_ymin.html' % (model,particle_prefix,current))
-#                 return print("%s_%s%s_ymin.html created" % (model,particle_prefix,current))
-#         else:
-#             dataset = pd.DataFrame(dataset.loc[:, kwargs['energy']])
-#             dataset.columns = ['{:.4e}'.format(i) for i in dataset.columns]
-#             try:
-#                 if kwargs['output'] == 'dat':
-#                     np.savetxt('%s_%s%s_ymin_%s.dat' % (model,particle_prefix,current,str("{:.2e}".format(kwargs['energy']))), dataset.values, fmt='%.4e', delimiter="\t",header=str(kwargs['energy']))
-#                     return print("%s_%s%s_ymin_%s.dat created" % (model,particle_prefix,current,str("{:.2e}".format(kwargs['energy']))))
-#                 else:
-#                     dataset.to_html('%s_%s%s_ymin_%s.html' % (model,particle_prefix,current,str("{:.2e}".format(kwargs['energy']))))
-#                     return print("%s_%s%s_ymin_%s.html created" % (model,particle_prefix,current,str("{:.2e}".format(kwargs['energy']))))
-#             except KeyError:
-#                 dataset.to_html('%s_%s%s_ymin_%s.html' % (model,particle_prefix,current,str("{:.2e}".format(kwargs['energy']))))
-#                 return print("%s_%s%s_ymin_%s.html created" % (model,particle_prefix,current,str("{:.2e}".format(kwargs['energy']))))
-
-#     elif which == 'xc':
-
-#         if "energy" not in kwargs:
-#             # dataset.columns = ['{:.4e}'.format(i) for i in dataset.columns]
-#             try:
-#                 if kwargs['output'] == 'dat':
-#                     np.savetxt('%s_%s%s_xc.dat' % (model,particle_prefix,current), dataset.values, fmt='%.4e', delimiter="\t",header="energy\tsigma")
-#                     return print("%s_%s%s_xc.dat created" % (model,particle_prefix,current))
-#                 else:
-#                     dataset.to_html('%s_%s%s_xc.html' % (model,particle_prefix,current))
-#                     return print("%s_%s%s_xc.html created" % (model,particle_prefix,current))
-#             except KeyError:
-#                 dataset.to_html('%s_%s%s_xc.html' % (model,particle_prefix,current))
-#                 return print("%s_%s%s_xc.html created" % (model,particle_prefix,current))
-
-#         else:
-#             # print(dataset)
-#             dataset_sliced = dataset[dataset['energy']==float(kwargs['energy'])]
-#             sigma = np.float(dataset_sliced['sigma'])
-#             s = '''\
-#                 energy = {energy},
-#                 sigma = {sigma}\
-#                 '''.format(energy=str('{:,.4e}'.format(kwargs['energy'])), sigma=str('{:,.4e}'.format(sigma)))
-#             return print(s)
-
-#     else:
-#         print("Error: %s model does not have y_min tables" % model)
-
-#     return print("Error! Please enter acceptable an value of energy or leave blank for all energies")
 
 # =============================================================================
-# Main loop
-# =============================================================================
-# cs_model = input("Enter the cross-section model you want to use (leave blank for 'nct15' or enter 'custom' for user-defined model):") or 'Nct15'
-# b = geometry(idepth = 4)
-# c = Cross_section(b)
-# =============================================================================
-# Test Zone!!
-# =============================================================================
-# a = Data()
-# b = Geometry(idepth = 4)
-# c = Cross_section()
-
-# c.hls_ixc(model='ncteq15')
-
-# c.convert_ymin('Nct15')
-# c.convert_xc('Allms')
-
-# cs_models = ['allm', 'block', 'cteq6', 'ncteq15', 'soyza', 'soyzg', 'soyzs']
-# for model in cs_models:
-    # c.hls_xc(model=model)
-    # c.hls_ixc(model)
-
-# c.ncteq15_lhapdf_xc()
-# c.ncteq15_lhapdf_param_xc()
-# c.ncteq15_lhapdf_ixc()
-
-# c.ctw_xc()
-# c.ctw_ixc()
-# ctw_ymin=c.ctw_ixc()
-# hls_ymin=c.hls_ixc('nct15')
-# hls_ymin['nucc'].to_html('hls_nucc.html')
-
-# ctw_dframe = pd.DataFrame.from_dict(ctw_ymin['nucc'],orient='index').transpose()
-# ctw_dframe.to_html('ctw_nucc.html')
-
-# c.get_cross_section(particle='neutrino',which='xc',model='ctw',current='cc',output='html')
-
-# =============================================================================
-#
+# Test
 # =============================================================================
 if __name__ == "__main__":
     # idepth = 4

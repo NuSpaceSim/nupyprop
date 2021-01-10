@@ -14,7 +14,6 @@ import time
 
 
 E_nu = np.logspace(3,12,91,base=10).astype(np.float64)
-# E_lep = np.asarray([10**(i/10.0) for i in np.arange(0,121,1)]).astype(np.float64)
 E_lep = np.logspace(0,12,121,base=10).astype(np.float64)
 
 
@@ -32,8 +31,6 @@ def get_trajs(type_traj, beta, idepth): # returns {xalong:cdalong} for beta if t
         dataset_sliced = dataset[dataset['beta']==beta]
         xalong = np.array(dataset_sliced.xalong)
         cdalong = np.array(dataset_sliced.cdalong)
-        # traj_dict = {'xalong':xalong, 'cdalong':cdalong}
-        # traj_dict = {xalong[i]: cdalong[i] for i in range(len(xalong))}
         return xalong, cdalong
 
     elif type_traj == 'water':
@@ -57,26 +54,6 @@ def add_xc(xc_type, xc_dict, **kwargs):
     None.
 
     '''
-    # hdf = HDFStore('lookup_tables.h5','a')
-    # if xc_type=='nu':
-    #     particle_current = ['anucc','anunc','nucc','nunc']
-    #     for particle in particle_current:
-    #         data_lst = xc_dict[particle]
-    #         dframe = pd.DataFrame({'energy':self.energies_nu,'sigma':data_lst})
-    #         if 'a' in particle: # anti-neutrino group
-    #             hdf.put('Neutrino_Cross_Sections/anti_neutrino/xc/%s_%s' % (str(model),particle[3:]), dframe)
-    #         else: # neutrino group
-    #             hdf.put('Neutrino_Cross_Sections/neutrino/xc/%s_%s' % (str(model),particle[2:]), dframe)
-    #     hdf.close()
-    #     return print("%s_sigma CC & NC lookup tables successfully created for %s model" % (xc_type, model))
-    # else: # energy loss XC
-    #     material = kwargs['material']
-    #     data_lst = xc_dict[model]
-    #     dframe = pd.DataFrame({'energy':self.energies_lep,'sigma':data_lst})
-    #     hdf.put('Energy_Loss/%s/%s/xc/%s' % (xc_type,material,model),dframe)
-    #     hdf.close()
-    #     return print("%s_sigma lookup table successfully created for %s model in %s" % (xc_type, model, material))
-
     hdf = HDFStore('lookup_tables.h5','a')
     if xc_type=='nu':
         model = kwargs['model']
@@ -110,32 +87,17 @@ def get_xc(xc_type, model, **kwargs):
         if particle=='anti-neutrino':particle='anti_neutrino'
         try:
             dataset_xc = pd.read_hdf('lookup_tables.h5','Neutrino_Cross_Sections/%s/xc/%s' % (particle,model))
-            # cscc = dict(zip(dataset_xc.energy, dataset_xc.sigma_cc))
-            # csnc = dict(zip(dataset_xc.energy, dataset_xc.sigma_nc))
-            # cs = {'cc':cscc,'nc':csnc}
-
             cscc = dataset_xc.sigma_cc
             csnc = dataset_xc.sigma_nc
             return np.asarray([cscc,csnc])
         except KeyError:
             model = str(input(("Error finding cross-section values for %s model, please enter a valid model name: " % model)))
-            # self.get_xc(xc_type,model,particle,**kwargs)
             return None
     else: # energy loss; xc_type == 'tau' or 'muon'
         try:
             material = kwargs['material']
 
             dataset_xc = pd.read_hdf('lookup_tables.h5','Energy_Loss/%s/%s/xc' % (xc_type,material))
-
-            # cs_brem = dict(zip(dataset_xc.energy, dataset_xc.sigma_brem))
-            # cs_pair = dict(zip(dataset_xc.energy, dataset_xc.sigma_pair))
-            # if model == 'BB' or model == 'bb': # Bezrukov Bugaev PN energy loss
-            #     cs_pn = dict(zip(dataset_xc.energy, dataset_xc.sigma_pn_bb))
-            # else: # ALLM/custom model for PN energy loss
-            #     cs_pn = dict(zip(dataset_xc.energy, dataset_xc.sigma_pn))
-
-            # cs = {'brem':cs_brem, 'pair':cs_pair, 'pn':cs_pn}
-
             cs_brem = dataset_xc.sigma_brem
             cs_pair = dataset_xc.sigma_pair
             if model == 'BB' or model == 'bb': # Bezrukov Bugaev PN energy loss
@@ -143,11 +105,9 @@ def get_xc(xc_type, model, **kwargs):
             else: # ALLM/custom model for PN energy loss
                 cs_pn = dataset_xc.sigma_pn
 
-            # cs = {'brem':cs_brem, 'pair':cs_pair, 'pn':cs_pn}
             return np.asarray([cs_brem,cs_pair,cs_pn])
         except KeyError:
             model = str(input(("Error finding alpha & cross-section values for PN %s model, please enter a valid model name: " % model)))
-            # self.get_xc(xc_type,model,particle,**kwargs)
             return None
     return None
 
@@ -194,16 +154,10 @@ def get_ixc(ixc_type, model, **kwargs):
             icc = dataset_ixc_cc.to_dict()
             inc = dataset_ixc_nc.to_dict()
 
-            # icc.update({0:0}) # padding with 0 since it is a CDF after all
-            # inc.update({0:0})
-            # icc = collections.OrderedDict(sorted(icc.items())) # sort the dictionary so 0:0 is at the beginnning
-            # inc = collections.OrderedDict(sorted(inc.items())) # sort the dictionary so 0:0 is at the beginnning
-
             ixc = {'cc':icc,'nc':inc}
             return ixc
         except KeyError or TypeError:
             model = str(input(("Error finding integrated cross-section values for %s model, please enter a valid model name." % str(model))))
-            # self.get_ixc(ixc_type,model,particle,**kwargs)
             return None
     else: # energy loss; ixc_type == 'tau' or 'muon'
         try:
@@ -222,7 +176,6 @@ def get_ixc(ixc_type, model, **kwargs):
             return ixc
         except KeyError or TypeError:
             model = str(input("Error finding energy loss cross-section values for %s model, please enter a valid model name: " % str(model)))
-            # self.get_ixc(ixc_type,model,**kwargs)
             return None
     return None
 
@@ -235,7 +188,6 @@ def get_nu_ixc(model, **kwargs):
         return dataset_ixc_cc, dataset_ixc_nc
     except KeyError or TypeError:
         model = str(input(("Error finding integrated cross-section values for %s model, please enter a valid model name." % str(model))))
-        # self.get_ixc(ixc_type,model,particle,**kwargs)
         return None
 
 def get_lep_ixc(model, material):
@@ -259,9 +211,6 @@ def add_alpha(alpha, **kwargs):
 
 def get_alpha(particle, material):
     alpha_df = pd.read_hdf('lookup_tables.h5','Energy_Loss/%s/%s/alpha' % (particle,material))
-    # alpha_dict = {'energy':alpha_df.energy,'alpha':alpha_df.alpha}
-    # alpha_dict = {alpha_df.energy:alpha_df.alpha}
-    # alpha_dict = dict(zip(alpha_df.energy, alpha_df.alpha))
     alpha_arr = alpha_df.alpha
     return np.asarray(alpha_arr)
 
@@ -324,9 +273,7 @@ def get_pexit(energy_val, p_type='regen'):
 
 def add_lep_out(energy_val, angle_val, lep_dict):
     energy_str = str("%.0e" % energy_val).replace("+",'')
-    # angle = lep_dict['angle']
     lep_energies = lep_dict["lep_energy"]
-    # lep_energies = np.delete(lep_energies,0,0) # removes the first element, which is 0 from the array because its not needed
 
     hdf = HDFStore('output.h5','a')
     lep_df = pd.DataFrame({'lep_energy':lep_energies})
@@ -345,15 +292,5 @@ def get_lep_out(energy_val, angle_val):
 # =============================================================================
 # Test
 # =============================================================================
-# particle = 'neutrino'
-# model = 'ctw'
-# dataset_xc = pd.read_hdf('lookup_tables.h5','Neutrino_Cross_Sections/%s/xc/%s' % (particle,model))
-# xc_cc = pd.Series(dataset_xc.sigma.values,index=dataset_xc.energy).to_dict()
-# start_time = time.time()
-# # a = Data()
-# for i in range(1000):
-#     xalong,cdalong = get_trajs('col', 1, 4)
-# end_time = time.time()
-# print(f"It took {end_time-start_time:.2f} seconds to compute")
 if __name__ == "__main__":
     arr = get_beta('tau', 'rock', 'total', 'allm', True)

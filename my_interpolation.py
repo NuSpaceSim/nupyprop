@@ -11,16 +11,10 @@ import data as Data
 
 import numpy as np
 import pandas as pd
-# from scipy import interpolate
-# import collections
-# import random
 import time
-# random.seed(30)
 from numba import njit
-# from numba import jit
 import scipy.constants as scc
 from interpolation import interp
-# from numba import guvectorize, float64, int64, vectorize
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -30,39 +24,12 @@ pd.set_option("display.max_rows", None, "display.max_columns", None)
 
 E_nu = Data.E_nu
 E_lep = Data.E_lep
-# lepton = Energy_loss.lepton
-# material = Energy_loss.material
 N_A = scc.Avogadro
 
-# @njit(nogil=True,fastmath=True,parallel=True)
-def interp_nb(x_vals, x, y):
-    x_vals = np.asarray(x_vals)
-    return np.interp(x_vals, x, y)
 
 @njit(nogil=True)
 def interpol(x_vals, x, y):
     return interp(x, y, x_vals)
-
-# def vec_interpolate(x_val, x_fix, y_fix):
-#     # x_var = np.array([x_val])
-#     x_var = np.array([x_val])
-#     # x_fix = E_nu
-#     # y_fix = np.array(list(xc_dict['cc'].values()))
-
-#     x_repeat = np.tile(x_var[:,None], (len(x_fix),))
-#     distances = np.abs(x_repeat - x_fix)
-
-#     x_indices = np.searchsorted(x_fix, x_var)
-
-#     weights = np.zeros_like(distances)
-#     idx = np.arange(len(x_indices))
-#     weights[idx,x_indices] = distances[idx,x_indices-1]
-#     weights[idx,x_indices-1] = distances[idx,x_indices]
-#     weights /= np.sum(weights, axis=1)[:,None]
-#     # print(weights.round(2))
-
-#     y_var = np.dot(weights, y_fix.T)
-#     return float(y_var)
 
 @njit(nogil=True)
 def cd2distd(xalong, cdalong, col_depth):
@@ -129,48 +96,8 @@ def int_beta(energy, beta_arr):
 #         return ixc_dict[ip][energy]
 #     return None
 
-
 # =============================================================================
-# Main Program
-# =============================================================================
-# start_time = time.time()
-# a = Data()
-# b = Geometry(idepth = 3)
-# c = Cross_section()
-# d = Energy_loss(lepton='muon',material='water')
-# e = Interpolation()
-
-# =============================================================================
-#
-# =============================================================================
-# print(e.cd2distd(40,222))
-# energies = [1*random.uniform(1e3, 1e12) for i in range(100000)]
-# nu_xc = Data().get_xc(xc_type='nu',model='ncteq15',particle='neutrino')
-# # # lep_xc = Data().get_xc(xc_type='tau',model='allm', material='water')
-# for energy in energies:
-# # #     # y_my = e.int_xc(energy, nu_xc, 'nu')
-# #     # y_vec = e.interpolate(energy, nu_xc)
-#     y_val = e.int_xc(energy, nu_xc, 'nu')
-    # y_val = e.int_xc2(energy, nu_xc, 'nu')
-
-# energy = 1234
-# E_nu = e.E_nu
-# xc_dict = Data().get_xc(xc_type='nu',model='ncteq15',particle='neutrino')
-# # nu_xc = np.asarray([i for i in xc_dict['cc'].values()])
-# # y_val = e.N_A*interp_nb(np.array([energy]), e.E_nu, nu_xc)
-# y_val = e.int_xc2(energy, xc_dict, 'nu')
-
-# x = np.linspace(0, 2*np.pi, 10)
-# y = np.sin(x)
-# xvals = np.linspace(0, 2*np.pi, 50)
-
-# y_interp = interp_nb(xvals, x, y)
-
-# end_time = time.time()
-# print(f"It took {end_time-start_time:.2f} seconds to compute")
-
-# =============================================================================
-#
+# Test
 # =============================================================================
 if __name__ == "__main__":
     start_time = time.time()
