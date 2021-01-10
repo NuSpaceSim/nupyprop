@@ -193,12 +193,12 @@ def main():
             regen_arr.append(prob_regen)
 
             lep_dict = {'lep_energy':np.asarray(e_out)}
-            # Data.add_lep_out(energy, angle, lep_dict)
+            Data.add_lep_out(energy, angle, lep_dict)
 
         # # end of for loop for angles
 
         prob_dict_single = {'angle':np.asarray(angle_arr),'no_regen':np.asarray(no_regen_arr),'regen':np.asarray(regen_arr)}
-        # Data.add_pexit(energy, prob_dict_single)
+        Data.add_pexit(energy, prob_dict_single)
 
         angle_arr = []
         no_regen_arr = []
