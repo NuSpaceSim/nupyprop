@@ -1,14 +1,7 @@
 ### **Dependencies:**
-1. python 3+ (anaconda recommended)
+python 3+ (anaconda recommended).
+
 Once you have anaconda up and running, run `conda env create -f dependencies.yml`. This will create a new environment named 'nupyprop' and will install all the dependencies. It may take a while to do so. After it finishes installing, run `conda activate nupyprop` and you should be ready to run the code.
-2. numpy
-3. pandas
-4. scipy
-5. matplotlib
-6. numba
-7. sympy
-8. interpolation
-9. (for a HDF5 GUI viewer) vitables
 
 **Run parameters** are defined in run.py. Different switches are described as follows:
 
