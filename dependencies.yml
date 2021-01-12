@@ -1,4 +1,4 @@
-name: test
+name: nupyprop
 channels:
   - defaults
   - conda-forge
