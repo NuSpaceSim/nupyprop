@@ -26,14 +26,14 @@ Once you have anaconda up and running, run `conda env create -f dependencies.yml
 **Example** for running tau propagation for 10^7 GeV neutrinos at 10 degrees with a statistics of 10^6 particles with all other parameters as defaults:
 `python run.py -e 1e7 -a 10 -s 1e6`
 
-**Viewing output results**:
-output.h5 will contain the results of the code after it has finished running. 
+**WARNING**: Running the code will replace the results of the output.h5 file. Backing up previous output files is recommended (or just download and replace from the repo). Future fixes include overwrite warnings for the user.
 
-Currently, the output file contains a full set of tau results ran for neutrino energies of 1e7, 1e8, 1e9 and 1e10 GeV, at 1,3,5,7,10,12,15,17,20,25,30,35 degrees with statistics of 1e8 particles (10^9 GeV ran with 10^7 statistics because of impending memory leak errors.)
+**Viewing output results**:
+output.h5 will contain the results of the code after it has finished running. In the terminal, run `vitables` and open the output.h5 file to view the output results.
 
 Note: Since the HDF5 files have been written using pandas, the full tables are stored in 'axis1' in all of the branches.
 
-**WARNING**: Running the code will replace the results of the output.h5 file. Backing up previous output files is recommended (or just download and replace from the repo). Future fixes include overwrite warnings for the user.
+Currently, the output file contains a full set of tau results ran for neutrino energies of 1e7, 1e8, 1e9 and 1e10 GeV, at 1,3,5,7,10,12,15,17,20,25,30,35 degrees with statistics of 1e8 particles (10^9 GeV ran with 10^7 statistics because of impending memory leak errors.)
 
 **For debugging/development:**
 The correct order to look at the code is in the following order:
