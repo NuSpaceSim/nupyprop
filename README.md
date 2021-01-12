@@ -29,8 +29,8 @@
 
 9. -s or --stat: statistics. Default is 1e7 particles.
 
-**Example** for running tau propagation for 10^8 GeV neutrinos at 10 degrees with a statistics of 10^8 particles with all other parameters as defaults:
-`python run.py -e 1e8 -a 10 -s 1e8`
+**Example** for running tau propagation for 10^7 GeV neutrinos at 10 degrees with a statistics of 10^6 particles with all other parameters as defaults:
+`python run.py -e 1e7 -a 10 -s 1e6`
 
 **Viewing output results**:
 output.h5 will contain the results of the code after it has finished running. 
