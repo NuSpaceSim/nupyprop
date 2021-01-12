@@ -7,7 +7,7 @@ Created on Fri Oct 9 23:04:35 2020
 """
 import os
 
-# os.environ['KMP_DUPLICATE_LIB_OK']='True'
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 import data as Data
 import geometry as Geometry
