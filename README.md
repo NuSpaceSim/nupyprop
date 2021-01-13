@@ -1,5 +1,5 @@
 ### **Dependencies:**
-python 3+ (anaconda recommended).
+python 3+ (anaconda recommended), numpy, pandas, scipy, sympy, matplotlib, numba, interpolation(conda-forge), vitables (conda-forge; optional).
 
 Once you have anaconda up and running, run `conda env create -f dependencies.yml`. This will create a new environment named 'nupyprop' and will install all the dependencies. It may take a while to do so. After it finishes installing, run `conda activate nupyprop` and you should be ready to run the code.
 
