@@ -501,6 +501,8 @@ def regen(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, 
 
     return part_type, d_exit, e_fin
 
+# following functions are not useful for the main program and are only designed for debugging!
+'''
 @njit(nogil=True)
 def regen_water(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong): # note: angle is now in angle
 
@@ -939,7 +941,7 @@ def ixc_nb(ixc_dict): # NOTE: This function is only used for individual testing 
             en_dict[j] = ind_dict
         ixc[model] = en_dict
     return ixc
-
+'''
 # =============================================================================
 # Test
 # =============================================================================
