@@ -31,14 +31,18 @@ E_lep = Data.E_lep
 rho_water = 1.02 # g/cm^2
 rho_rock = 2.65 # g/cm^2
 
-def init_xc(lepton, nu_model, pn_model):
+def init_xc(lepton, nu_model, pn_model, prop_type='stochastic'):
     nu_xc = Data.get_xc('nu', nu_model, particle='neutrino')
     xc_water = Data.get_xc(lepton, pn_model, material='water')
     xc_rock = Data.get_xc(lepton, pn_model, material='rock')
     alpha_water = Data.get_alpha(lepton, 'water')
     alpha_rock = Data.get_alpha(lepton, 'rock')
-    beta_water = Data.get_beta(lepton, 'water', 'continuous', pn_model)
-    beta_rock = Data.get_beta(lepton, 'rock', 'continuous', pn_model)
+    if prop_type == 'stochastic':
+        beta_water = Data.get_beta(lepton, 'water', 'continuous', pn_model)
+        beta_rock = Data.get_beta(lepton, 'rock', 'continuous', pn_model)
+    elif prop_type == 'continuous':
+        beta_water = Data.get_beta(lepton, 'water', 'total', pn_model)
+        beta_rock = Data.get_beta(lepton, 'rock', 'total', pn_model)
     return nu_xc,xc_water,xc_rock,alpha_water,alpha_rock,beta_water,beta_rock
 
 def ixc_nb(ixc_dict):
@@ -162,7 +166,7 @@ def run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, le
 
 def main():
 
-    nu_xc, xc_water, xc_rock, alpha_water, alpha_rock, beta_water, beta_rock = init_xc(lepton, cross_section_model, pn_model)
+    nu_xc, xc_water, xc_rock, alpha_water, alpha_rock, beta_water, beta_rock = init_xc(lepton, cross_section_model, pn_model, prop_type='stochastic')
 
     nu_ixc, lep_ixc_water, lep_ixc_rock = init_ixc(lepton, cross_section_model, pn_model)
 
@@ -240,7 +244,7 @@ if __name__ == "__main__":
     Transport.fac_nu = fac_nu
     c_tau = Transport.c_tau = 8.703e-3
 
-    nu_xc, xc_water, xc_rock, alpha_water, alpha_rock, beta_water, beta_rock = init_xc(lepton, cross_section_model, pn_model)
+    nu_xc, xc_water, xc_rock, alpha_water, alpha_rock, beta_water, beta_rock = init_xc(lepton, cross_section_model, pn_model, prop_type='stochastic')
 
     nu_ixc, lep_ixc_water, lep_ixc_rock = init_ixc(lepton, cross_section_model, pn_model)
     prob_dict, e_out = main()
