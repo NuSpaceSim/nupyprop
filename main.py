@@ -38,7 +38,7 @@ def init_xc(lepton, nu_model, pn_model, prop_type='stochastic'):
     alpha_water = Data.get_alpha(lepton, 'water')
     alpha_rock = Data.get_alpha(lepton, 'rock')
     if prop_type == 'stochastic':
-        beta_water = Data.get_beta(lepton, 'water', 'continuous', pn_model)
+        beta_water = Data.get_beta(lepton, 'water', 'continuous', pn_model) # change continuous to cut
         beta_rock = Data.get_beta(lepton, 'rock', 'continuous', pn_model)
     elif prop_type == 'continuous':
         beta_water = Data.get_beta(lepton, 'water', 'total', pn_model)
@@ -200,12 +200,12 @@ def main():
             regen_arr.append(prob_regen)
 
             lep_dict = {'lep_energy':np.asarray(e_out)}
-            Data.add_lep_out(energy, angle, lep_dict)
+            # Data.add_lep_out(energy, angle, lep_dict)
 
         # # end of for loop for angles
 
         prob_dict_single = {'angle':np.asarray(angle_arr),'no_regen':np.asarray(no_regen_arr),'regen':np.asarray(regen_arr)}
-        Data.add_pexit(energy, prob_dict_single)
+        # Data.add_pexit(energy, prob_dict_single)
 
         angle_arr = []
         no_regen_arr = []
