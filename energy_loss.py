@@ -20,6 +20,7 @@ from multiprocessing import Pool
 import matplotlib.pyplot as plt
 from numba import njit
 import pickle
+import random
 
 m_e = scc.physical_constants["electron mass energy equivalent in MeV"][0]*1e-3 # GeV
 m_mu = scc.physical_constants["muon mass energy equivalent in MeV"][0]*1e-3 # GeV
@@ -31,6 +32,14 @@ le = 3.8616e-11 # electron Compton wavelength in cm
 E_lep = Data.E_lep
 m_p = Cross_section.m_p
 N_A = Cross_section.N_A
+
+@njit(nogil=True)
+def my_rand(): # because we need a random no. in the range of (0,1) and not [0,1)
+    random_no = random.random()
+    while random_no == 0:
+        random_no = random.random()
+    return random_no
+    # return 0.33 # for debugging only!
 
 def integrator(args):
     fun = args[0]
@@ -504,6 +513,18 @@ def em_cont_part(E_init, alpha_val, beta_val, x): # calculate continuous energy 
 
     if E_fin<0:E_fin = m_tau
     return E_fin
+
+@njit(nogil=True)
+def idecay(energy, x):
+    ctau = 87.11e-4
+    gamma = energy/1.777
+    pdec = 1 - np.exp(-x/(gamma*ctau))
+    dy = my_rand()
+    if dy < pdec:
+        idecay_val = "decayed"
+    else:
+        idecay_val = "not_decayed"
+    return idecay_val
 
 # =============================================================================
 #     Plot Alpha
