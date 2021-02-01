@@ -229,7 +229,7 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
             beta = Interpolation.int_beta(e_lep, beta_water)
             e_int = e_lep - (e_lep*beta + alpha)*x # find some intermediate energy to get reasonable values of energy between initial and final energy, a la MUSIC
             if e_int <= e_min: e_int = e_min
-            
+
             e_avg = 10**((np.log10(e_lep)+np.log10(e_int))/2) # does this work?; changed 12/9/2020
 
             alpha = Interpolation.int_alpha(e_avg, alpha_water)
@@ -261,7 +261,7 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
             e_lep = e_int*(1-y) # this is the energy for the next interaction
             e_fin = e_lep
             # go to 10
-            
+
         # Outside the while loop, e_lep has to be < e_min
         if e_lep <= e_min: # only continuous energy loss; go to 20
             d_fin = d_in
@@ -277,10 +277,10 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
         j_max = int(cd_left/(delta_d*rho_water)) #we will get close to exit.
         # in rock, use (traj distance (pathlength)-xalong) actual distance to go/delta_d for jmax
         while e_lep > e_min:
-           
+
            for cnt in range (1,j_max): #for??
               d0 += delta_d # where we are in xalong - use in rock to find rho
-              delta_x = delta_d * rho_water  #distance goes into decay   
+              delta_x = delta_d * rho_water  #distance goes into decay
               x_f = x_0 + delta_x
               # does the particle decay over this distance?
               part_id = Energy_loss.idecay(e_lep,delta_d) #only for taus
@@ -290,11 +290,11 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
                   d_fin = d_in
                   return part_id, d_fin, e_fin
               else:
-                 #find the new energy     assume alpha and beta are total values, not cut values           
+                 #find the new energy     assume alpha and beta are total values, not cut values
                  alpha = Interpolation.int_alpha(e_lep, alpha_water) # changed 12/9/2020
                  beta = Interpolation.int_beta(e_lep, beta_water) # changed 12/9/2020
                  e_fin = e_lep - (e_lep*beta + alpha)*delta_x
-                 d_fin = x_f/1e+5 
+                 d_fin = x_f/1e+5
                  x_0 = x_f
                  e_lep = e_fin
                  if cnt == j_max:
@@ -402,7 +402,7 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
 
             # if e_lep > e_min: # go back and propagate again
             # go to 10
-            
+
         # Outside the while loop, e_lep has to be < e_min
         if e_lep <= e_min: # only continuous energy loss; go to 20
             d_fin = d_max/1e5
@@ -637,7 +637,7 @@ def regen_rock(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_wa
         # 60 continue
         return part_type, d_exit, e_fin
 
-    # we have a tau with room to travel 
+    # we have a tau with room to travel
     part_type, d_exit, e_fin = propagate_lep_rock(0, etau2, xc_rock, lep_ixc_rock, alpha_rock, beta_rock, 0.0, d_left, xalong, cdalong, 'stochastic')
 
     # 60 continue
@@ -959,6 +959,7 @@ def tau_cdf(material):
     plt.title("Regen - %s" % material)
     plt.show()
     return None
+'''
 
 def ixc_nb(ixc_dict): # NOTE: This function is only used for individual testing since it has already been implemented in main.py
     if 'cc' in ixc_dict.keys():
@@ -980,7 +981,7 @@ def ixc_nb(ixc_dict): # NOTE: This function is only used for individual testing 
             en_dict[j] = ind_dict
         ixc[model] = en_dict
     return ixc
-'''
+
 # =============================================================================
 # Test
 # =============================================================================
@@ -1016,7 +1017,7 @@ if __name__ == "__main__":
 
     alpha_water = Data.get_alpha(particle=lepton, material='water')
 
-    beta_water = Data.get_beta(lepton, 'water', 'continuous', pn_model)
+    beta_water = Data.get_beta(lepton, 'water', 'cut', pn_model)
 
     ixc_water = Data.get_ixc(lepton, model=pn_model, material='water')
     lep_ixc_water = ixc_nb(ixc_water)
@@ -1025,7 +1026,7 @@ if __name__ == "__main__":
 
     alpha_rock = Data.get_alpha(particle=lepton, material='rock')
 
-    beta_rock = Data.get_beta(lepton, 'rock', 'continuous', pn_model)
+    beta_rock = Data.get_beta(lepton, 'rock', 'cut', pn_model)
 
     ixc_rock = Data.get_ixc(lepton, model=pn_model, material='rock')
     lep_ixc_rock = ixc_nb(ixc_rock)
