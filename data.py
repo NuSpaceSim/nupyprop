@@ -217,7 +217,7 @@ def get_alpha(particle, material):
 def add_beta(beta_dict, **kwargs):
     particle = kwargs['particle']
     material = kwargs['material']
-    beta_type = kwargs['beta_type'] # needs to be 'continuous' or 'total'
+    beta_type = kwargs['beta_type'] # needs to be 'cut' or 'total'
 
     brem = beta_dict['brem']
     pair = beta_dict['pair']
