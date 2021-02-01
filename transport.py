@@ -270,7 +270,46 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
             return part_id, d_fin, e_fin
 
     else: # continuous energy loss:
-        pass
+        #here is where we do energy loss with dE/dX
+        # we start with part_id = 'not_decayed'
+        d0 = 0.
+        delta_d = 5000. #, for now, not adaptive, distance into decay, cm
+        j_max = int(cd_left/(delta_d*rho_water)) #we will get close to exit.
+        # in rock, use (traj distance (pathlength)-xalong) actual distance to go/delta_d for jmax
+        while e_lep > e_min:
+           
+           for cnt in range (1,j_max): #for??
+              d0 += delta_d # where we are in xalong - use in rock to find rho
+              delta_x = delta_d * rho_water  #distance goes into decay   
+              x_f = x_0 + delta_x
+              # does the particle decay over this distance?
+              part_id = Energy_loss.idecay(e_lep,delta_d) #only for taus
+              if part_id == 'decayed':
+                  # we are all done
+                  e_fin = e_lep
+                  d_fin = d_in
+                  return part_id, d_fin, e_fin
+              else:
+                 #find the new energy     assume alpha and beta are total values, not cut values           
+                 alpha = Interpolation.int_alpha(e_lep, alpha_water) # changed 12/9/2020
+                 beta = Interpolation.int_beta(e_lep, beta_water) # changed 12/9/2020
+                 e_fin = e_lep - (e_lep*beta + alpha)*delta_x
+                 d_fin = x_f/1e+5 
+                 x_0 = x_f
+                 e_lep = e_fin
+                 if cnt == j_max:
+                    delta_x= cd_left-x_f
+                    if (delta_x>0): #last little energy loss
+                        e_fin = e_lep - (e_lep*beta + alpha)*delta_x
+                    d_fin = d_in # take care of that last little delta-x
+                    return part_id, d_fin, e_fin
+
+        # Outside the while e_lep has to be < e_min
+        if e_lep <= e_min: # only continuous energy loss; go to 20
+            d_fin = d_in
+            e_fin = e_min
+            part_id = 'no_count' # don't count this
+            return part_id, d_fin, e_fin
 # =============================================================================
 #                 Tau propagation in rock
 # =============================================================================
