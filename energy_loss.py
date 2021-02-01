@@ -179,7 +179,7 @@ def pair(rho, y, E): # eq. A9
 def cs_pair(rho, y, E):
     return pair(rho, y, E)/y
 
-def pair_rho_cont(y, E):
+def pair_rho_cut(y, E):
     return [-(1 - (6*m_le**2)/(E**2 * (1-y))) * np.sqrt(1 - (4 * m_e)/(E * y)), (1 - (6*m_le**2)/(E**2 * (1-y))) * np.sqrt(1 - (4 * m_e)/(E * y))] # [low, high]
 
 def pair_rho_tot(y, E):
@@ -188,7 +188,7 @@ def pair_rho_tot(y, E):
 def pair_rho_xc(y, E):
     return [-(1 - (6*m_le**2)/(E**2 * (1-y))) * np.sqrt(1 - (4 * m_e)/(E * y)), (1 - (6*m_le**2)/(E**2 * (1-y))) * np.sqrt(1 - (4 * m_e)/(E * y))] # [low, high]
 
-def pair_y_cont(E):
+def pair_y_cut(E):
     return [(4*m_e)/E, 1e-3] # [low, high]
 
 def pair_y_tot(E):
@@ -283,7 +283,7 @@ def pn(lnq2, y, E):
 def cs_pn(lnq2, y, E):
     return pn(lnq2, y, E)/y
 
-def pn_q2_cont(y, E):
+def pn_q2_cut(y, E):
     return [np.log((m_le**2 * y**2)/(1 - y)), np.log(2*m_p*E*y - ((m_p+m_pi)**2-m_p**2))] # [low, high]
 
 def pn_q2_tot(y, E):
@@ -292,7 +292,7 @@ def pn_q2_tot(y, E):
 def pn_q2_xc(y, E):
     return [np.log((m_le**2 * y**2)/(1 - y)), np.log(2*m_p*E*y - ((m_p+m_pi)**2-m_p**2))] # [low, high]
 
-def pn_y_cont(E):
+def pn_y_cut(E):
     return [((m_p+m_pi)**2-m_p**2)/(2*m_p*E), 1e-3] # [low, high]
 
 def pn_y_tot(E):
@@ -311,31 +311,31 @@ def calc_alpha():
     return 'Problem in calc_alpha function'
 
 # =============================================================================
-#     Add Lookup Table Entries For Beta (Continuous)
+#     Add Lookup Table Entries For Beta (Cut)
 # =============================================================================
 
-def calc_beta_continuous():
+def calc_beta_cut():
 
     p = Pool(mp.cpu_count()) # use all available cores
 
     brem_arr = np.asarray([p.map(integrator,[[brem, 0, 1e-3, i]])[0][0] for i in E_lep]) # limits 0->1e-3
     brem_arr = np.asarray([rep(i) for i in brem_arr])
 
-    pair_arr = np.asarray([p.map(nquad_integrator,[[pair, pair_rho_cont, pair_y_cont, i]])[0][0] for i in E_lep])
+    pair_arr = np.asarray([p.map(nquad_integrator,[[pair, pair_rho_cut, pair_y_cut, i]])[0][0] for i in E_lep])
     pair_arr = np.asarray([rep(i) for i in pair_arr])
 
     pn_bb_arr = np.asarray([p.map(integrator,[[pn_bb, 1e-5, 1e-3, i]])[0][0] for i in E_lep]) # limits 1e-5->1e-3
     pn_bb_arr = np.asarray([rep(i) for i in pn_bb_arr])
 
-    pn_arr = np.asarray([p.map(nquad_integrator,[[pn, pn_q2_cont, pn_y_cont, i]])[0][0] for i in E_lep])
+    pn_arr = np.asarray([p.map(nquad_integrator,[[pn, pn_q2_cut, pn_y_cut, i]])[0][0] for i in E_lep])
     pn_arr = np.asarray([rep(i) for i in pn_arr])
 
     p.close()
 
     beta_dict = {'energy':E_lep,'brem':brem_arr,'pair':pair_arr,'pn_bb':pn_bb_arr,'pn':pn_arr}
-    Data.add_beta(beta_dict, particle=lepton, material=material, beta_type='continuous')
+    Data.add_beta(beta_dict, particle=lepton, material=material, beta_type='cut')
 
-    return 'Problem in calc_beta_continuous function'
+    return 'Problem in calc_beta_cut function'
 
 # =============================================================================
 # Beta Total
@@ -515,16 +515,16 @@ def em_cont_part(E_init, alpha_val, beta_val, x): # calculate continuous energy 
     return E_fin
 
 @njit(nogil=True)
-def idecay(energy, x):
-    ctau = 87.11e-4
-    gamma = energy/1.777
-    pdec = 1 - np.exp(-x/(gamma*ctau))
+def idecay(energy, distance):
+    # ctau = 87.11e-4
+    gamma = energy/m_le
+    prob_decay = 1 - np.exp(-distance/(gamma*c_tau))
     dy = my_rand()
-    if dy < pdec:
-        idecay_val = "decayed"
+    if dy < prob_decay:
+        dec_str = "decayed"
     else:
-        idecay_val = "not_decayed"
-    return idecay_val
+        dec_str = "not_decayed"
+    return dec_str
 
 # =============================================================================
 #     Plot Alpha
@@ -550,14 +550,14 @@ def plot_alpha():
 
     return None
 # =============================================================================
-#   Plot Beta - Continuous
+#   Plot Beta - Cut
 # =============================================================================
 def plot_c(model):
     plt.figure(2)
 
-    brem = Data.get_beta(particle=lepton,material=material,pn_model=model,beta_type='continuous')['brem']
-    pair = Data.get_beta(particle=lepton,material=material,pn_model=model,beta_type='continuous')['pair']
-    pn = Data.get_beta(particle=lepton,material=material,pn_model=model,beta_type='continuous')['pn']
+    brem = Data.get_beta(particle=lepton,material=material,pn_model=model,beta_type='cut')['brem']
+    pair = Data.get_beta(particle=lepton,material=material,pn_model=model,beta_type='cut')['pair']
+    pn = Data.get_beta(particle=lepton,material=material,pn_model=model,beta_type='cut')['pn']
 
     ener=np.genfromtxt('./fortran/muontables/betac_he_muon_rock.dat',usecols=0)
 
@@ -583,14 +583,14 @@ def plot_c(model):
     plt.loglog(ener, pair_hls,color='b', label = "Pair Production - HLS")
     plt.loglog(ener, pn_bb_hls,color='g', label = "Photonuclear (BB) - HLS")
     plt.loglog(ener, pn_hls,color='k', label = "Photonuclear (ALLM) - HLS")
-    plt.title("Beta - Continuous (beta)")
+    plt.title("Beta - Cut (beta)")
     plt.legend(loc='best')
     plt.xlabel(r"$E_{\tau}$ [GeV]") # or E_{\tau}
     plt.ylabel(r"$\beta_{std~rock}$ [cm$^2$/g]")
     plt.xlim(100, 1e9)
     plt.minorticks_on()
     plt.grid(which='minor', linestyle=':', linewidth='0.2', color='black')
-    # plt.savefig('Continuous.png', format='png', dpi = 300)
+    # plt.savefig('Cut.png', format='png', dpi = 300)
     return None
 
 # =============================================================================
@@ -719,8 +719,10 @@ if __name__ == "__main__":
     elif material=='iron':A=55.84
     else: A=float(input("Enter the atomic mass of %s: " % material))
 
+    c_tau = 8.703e-3
+
     # print(em_cont_part(1e4, 1e-3, 1e-3, 1))
     # calc_alpha()
-    betac = calc_beta_continuous()
+    betac = calc_beta_cut()
     calc_beta_total()
     calc_ixc()
