@@ -28,6 +28,8 @@ parser.add_argument('-i', '--idepth', dest='idepth_val', nargs='?', type=float, 
 
 parser.add_argument('-l', '--lepton', dest='lepton_id', nargs='?', type=str, const='tau', default='tau', help='particle for energy loss and propagation - can be tau or muon; default is tau')
 
+parser.add_argument('-t', '--energy_loss', dest='loss_type', nargs='?', type=str, const='stochastic', default='stochastic', help='energy loss type for lepton - can be stochastic or continuous; default is stochastic')
+
 parser.add_argument('-m', '--material', dest='material_id', nargs='?', type=str, const='rock', default='rock', help='material for energy loss - can be rock or water; default is rock')
 
 parser.add_argument('-x', '--xc_model', dest='xc_model_id', nargs='?', type=str, const='ncteq15', default='ncteq15', help='neutrino cross-section model; default is ncteq15')
@@ -48,6 +50,7 @@ if type(angles) is str:
 
 idepth = int(args.idepth_val)
 lepton = str(args.lepton_id)
+type_loss = str(args.loss_type)
 material = str(args.material_id)
 cross_section_model = str(args.xc_model_id)
 pn_model = str(args.pn_model_id)
@@ -86,10 +89,13 @@ Transport.cross_section_model = Main.cross_section_model = cross_section_model
 Transport.pn_model = Main.pn_model = pn_model
 Transport.fac_nu = Main.fac_nu = fac_nu
 
+
 Main.stat = stat
 
 if lepton == 'tau':Energy_loss.c_tau = Transport.c_tau = Main.c_tau = 8.703e-3 # c*lifetime, in cm, for taus (taken from PDB 2020)
 else:Energy_loss.c_tau = Transport.c_tau = Main.c_tau = 6.586384e4 # c*lifetime, in cm, for muons (taken from PDB 2020)
+
+Main.prop_type = type_loss
 
 Main.E_prop = energies
 Main.angles = angles
