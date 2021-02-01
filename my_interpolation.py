@@ -114,7 +114,7 @@ if __name__ == "__main__":
     # alpha_water = Data.get_alpha(particle=lepton, material='water')
 
 
-    beta_water = Data.get_beta(lepton, 'water', 'continuous', pn_model)
+    beta_water = Data.get_beta(lepton, 'water', 'cut', pn_model)
     print(int_beta(1e7, beta_water, log=False))
 
 
