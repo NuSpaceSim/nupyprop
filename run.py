@@ -61,8 +61,8 @@ Data.idepth = Geometry.idepth = Transport.idepth = Main.idepth = idepth
 Energy_loss.lepton = Transport.lepton = Interpolation.lepton = Main.lepton = lepton
 Energy_loss.material = Transport.material = Interpolation.material = material
 
-if lepton == 'tau':Energy_loss.m_le = Transport.m_le = Energy_loss.m_tau # mass of lepton
-else:Energy_loss.m_le = Transport.m_le = Energy_loss.m_mu  # mass of muon
+if lepton == 'tau':Transport.m_le = Energy_loss.m_tau # mass of lepton
+else:Transport.m_le = Energy_loss.m_mu  # mass of muon
 
 if material=='iso_water':Energy_loss.z=7.0
 elif material=='water':Energy_loss.z=6.6 # for NuTauSim Comparison
@@ -92,8 +92,8 @@ Transport.fac_nu = Main.fac_nu = fac_nu
 
 Main.stat = stat
 
-if lepton == 'tau':Energy_loss.c_tau = Transport.c_tau = Main.c_tau = 8.703e-3 # c*lifetime, in cm, for taus (taken from PDB 2020)
-else:Energy_loss.c_tau = Transport.c_tau = Main.c_tau = 6.586384e4 # c*lifetime, in cm, for muons (taken from PDB 2020)
+if lepton == 'tau':Transport.c_tau = Main.c_tau = 8.703e-3 # c*lifetime, in cm, for taus (taken from PDB 2020)
+else:Transport.c_tau = Main.c_tau = 6.586384e4 # c*lifetime, in cm, for muons (taken from PDB 2020)
 
 Main.prop_type = type_loss
 

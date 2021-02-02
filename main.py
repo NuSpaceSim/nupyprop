@@ -26,6 +26,9 @@ from numba import njit, prange
 import functools
 print = functools.partial(print, flush=True)
 
+import random
+random.seed(2021)
+
 E_nu = Data.E_nu
 E_lep = Data.E_lep
 rho_water = 1.02 # g/cm^2
@@ -38,8 +41,8 @@ def init_xc(lepton, nu_model, pn_model, prop_type='stochastic'):
     alpha_water = Data.get_alpha(lepton, 'water')
     alpha_rock = Data.get_alpha(lepton, 'rock')
     if prop_type == 'stochastic':
-        beta_water = Data.get_beta(lepton, 'water', 'continuous', pn_model) # change continuous to cut
-        beta_rock = Data.get_beta(lepton, 'rock', 'continuous', pn_model)
+        beta_water = Data.get_beta(lepton, 'water', 'cut', pn_model) # change continuous to cut
+        beta_rock = Data.get_beta(lepton, 'rock', 'cut', pn_model)
     elif prop_type == 'continuous':
         beta_water = Data.get_beta(lepton, 'water', 'total', pn_model)
         beta_rock = Data.get_beta(lepton, 'rock', 'total', pn_model)
@@ -125,7 +128,7 @@ def run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, le
         # still need to propagate the tau, column depth to go
 
 
-        ipp, dfinal, etauf = Transport.tau_thru_layers(angle, depth, dwater, depth0, etauin, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong) # note: angle is now in betad
+        ipp, dfinal, etauf = Transport.tau_thru_layers(angle, depth, dwater, depth0, etauin, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, prop_type) # note: angle is now in betad
 
         dleft = depth-dfinal
 
@@ -145,8 +148,8 @@ def run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, le
             etauin = etauf # regen finds neutrino energy
 
 
-            ipp3, dtau2, ef2 = Transport.regen(angle, etauin, depth, dwater, dfinal, nu_xc, nu_ixc, ithird, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong) # note: angle is now in betad
-            
+            ipp3, dtau2, ef2 = Transport.regen(angle, etauin, depth, dwater, dfinal, nu_xc, nu_ixc, ithird, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, prop_type) # note: angle is now in betad
+
             regen_cnt +=1
 
             if ipp3 == 'not_decayed': # then we are back to a tau at the end of the road
@@ -166,7 +169,7 @@ def run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, le
 
 def main():
 
-    nu_xc, xc_water, xc_rock, alpha_water, alpha_rock, beta_water, beta_rock = init_xc(lepton, cross_section_model, pn_model, prop_type='stochastic')
+    nu_xc, xc_water, xc_rock, alpha_water, alpha_rock, beta_water, beta_rock = init_xc(lepton, cross_section_model, pn_model, prop_type)
 
     nu_ixc, lep_ixc_water, lep_ixc_rock = init_ixc(lepton, cross_section_model, pn_model)
 
@@ -228,7 +231,7 @@ if __name__ == "__main__":
     # ray.init()
     # random.seed(30)
     start_time = time.time()
-    angles = np.array([5])
+    angles = np.array([1])
     # angles = np.array([1,3,5,7,10,12,15,17,20,25,30,35])
     E_prop = np.array([1e7])
 
@@ -244,10 +247,12 @@ if __name__ == "__main__":
     Transport.fac_nu = fac_nu
     c_tau = Transport.c_tau = 8.703e-3
 
-    nu_xc, xc_water, xc_rock, alpha_water, alpha_rock, beta_water, beta_rock = init_xc(lepton, cross_section_model, pn_model, prop_type='stochastic')
+    prop_type = 'continuous'
+
+    nu_xc, xc_water, xc_rock, alpha_water, alpha_rock, beta_water, beta_rock = init_xc(lepton, cross_section_model, pn_model, prop_type)
 
     nu_ixc, lep_ixc_water, lep_ixc_rock = init_ixc(lepton, cross_section_model, pn_model)
     prob_dict, e_out = main()
-    
+
     end_time = time.time()
     print(f"It took {end_time-start_time:.2f} seconds to compute")
