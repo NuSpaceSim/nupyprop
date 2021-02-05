@@ -18,7 +18,7 @@ import scipy.constants as scc
 import multiprocessing as mp
 from multiprocessing import Pool
 import matplotlib.pyplot as plt
-from numba import njit
+# from numba import njit
 import pickle
 import random
 
@@ -33,7 +33,7 @@ E_lep = Data.E_lep
 m_p = Cross_section.m_p
 N_A = Cross_section.N_A
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def my_rand(): # because we need a random no. in the range of (0,1) and not [0,1)
     random_no = random.random()
     while random_no == 0:
@@ -504,7 +504,7 @@ def calc_ixc():
 
     return 'Problem in calc_ixc function'
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def em_cont_part(E_init, alpha_val, beta_val, x): # calculate continuous energy loss part for the stochastic process
     if beta_val*x < 1e-6:
         E_fin = E_init * (1-beta_val*x) - alpha_val*x
@@ -514,7 +514,7 @@ def em_cont_part(E_init, alpha_val, beta_val, x): # calculate continuous energy 
     if E_fin<0:E_fin = m_tau
     return E_fin
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def idecay(energy, distance):
     # ctau = 87.11e-4
     gamma = energy/m_le

@@ -12,7 +12,7 @@ import data as Data
 import numpy as np
 import pandas as pd
 import time
-from numba import njit
+# from numba import njit
 import scipy.constants as scc
 from interpolation import interp
 
@@ -27,11 +27,11 @@ E_lep = Data.E_lep
 N_A = scc.Avogadro
 
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def interpol(x_vals, x, y):
     return interp(x, y, x_vals)
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def cd2distd(xalong, cdalong, col_depth):
 
     if col_depth < np.min(cdalong):
@@ -41,13 +41,13 @@ def cd2distd(xalong, cdalong, col_depth):
     else:
         return interpol(col_depth, cdalong, xalong)
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def int_xc_nu(energy, nu_xc): # interpolate xc's & multiply them by N_A (only for neutrinos)
     sig_cc = N_A*interpol(energy, E_nu, nu_xc[0]) # has to be multiplied by N_A because nu_int_length depends on N_A
     sig_nc = N_A*interpol(energy, E_nu, nu_xc[1]) # has to be multiplied by N_A because nu_int_length depends on N_A
     return sig_cc, sig_nc
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def int_xc_lep(energy, xc_arr): # interpolate xc's
 
         sig_brem = interpol(energy, E_lep, xc_arr[0]) # doesn't need to be multiplied by N_A since they already are in the energy_loss module
@@ -56,12 +56,12 @@ def int_xc_lep(energy, xc_arr): # interpolate xc's
         return sig_brem, sig_pair, sig_pn
 
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def int_alpha(energy, alpha_sig):
     alpha = interpol(energy, E_lep, alpha_sig)
     return alpha
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def int_beta(energy, beta_arr):
     brem = interpol(energy, E_lep, beta_arr[0])
     pair = interpol(energy, E_lep, beta_arr[1])

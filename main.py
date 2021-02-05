@@ -22,7 +22,7 @@ import numpy as np
 import time
 import numba as nb
 from numba.typed import Dict
-from numba import njit, prange
+# from numba import njit, prange
 import functools
 print = functools.partial(print, flush=True)
 
@@ -82,7 +82,7 @@ def init_ixc(lepton, nu_model, pn_model):
 
     return nu_ixc, lep_ixc_water, lep_ixc_rock
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def bin_data(angle, energy, eb_no_regen, eb_regen):
 
     emid = 10**np.asarray([(float(i+30)-0.5)/10.0 for i in range(1,92)])
@@ -91,14 +91,14 @@ def bin_data(angle, energy, eb_no_regen, eb_regen):
 
     return energy, angle, prob_no_regen, prob_regen, emid
 
-@njit(nogil=True, parallel=True)
+# @njit(nogil=True, parallel=True)
 def run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird): # depthE is the total column depth from PREM at an angle
     depth = depthE
     regen_cnt = 0
     no_regen_tot = 0
     regen_tot = 0
     e_out = [] # initialize e_out list
-    for i in prange(1,stat+1):
+    for i in range(1,stat+1):
 
         depth0 = 0.0 # start with this each time
 
@@ -107,6 +107,7 @@ def run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, le
         # tnu goes until neutrino either goes to dtot, or converts to a tau
 
         ip, dtr, ef = Transport.propagate_nu(energy, nu_xc, nu_ixc, depth)
+        print(ip, dtr, ef)
 
         # how far did the neutrino go? dtr is how far traveled
 

@@ -11,7 +11,7 @@ import my_interpolation as Interpolation
 import numpy as np
 import time
 import random
-from numba import njit, prange
+# from numba import njit, prange
 
 rho_rock = 2.65
 
@@ -19,7 +19,7 @@ alpha_rock = Data.get_alpha('tau', material='rock')
 
 beta_rock = Data.get_beta('tau', 'rock', 'total', 'allm')
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def my_rand(): # because we need a random no. in the range of (0,1) and not [0,1)
     random_no = random.random()
     while random_no == 0:
@@ -27,7 +27,7 @@ def my_rand(): # because we need a random no. in the range of (0,1) and not [0,1
     return random_no
 
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def dedx(energy):
     alpha_val = Interpolation.int_alpha(energy, alpha_rock)
     beta_val = Interpolation.int_beta(energy, beta_rock)
@@ -37,7 +37,7 @@ def dedx(energy):
 
     return dedx_val
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def idecay(energy, x):
     ctau = 87.11e-4
     gamma = energy/1.777
@@ -49,7 +49,7 @@ def idecay(energy, x):
         idecay_val = "not_decayed"
     return idecay_val
 
-@njit(nogil=True, parallel=True)
+# @njit(nogil=True, parallel=True)
 # def em_continuous_loss(E_init, alpha_val, beta_val, x): # calculate continuous energy loss part for the stochastic process
 def em_continuous_loss(): # calculate continuous energy loss part for the stochastic process
     energy0 = 1e8
@@ -76,7 +76,7 @@ def em_continuous_loss(): # calculate continuous energy loss part for the stocha
         # print("distance and jmax = ", distance, jmax)
         psurv = 0
 
-        for n in prange(1, nmax+1):
+        for n in range(1, nmax+1):
             d = 0
             p_id = 'not_decayed'
             energy0 = 1e8

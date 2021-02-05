@@ -16,10 +16,10 @@ import random
 import pandas as pd
 import scipy.constants as scc
 import time
-from numba import njit,prange
+# from numba import njit,prange
 # import timeit
-from numba.typed import Dict
-import numba as nb
+# from numba.typed import Dict
+# import numba as nb
 
 # random.seed(2021)
 
@@ -35,7 +35,7 @@ v2 = -np.linspace(0.1,3,num=30).astype(np.float64)
 v2 = np.insert(v2,0,0) # padding 0 at the beginning to match index with ixc entry nos. as those start with 1
 
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def my_rand(): # because we need a random no. in the range of (0,1) and not [0,1)
     random_no = random.random()
     while random_no == 0:
@@ -43,7 +43,7 @@ def my_rand(): # because we need a random no. in the range of (0,1) and not [0,1
     return random_no
     # return 0.33 # for debugging only!
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def idecay(energy, distance):
     # ctau = 87.11e-4
     gamma = energy/m_le
@@ -55,13 +55,13 @@ def idecay(energy, distance):
         dec_str = "not_decayed"
     return dec_str
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def int_length_nu(energy, nu_xc): # interaction lengths for neutrino & leptons; in cm
     sig_cc, sig_nc = Interpolation.int_xc_nu(energy, nu_xc) # initialize CC & NC xc interpolations
     x_int = 1/(((sig_cc + sig_nc))*fac_nu) # check the * or / fac_nu!
     return x_int
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def int_length_lep(energy, xc_arr, rho): # interaction lengths for neutrino & leptons; in cm
     # print(rho)
     sig_cc = 0 # placeholder for CC lepton interactions
@@ -71,7 +71,7 @@ def int_length_lep(energy, xc_arr, rho): # interaction lengths for neutrino & le
     x_int = 1/((sig_brem + sig_pair + sig_pn + (1/(gamma*c_tau*rho)) + sig_cc + sig_nc))
     return x_int
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def interaction_type_nu(energy, nu_xc):
     sig_cc, sig_nc = Interpolation.int_xc_nu(energy, nu_xc)
     tot_frac = 1/int_length_nu(energy, nu_xc)
@@ -84,7 +84,7 @@ def interaction_type_nu(energy, nu_xc):
     else:
         return 'nc' # interaction type
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def interaction_type_lep(energy, xc_arr, rho):
     sig_cc = 0 # placeholder for CC lepton interactions
     sig_nc = 0 # placeholder for NC lepton interactions
@@ -115,7 +115,7 @@ def interaction_type_lep(energy, xc_arr, rho):
 
     return None
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def find_y(energy,ixc_dict,ip):
     dy = my_rand()
 
@@ -135,7 +135,7 @@ def find_y(energy,ixc_dict,ip):
 # =============================================================================
 #                 Nu propagation
 # =============================================================================
-@njit(nogil=True)
+# @njit(nogil=True)
 def propagate_nu(e_init, nu_xc, nu_ixc, depth_max):
 
     part_type = 'nu' # starting off as a neutrino
@@ -195,7 +195,7 @@ def propagate_nu(e_init, nu_xc, nu_ixc, depth_max):
 # =============================================================================
 #                 Tau propagation in water
 # =============================================================================
-@njit(nogil=True)
+# @njit(nogil=True)
 def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in, prop_type):
 
     e_min = 1e3 # minimum tau energy, in GeV
@@ -353,7 +353,7 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
 # =============================================================================
 #                 Tau propagation in rock
 # =============================================================================
-@njit(nogil=True)
+# @njit(nogil=True)
 def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d_entry, d_in, xalong, cdalong, prop_type):
     if prop_type == 'stochastic':
         e_min = 1e3 # minimum tau energy, in GeV
@@ -455,7 +455,7 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
     # loop for deltax, ask if it decays. If decay, go to regen, if not update energy and distance and keep going. Make sure to not go past the max distance. Ending check for not exceeding the total distance
         return None
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def tau_thru_layers(angle, depth, d_water, depth_traj, e_lep_in, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, prop_type): # note: angle is now in angle
 
     d_fin = depth_traj
@@ -508,7 +508,7 @@ def tau_thru_layers(angle, depth, d_water, depth_traj, e_lep_in, xc_water, xc_ro
 
     return part_type, d_fin, e_fin
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def distnu(r, ithird): # ithird = 1 => 1/3 or ithird = 2 => dist; rename to decay_distnu
     fnu=lambda y: y/3 * (5 - 3* y**2 + y**3) - y/3 * (1 - 3 * y**2 + 2 * y**3) # polarized
     if ithird !=1:
@@ -528,7 +528,7 @@ def distnu(r, ithird): # ithird = 1 => 1/3 or ithird = 2 => dist; rename to deca
     else:
         return 1/3
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def regen(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, xc_rock, ixc_water, ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, prop_type): # note: angle is now in angle
 
     # find the neutrino energy from the tau decay with tau energy e_lep
@@ -582,7 +582,7 @@ def regen(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, 
 
 # following functions are not useful for the main program and are only designed for debugging!
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def regen_water(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, prop_type): # note: angle is now in angle
 
     # find the neutrino energy from the tau decay with tau energy e_lep
@@ -633,7 +633,7 @@ def regen_water(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_w
     # 60 continue
     return part_type, d_exit, e_fin
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def regen_rock(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, prop_type): # note: angle is now in angle
 
     # find the neutrino energy from the tau decay with tau energy e_lep
@@ -683,7 +683,7 @@ def regen_rock(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_wa
     # 60 continue
     return part_type, d_exit, e_fin
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def pexit_w(energy, dm, xc_water, lep_ixc_water, alpha_water, beta_water, prop_type):
 
     # dm = dm[0:20]
@@ -695,7 +695,7 @@ def pexit_w(energy, dm, xc_water, lep_ixc_water, alpha_water, beta_water, prop_t
     for j in range(len(dm)):
         surv = 0.0
         ic = 0
-        for k in prange(imax):
+        for k in range(imax):
             p_id, df, e_fin = propagate_lep_water(energy[j], xc_water, lep_ixc_water, alpha_water, beta_water, dm[j], prop_type)
             # print(energy[j], dm[j], df, e_fin)
             if p_id == 'not_decayed' and e_fin>50:
@@ -707,7 +707,7 @@ def pexit_w(energy, dm, xc_water, lep_ixc_water, alpha_water, beta_water, prop_t
     # f.close()
     return None
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def pexit_r(angle, energy, dm, xc_rock, lep_ixc_rock, alpha_rock, beta_rock, xalong, cdalong, prop_type):
 
     # dm = dm[:5]
@@ -720,7 +720,7 @@ def pexit_r(angle, energy, dm, xc_rock, lep_ixc_rock, alpha_rock, beta_rock, xal
     for j in range(len(dm)):
         surv = 0.0
         ic = 0
-        for k in prange(imax):
+        for k in range(imax):
             # p_id, df, e_fin = propagate_lep_water(energy[j], xc_water, lep_ixc_water, alpha_water, beta_water, dm[j], 'stochastic')
             # propagate_lep_rock(e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d_entry, d_in, prop_type)
             p_id, df, e_fin = propagate_lep_rock(0, energy[j], xc_rock, lep_ixc_rock, alpha_rock, beta_rock, 0.0, dm[j], xalong, cdalong, prop_type)
@@ -733,7 +733,7 @@ def pexit_r(angle, energy, dm, xc_rock, lep_ixc_rock, alpha_rock, beta_rock, xal
     # f.close()
     return None
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def pexit_n(angle, energy, dm, nu_xc, nu_ixc, xc_water, lep_ixc_water, alpha_water, beta_water, xc_rock, lep_ixc_rock, alpha_rock, beta_rock, xalong, cdalong, prop_type):
     ebin = np.zeros(91)
 
@@ -742,7 +742,7 @@ def pexit_n(angle, energy, dm, nu_xc, nu_ixc, xc_water, lep_ixc_water, alpha_wat
     for j in range(len(dm)):
         surv = 1.0
         ic = 0
-        for k in prange(imax):
+        for k in range(imax):
             ip, dtravel, ef = propagate_nu(1e10, nu_xc, nu_ixc, dm[j])
             # print(float(1e10), dm[j], dtravel, ip)
 
@@ -762,7 +762,7 @@ def pexit_n(angle, energy, dm, nu_xc, nu_ixc, xc_water, lep_ixc_water, alpha_wat
 
     return None
 
-@njit(nogil=True,fastmath=True)
+# @njit(nogil=True,fastmath=True)
 def p_exit_regen(prop_material, angle, energy, dm, nu_xc, nu_ixc, xc_water, lep_ixc_water, alpha_water, beta_water, xc_rock, lep_ixc_rock, alpha_rock, beta_rock, xalong, cdalong, prop_type):
 
     ebin = np.zeros(92)
@@ -779,7 +779,7 @@ def p_exit_regen(prop_material, angle, energy, dm, nu_xc, nu_ixc, xc_water, lep_
         # if surv<1e-3:
         #     surv=0.0
         #     continue
-        for k in prange(imax):
+        for k in range(imax):
             # print("propagating neutrinos...")
             ip, dtravel, ef = propagate_nu(1e10, nu_xc, nu_ixc, dm[j])
             # print(float(1e10), dm[j], dtravel, ip)
@@ -1009,13 +1009,13 @@ def ixc_nb(ixc_dict): # NOTE: This function is only used for individual testing 
         models = ['brem', 'pair', 'pn']
         energies = E_lep
 
-    ind_dict = Dict.empty(key_type=nb.typeof(1),value_type=nb.typeof(1e4))
-    en_dict = Dict.empty(key_type=nb.typeof(1e3),value_type=nb.typeof(ind_dict))
-    ixc = Dict.empty(key_type=nb.typeof('brem'),value_type=nb.typeof(en_dict))
+    ind_dict = {}
+    en_dict = {}
+    ixc = {}
     for model in models:
-        en_dict = Dict.empty(key_type=nb.typeof(1e3),value_type=nb.typeof(ind_dict))
+        en_dict = {}
         for j in energies:
-            ind_dict = Dict.empty(key_type=nb.typeof(1),value_type=nb.typeof(1e4))
+            ind_dict = {}
             for i in range(1,31):
                 ind_dict[i] = ixc_dict[model][j][i]
             en_dict[j] = ind_dict

@@ -18,7 +18,7 @@ from pandas import HDFStore,DataFrame
 from scipy import interpolate
 import sympy as sp
 import warnings
-from numba import njit,prange
+# from numba import njit,prange
 from math import isclose
 
 
@@ -86,7 +86,7 @@ def trajlength(beta_deg):
     trajlength = Re*np.cos(tnadir)*2
     return trajlength
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def PREMdensity(Rin):
     '''
 
@@ -227,7 +227,7 @@ def columndepth(beta_deg):
         columndepth = PREMgramVSang(z)
     return columndepth
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def densityatx(x, beta_deg):
     '''
 
