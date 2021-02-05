@@ -12,17 +12,20 @@ os.environ['KMP_DUPLICATE_LIB_OK']='True'
 import data as Data
 import geometry as Geometry
 import energy_loss as Energy_loss
+import my_interpolation as Interpolation
 import transport as Transport
 import pandas as pd
 
 import matplotlib.pyplot as plt
 from matplotlib.ticker import ScalarFormatter
 
+import deepdiff
+import copy
 import numpy as np
 import time
 import numba as nb
-from numba.typed import Dict
-from numba import njit, prange
+# from numba.typed import Dict
+# from numba import njit, prange
 import functools
 print = functools.partial(print, flush=True)
 
@@ -53,13 +56,13 @@ def ixc_nb(ixc_dict):
         models = ['brem', 'pair', 'pn']
         energies = E_lep
 
-    ind_dict = Dict.empty(key_type=nb.typeof(1),value_type=nb.typeof(1e4))
-    en_dict = Dict.empty(key_type=nb.typeof(1e3),value_type=nb.typeof(ind_dict))
-    ixc = Dict.empty(key_type=nb.typeof('brem'),value_type=nb.typeof(en_dict))
+    ind_dict = {}
+    en_dict = {}
+    ixc = {}
     for model in models:
-        en_dict = Dict.empty(key_type=nb.typeof(1e3),value_type=nb.typeof(ind_dict))
+        en_dict = {}
         for j in energies:
-            ind_dict = Dict.empty(key_type=nb.typeof(1),value_type=nb.typeof(1e4))
+            ind_dict = {}
             for i in range(1,31):
                 ind_dict[i] = ixc_dict[model][j][i]
             en_dict[j] = ind_dict
@@ -67,19 +70,12 @@ def ixc_nb(ixc_dict):
     return ixc
 
 def init_ixc(lepton, nu_model, pn_model):
-    ixc_nu = Data.get_ixc('nu', nu_model, particle='neutrino')
-    nu_ixc = ixc_nb(ixc_nu)
+    ixc_nu = Data.get_nu_iixc(nu_model, particle='neutrino')
+    ixc_water = Data.get_lep_iixc(pn_model, 'water')
+    ixc_rock = Data.get_lep_iixc(pn_model, 'rock')
+    return ixc_nu, ixc_water, ixc_rock
 
-    ixc_water = Data.get_ixc(lepton, model=pn_model, material='water')
-    lep_ixc_water = ixc_nb(ixc_water)
-
-
-    ixc_rock = Data.get_ixc(lepton, model=pn_model, material='rock')
-    lep_ixc_rock = ixc_nb(ixc_rock)
-
-    return nu_ixc, lep_ixc_water, lep_ixc_rock
-
-@njit(nogil=True)
+# @njit(nogil=True)
 def bin_data(angle, energy, eb_no_regen, eb_regen):
 
     emid = 10**np.asarray([(float(i+30)-0.5)/10.0 for i in range(1,92)])
@@ -88,79 +84,97 @@ def bin_data(angle, energy, eb_no_regen, eb_regen):
 
     return energy, angle, prob_no_regen, prob_regen, emid
 
-@njit(nogil=True, parallel=True)
+# @njit(nogil=True, parallel=True)
 def run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird): # depthE is the total column depth from PREM at an angle
-    depth = depthE
     regen_cnt = 0
     no_regen_tot = 0
     regen_tot = 0
-    e_out = [] # initialize e_out list
-    for i in prange(1,stat+1):
 
-        depth0 = 0.0 # start with this each time
+    cd2distd = Interpolation.f_cd2distd(xalong, cdalong)
+    densityatx = Geometry.f_densityatx(angle)
 
-        # 80 continue
+    # for i in range(1,stat+1):
 
-        # tnu goes until neutrino either goes to dtot, or converts to a tau
+    depth = np.full(stat, depthE)
+    # depth0 = np.zeros(stat) # start with this each time
 
-        ip, dtr, ef = Transport.propagate_nu(energy, nu_xc, nu_ixc, depth)
+    # 80 continue
 
-        # how far did the neutrino go? dtr is how far traveled
+    # tnu goes until neutrino either goes to dtot, or converts to a tau
+    ip, dtr, ef = Transport.propagate_nu(energy, nu_xc, nu_ixc, depth)
 
-        depth0 += dtr # how far is the neutrino on trajectory?
+    # if ip == 'nu': # still a neutrino at the end of the road
+    #     # go to 10
+    #     continue # break outside stat; continue is correct here
+    # continue here: we have a tau
+    nu_mask = ip == 'nu'
+    tau_mask = ~nu_mask
+    taus_count = np.count_nonzero(tau_mask)
+    e_out = np.zeros(taus_count)
 
-        dleft = depthE - depth0 # how far is left for the neutrino to travel?
+    depth = depth[tau_mask]
+    dtr = dtr[tau_mask]
+    etauin = ef[tau_mask]
 
-        if ip == 'nu': # still a neutrino at the end of the road
-            # go to 10
-            continue # break outside stat; continue is correct here
-
-
-        # continue here: we have a tau
-
-        regen_cnt = 1 # tau out after first interaction
-
-
-        etauin = ef
-        # still need to propagate the tau, column depth to go
-
-
-        ipp, dfinal, etauf = Transport.tau_thru_layers(angle, depth, dwater, depth0, etauin, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong) # note: angle is now in betad
-
-        dleft = depth-dfinal
-
-        if ipp == 'not_decayed' and dleft <= 0: # a tau has emerged through column depth
-            no_regen_tot += 1
-            regen_tot += 1 # update the regen tau array once
-            e_out.append(etauf)
-            # go to 10; we are done with the loop
-            continue # break outside stat; continue is correct here
-
-        # 11 continue; beginning of regeneration loop
-        # must be a neutrino. Is there still column depth to propagate?
-
-        ipp3 = 'dummy_value'
-        while (dfinal < depthE) and (ipp3!='not_decayed') and regen_cnt<=10: # tau has decayed before the end
-
-            etauin = etauf # regen finds neutrino energy
+    # how far did the neutrino go? dtr is how far traveled
+    # depth0 += dtr # how far is the neutrino on trajectory?
+    dleft = depthE - dtr # how far is left for the neutrino to travel?
 
 
-            ipp3, dtau2, ef2 = Transport.regen(angle, etauin, depth, dwater, dfinal, nu_xc, nu_ixc, ithird, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong) # note: angle is now in betad
-            
-            regen_cnt +=1
+    # still need to propagate the tau, column depth to go
 
-            if ipp3 == 'not_decayed': # then we are back to a tau at the end of the road
-                regen_tot += 1
-                e_out.append(ef2)
+    ipp, dfinal, etauf = Transport.tau_thru_layers(angle, depth, dwater, dtr, etauin, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, cd2distd, densityatx) # note: angle is now in betad
 
-                # go to 10; we are done with the loop
-                continue # need to check if this breaks out of stat loop or not. Yes??
+    dleft = depth-dfinal
 
-            if regen_cnt > 6: # 6 rounds of regeneration
-                continue # only if regen > 6, break and go to run_stat for next iteration
+    # if ipp == 'not_decayed' and dleft <= 0: # a tau has emerged through column depth
+    #     no_regen_tot += 1
+    #     regen_tot += 1 # update the regen tau array once
+    #     e_out.append(etauf)
+    #     # go to 10; we are done with the loop
+    #     continue # break outside stat; continue is correct here
+    full_emerged_mask = (ipp == 'not_decayed') & (dleft <= 0)
+    no_regen_tot = np.count_nonzero(full_emerged_mask)
+    regen_tot = no_regen_tot
 
-            etauf = ef2
-            dfinal = dtau2 # go to 11
+    e_out[full_emerged_mask] = etauf[full_emerged_mask]
+
+    unemerged_mask = ~full_emerged_mask
+    unemerged_count = np.count_nonzero(unemerged_mask)
+
+    # 11 continue; beginning of regeneration loop
+    # must be a neutrino. Is there still column depth to propagate?
+    etauf = etauf[unemerged_mask]
+    depth = depth[unemerged_mask]
+    dfinal = dfinal[unemerged_mask]
+
+    regen_cnt = 1 # tau out after first interaction
+    ipp3 = np.full('dummy_value', unemerged_count)
+    # regen_emerged_mask = unemerged_mask
+    while np.any(dfinal < depthE) and np.any(ipp3!='not_decayed') and regen_cnt<=10: # tau has decayed before the end
+
+        etauin = etauf # regen finds neutrino energy
+
+        ipp3, dtau2, ef2 = Transport.regen(angle, etauin, depth, dwater, dfinal, nu_xc, nu_ixc, ithird, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, cd2distd, densityatx) # note: angle is now in betad
+
+        regen_cnt +=1
+
+        regen_emerged_mask = (ipp3 == 'not_decayed') # size of subset, true where not decayed
+        regen_tot += np.count_nonzero(regen_emerged_mask)
+
+        e_out[unemerged_mask][regen_emerged_mask] = etauf[regen_emerged_mask]
+
+        regen_unemerged_mask = ~regen_emerged_mask
+        unemerged_mask[unemerged_mask] = regen_unemerged_mask
+
+        unemerged_count = np.count_nonzero(regen_unemerged_mask)
+        ipp3 = np.full('dummy_value', unemerged_count)
+
+        etauf = ef2[unemerged_mask]
+        depth = depth[unemerged_mask]
+        dfinal = dtau2[unemerged_mask]
+
+    e_out = e_out[~unemerged_mask]
 
     return no_regen_tot, regen_tot, e_out
 
@@ -246,7 +260,7 @@ if __name__ == "__main__":
 
     nu_xc, xc_water, xc_rock, alpha_water, alpha_rock, beta_water, beta_rock = init_xc(lepton, cross_section_model, pn_model, prop_type='stochastic')
 
-    nu_ixc, lep_ixc_water, lep_ixc_rock = init_ixc(lepton, cross_section_model, pn_model)
+    # nu_ixc, lep_ixc_water, lep_ixc_rock = init_ixc(lepton, cross_section_model, pn_model)
     prob_dict, e_out = main()
     
     end_time = time.time()

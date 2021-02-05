@@ -16,9 +16,9 @@ import random
 import pandas as pd
 import scipy.constants as scc
 import time
-from numba import njit,prange
+# from numba import njit,prange
 # import timeit
-from numba.typed import Dict
+# from numba.typed import Dict
 import numba as nb
 
 E_nu = Data.E_nu
@@ -33,7 +33,7 @@ v2 = -np.linspace(0.1,3,num=30).astype(np.float64)
 v2 = np.insert(v2,0,0) # padding 0 at the beginning to match index with ixc entry nos. as those start with 1
 
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def my_rand(): # because we need a random no. in the range of (0,1) and not [0,1)
     random_no = random.random()
     while random_no == 0:
@@ -41,13 +41,13 @@ def my_rand(): # because we need a random no. in the range of (0,1) and not [0,1
     return random_no
     # return 0.33 # for debugging only!
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def int_length_nu(energy, nu_xc): # interaction lengths for neutrino & leptons; in cm
     sig_cc, sig_nc = Interpolation.int_xc_nu(energy, nu_xc) # initialize CC & NC xc interpolations
     x_int = 1/(((sig_cc + sig_nc))*fac_nu) # check the * or / fac_nu!
     return x_int
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def int_length_lep(energy, xc_arr, rho): # interaction lengths for neutrino & leptons; in cm
     # print(rho)
     sig_cc = 0 # placeholder for CC lepton interactions
@@ -57,131 +57,174 @@ def int_length_lep(energy, xc_arr, rho): # interaction lengths for neutrino & le
     x_int = 1/((sig_brem + sig_pair + sig_pn + (1/(gamma*c_tau*rho)) + sig_cc + sig_nc))
     return x_int
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def interaction_type_nu(energy, nu_xc):
     sig_cc, sig_nc = Interpolation.int_xc_nu(energy, nu_xc)
     tot_frac = 1/int_length_nu(energy, nu_xc)
 
     cc_frac = sig_cc/tot_frac
 
-    x = my_rand()
-    if x<=cc_frac:
-        return 'cc' # interaction type
-    else:
-        return 'nc' # interaction type
+    x = np.random.uniform(0.0, 1.0, len(energy))
+    # if x<=cc_frac:
+    #     return 'cc' # interaction type
+    # else:
+    #     return 'nc' # interaction type
+    return np.where(x <= cc_frac, 'cc', 'nc')
 
-@njit(nogil=True)
+# interaction_type_strings = ('decay', 'brem', 'pair', 'pn', 'lep_nc')
+# @njit(nogil=True)
 def interaction_type_lep(energy, xc_arr, rho):
-    sig_cc = 0 # placeholder for CC lepton interactions
-    sig_nc = 0 # placeholder for NC lepton interactions
     sig_brem,sig_pair,sig_pn = Interpolation.int_xc_lep(energy, xc_arr)
-
     gamma = energy/m_le
-    tot_frac = 1/int_length_lep(energy, xc_arr, rho)
-    decay_frac = (1/(gamma*c_tau*rho))/tot_frac
-    cc_frac = sig_cc/tot_frac # placeholder for CC lepton interactions
-    nc_frac = sig_nc/tot_frac # placeholder for NC lepton interactions
-    brem_frac = sig_brem/tot_frac
-    pair_frac = sig_pair/tot_frac
-    pn_frac = sig_pn/tot_frac
+    # tot_frac = 1/int_length_lep(energy, xc_arr, rho)
+    tot_frac = (sig_brem + sig_pair + sig_pn + (1/(gamma*c_tau*rho)))
+    # decay_frac = (1/(gamma*c_tau*rho))/tot_frac
+    # brem_frac = sig_brem/tot_frac
+    # pair_frac = sig_pair/tot_frac
+    # pn_frac = sig_pn/tot_frac
 
     x = my_rand()
     # x = 0.33 # for debugging only!
 
-    if x<decay_frac:
+    targ_frac = (1/(gamma*c_tau*rho))/tot_frac
+    if x<targ_frac:
         return 'decay' # ip = 0
-    elif decay_frac <x< decay_frac+brem_frac:
+
+    targ_frac += sig_brem / tot_frac
+    if x<targ_frac:
         return 'brem' # ip = 1
-    elif decay_frac+brem_frac <x< decay_frac+brem_frac+pair_frac:
+
+    targ_frac += sig_pair / tot_frac
+    if x<targ_frac:
         return 'pair' # ip = 2
-    elif decay_frac+brem_frac+pair_frac <x< decay_frac+brem_frac+pair_frac+pn_frac:
+
+    targ_frac += sig_pn / tot_frac
+    if x<targ_frac:
         return 'pn' # ip = 3
-    else:
-        return 'lep_nc' # ip = 4 => cc/nc (both need CDFs) - placeholder for now
 
-    return None
+    return 'lep_nc'
 
-@njit(nogil=True)
-def find_y(energy,ixc_dict,ip):
+
+# @njit(nogil=True)
+@profile
+def find_y(energy, ixc_dict, ip):
     dy = my_rand()
 
+    # if ip == 'cc' or ip == 'nc':
+    #     energy = E_nu[(np.abs(E_nu-energy)).argmin()] # find the nearest neighbor
+    # else:
+    #     energy = E_lep[(np.abs(E_lep-energy)).argmin()] # find the nearest neighbor
     if ip == 'cc' or ip == 'nc':
-        energy = E_nu[(np.abs(E_nu-energy)).argmin()] # find the nearest neighbor
+        idx = (np.abs(E_nu-energy)).argmin()
+        # energy = E_nu[idx] # find the nearest neighbor
     else:
-        energy = E_lep[(np.abs(E_lep-energy)).argmin()] # find the nearest neighbor
+        idx = (np.abs(E_lep-energy)).argmin()
+        # energy = E_lep[idx] # find the nearest neighbor
 
-    i = 2 # to do - start with i=1 after padding ixc_dict
-    while dy > ixc_dict[ip][energy][i]:
-        i+=1
-    dlv = (v2[i] - v2[i-1])/(ixc_dict[ip][energy][i] - ixc_dict[ip][energy][i-1]) * (dy-ixc_dict[ip][energy][i-1]) + v2[i-1]
+    # egv = np.asarray(ixc_dict[ip][energy])
+    egv = ixc_dict[ip]['losses'][idx]
+    coeff = ixc_dict[ip]['coeffs'][idx]
+    # print(idx, type(egv), egv)
+    i = np.searchsorted(egv, dy) - 1
+    dlv = coeff[i] * (dy - egv[i]) * v2[i]
+    # dlv = (v2[i] - v2[i-1])/(egv[i] - egv[i-1]) * (dy-egv[i-1]) + v2[i-1]
     y = 10**dlv
     y = min(y, 1.0)
     return y
 
+# def _find_y(energy,iixc_dict,ip):
+
+#     if ip == 'cc' or ip == 'nc':
+#         idx = (np.abs(E_nu-energy)).argmin()
+#         # energy = E_nu[idx] # find the nearest neighbor
+#     else:
+#         idx = (np.abs(E_lep-energy)).argmin()
+#         # energy = E_lep[idx] # find the nearest neighbor
+
+#     dy = my_rand()
+#     # print(idx, energy)
+#     dlv = iixc_dict[ip][idx](dy)
+#     y = 10**dlv
+#     y = min(y, 1.0)
+#     return y
+
+
 # =============================================================================
 #                 Nu propagation
 # =============================================================================
-@njit(nogil=True)
+# @njit(nogil=True)
+@profile
 def propagate_nu(e_init, nu_xc, nu_ixc, depth_max):
 
-    part_type = 'nu' # starting off as a neutrino
+    part_type = np.full_like(depth_max, np.str_('nu'), dtype=np.str_) # starting off as a neutrino
     col_depth_total = depth_max*1e5 # in cm.w.e
-    e_nu = e_init
-    e_fin = e_init
-    x_0 = 0.0 # starting depth in cm.w.e
+    e_nu = np.full_like(depth_max, e_init)
+    e_fin = np.full_like(depth_max, e_init)
+    x_0 = np.zeros_like(depth_max) # starting depth in cm.w.e
     d_travel = depth_max # added this in case there is a problem and needed for breaking out when E<1e3
 
+    mask = np.full_like(depth_max, True, dtype=np.bool)
+
     # 10 continue
-    while e_nu>1e3:
+    while np.any(e_nu[mask]>1e3):
 
-        dy = my_rand()
-        int_len = int_length_nu(e_nu, nu_xc) # get the interaction length
+        # dy = my_rand()
+        int_len = int_length_nu(e_nu[mask], nu_xc) # get the interaction length
+        dy = np.random.uniform(0.0, 1.0, len(int_len))
         x = -int_len*np.log(dy) # logarithmic sampling
-        x_f = x_0 + x
-        if x_f > col_depth_total: # past max. depth
-            # continue # cannot use break here
-            return part_type, d_travel, e_fin
+        x_f = x_0[mask] + x
 
-        if x_f > col_depth_total: # check
-            print("This should never happen")
+        # if x_f > col_depth_total: # past max. depth
+        #     # continue # cannot use break here
+        #     return part_type, d_travel, e_fin
+        mm = ~(x_f > col_depth_total[mask])
+        mask[mask] = mm
+        x_0[mask] = x_f[mm] # keep going and update x_0
 
-        x_0 = x_f # keep going and update x_0
-
-        int_type = interaction_type_nu(e_nu, nu_xc) # what type of interaction is occurring?
+        int_type = interaction_type_nu(e_nu[mask], nu_xc) # what type of interaction is occurring?
         # print(int_type)
-        if part_type == 'nu' and int_type == 'nc': # nu -> nc -> nu
-            part_type = 'nu'
-        elif part_type == 'nu' and int_type == 'cc': # nu -> cc -> lep
-            part_type = 'lep'
-        else: # this should never have to be a 'lep' initially
-            pass
+        # if part_type == 'nu' and int_type == 'nc': # nu -> nc -> nu
+        #     part_type = 'nu'
+        # elif part_type == 'nu' and int_type == 'cc': # nu -> cc -> lep
+        #     part_type = 'lep'
+        # else: # this should never have to be a 'lep' initially
+        #     pass
+        part_type[mask][(part_type[mask] == 'nu') & (int_type == 'nc')] = 'nu'
+        part_type[mask][(part_type[mask] == 'nu') & (int_type == 'cc')] = 'lep'
 
-        y = find_y(e_nu,nu_ixc,int_type) # how much energy does the neutrino/lepton have after an interaction
-        y = min(y,0.999) # make sure y doesn't exceed 0.999
+        y = find_y(e_nu[mask],nu_ixc,int_type) # how much energy does the neutrino/lepton have after an interaction
+        # y = np.min(y,0.999) # make sure y doesn't exceed 0.999
+        y[y>0.999] = 0.999
 
-        e_fin = e_nu*(1-y) # this is the energy for the next interaction
+        e_fin[mask] = e_nu[mask]*(1-y) # this is the energy for the next interaction
 
-        if part_type == 'lep': # we have neutrino convert to tau
-            d_travel = x_0*1e-5 # how far to travel
-            # break # break out of main loop and return part_type, d_travel & e_fin after updating d_travel
-            return part_type, d_travel, e_fin # just to be on the safe side
-            break
-        else:
-            e_nu = e_fin # now we have a nu with energy e_fin, which has gone x_f
-            d_travel = x_0*1e-5
+        # if part_type == 'lep': # we have neutrino convert to tau
+        #     d_travel = x_0*1e-5 # how far to travel
+        #     return part_type, d_travel, e_fin # just to be on the safe side
+        lep_mask = part_type[mask] == 'lep'
+        d_travel[mask][lep_mask] = x_0[lep_mask] * 1e-5
+        mask[mask] = ~lep_mask
 
-        if e_nu<=1e3: # if e_nu<1e3, neglect interactions
-            return part_type, d_travel, e_fin
+        # else:
+        #     e_nu = e_fin # now we have a nu with energy e_fin, which has gone x_f
+        #     d_travel = x_0*1e-5
+        e_nu[mask] = e_fin[mask] # now we have a nu with energy e_fin, which has gone x_f
+        d_travel[mask] = x_0[mask]*1e-5
+
+        # if e_nu<=1e3: # if e_nu<1e3, neglect interactions
+        #     return part_type, d_travel, e_fin
 
     # continue 20, 30
 
-    if e_nu<1e3 or part_type == 'lep':
-        return part_type, d_travel, e_fin
-    return None
+    # if e_nu<1e3 or part_type == 'lep':
+    #     return part_type, d_travel, e_fin
+    # return None
+    return part_type, d_travel, e_fin
+
 # =============================================================================
 #                 Tau propagation in water
 # =============================================================================
-@njit(nogil=True)
+# @njit(nogil=True)
 def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in, type_loss):
 
     if type_loss == 'stochastic':
@@ -261,7 +304,7 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
             e_lep = e_int*(1-y) # this is the energy for the next interaction
             e_fin = e_lep
             # go to 10
-            
+
         # Outside the while loop, e_lep has to be < e_min
         if e_lep <= e_min: # only continuous energy loss; go to 20
             d_fin = d_in
@@ -274,162 +317,227 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
 # =============================================================================
 #                 Tau propagation in rock
 # =============================================================================
-@njit(nogil=True)
-def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d_entry, d_in, xalong, cdalong, type_loss):
-    if type_loss == 'stochastic':
-        e_min = 1e3 # minimum tau energy, in GeV
+# @njit(nogil=True)
+@profile
+def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d_entry, d_in, type_loss, cd2distd, densityatx):
+    e_min = 1e3 # minimum tau energy, in GeV
 
-        part_id = 'not_decayed' # start with tau
+    # Prep return arrays
+    part_id = np.full_like('not_decayed', d_entry)
+    d_fin = np.zeros_like(d_entry)
+    e_fin = np.zeros_like(d_entry)
 
-        col_depth = d_entry*1e5 # how far in
-        d_max = d_in*1e5 # how much to go, in cm.w.e
-        e_lep = e_init
-        x_0 = 0.
-        cnt = 0
+    col_depth = d_entry*1e5 # how far in
+    # d_max = d_in*1e5 # how much to go, in cm.w.e
+    e_lep = e_init
+    x_0 = np.zeros_like(e_lep)
+    mask = np.full_like(True, e_lep)
+    cnt = 0
+    # return part_id, d_fin, e_fin
 
-        while e_lep > e_min:
-            cnt +=1
-            # 10 continue
-            x_interp = Interpolation.cd2distd(xalong, cdalong, col_depth) # find how far we are along the chord for given beta
-            r, rho = Geometry.densityatx(x_interp, angle) # find the density at x
+    while np.any(e_lep[mask] > e_min):
+        cnt +=1
 
-            # rho = rho_rock # USE FOR TESTING P_SURV FOR ROCK ONLY!
+        # if e_lep <= e_min: # continuous energy loss only
+        #     # go to 20
+        #     d_fin = d_max/1e5 # in km.w.e
+        #     e_fin = e_min
+        #     part_id = 'decayed'
+        #     return part_id, d_fin, e_fin
+        low_e_msk = e_lep[mask] <= e_min
+        d_fin[mask][low_e_msk] = d_in[mask][low_e_msk]
+        e_fin[mask][low_e_msk] = e_min
+        part_id[mask][low_e_msk] = 'decayed'
 
-            if e_lep <= e_min: # continuous energy loss only
-                # go to 20
-                d_fin = d_max/1e5 # in km.w.e
-                e_fin = e_min
-                part_id = 'decayed'
-                return part_id, d_fin, e_fin
+        mask[mask] = ~low_e_msk
 
-            dy = my_rand()
-            # dy = 0.33 # for debugging only!
-            int_len = int_length_lep(e_lep, xc_rock, rho)
+        # 10 continue
+        x_interp = cd2distd(col_depth[mask]) # find how far we are along the chord for given beta
+        _, rho = densityatx(x_interp) # find the density at x
 
-            x = -int_len*np.log(dy)
-            col_depth = col_depth + x # update along trajectory, from the start of the chord
-            x_f = x_0 + x # going 1D
-            d_fin = x_f/1e5 # make sure it is not past the old number, in km.w.e
+        int_len = int_length_lep(e_lep[mask], xc_rock, rho)
 
-            if x_f > d_max: # already past max depth
-                # go to 30
-                d_rem = d_max - x_0
-                alpha = Interpolation.int_alpha(e_lep, alpha_rock)
-                beta = Interpolation.int_beta(e_lep, beta_rock)
-                e_fin = e_lep - (e_lep*beta + alpha)*d_rem
-                d_fin = d_max/1e5
-                if e_fin > e_init: e_fin=e_init
-                return part_id, d_fin, e_fin
+        # dy = my_rand()
+        dy = np.random.uniform(0.0, 1.0, len(int_len))
+        # dy = 0.33 # for debugging only!
+        x = -int_len*np.log(dy)
+        col_depth[mask] += x # update along trajectory, from the start of the chord
+        x_f = x_0[mask] + x # going 1D
+        d_fin[mask] = x_f/1e5 # make sure it is not past the old number, in km.w.e
 
-                # return part_id, d_fin, e_fin
+        # if x_f > d_max: # already past max depth
+        #     # go to 30
+        #     d_rem = d_max - x_0
+        #     alpha = Interpolation.int_alpha(e_lep, alpha_rock)
+        #     beta = Interpolation.int_beta(e_lep, beta_rock)
+        #     e_fin = e_lep - (e_lep*beta + alpha)*d_rem
+        #     d_fin = d_max/1e5
+        #     if e_fin > e_init: e_fin=e_init
+        #     return part_id, d_fin, e_fin
+        dmsk = (x_f > (d_in[mask] * 1e5))
+        d_rem = (1e5 * d_in[mask][dmsk]) - x_0[dmsk]
+        alpha = Interpolation.int_alpha(e_lep[mask][dmsk], alpha_rock)
+        beta = Interpolation.int_beta(e_lep[mask][dmsk], beta_rock)
+        d_fin[mask][dmsk] = d_in[mask][dmsk]
+        e_fin[mask][dmsk] = e_lep[mask][dmsk] - (e_lep[mask][dmsk]*beta + alpha)*d_rem
+        e_fin_init_msk = e_fin[mask][dmsk] > e_init[mask][dmsk]
+        e_fin[e_fin_init_msk] = e_init[e_fin_init_msk]
 
-            x_0 = x_f # update x_0 and keep going
-            alpha = Interpolation.int_alpha(e_lep, alpha_rock)
-            beta = Interpolation.int_beta(e_lep, beta_rock)
-            e_int = e_lep - (e_lep*beta + alpha)*x # find some intermediate energy to get reasonable values of energy between initial and final energy, a la MUSIC
+        mask[mask] = ~dmsk
+        x_0[mask] = x_f[~dmsk] # update x_0 and keep going
+        x = x[~dmsk]
+        rho = rho[~dmsk]
 
-            if e_int <= e_min: e_int=e_min
+        alpha = Interpolation.int_alpha(e_lep[mask], alpha_rock)
+        beta = Interpolation.int_beta(e_lep[mask], beta_rock)
+        e_int = e_lep[mask] - (e_lep[mask]*beta + alpha)*x # find some intermediate energy to get reasonable values of energy between initial and final energy
 
-            e_avg = 10**((np.log10(e_lep)+np.log10(e_int))/2) # does this work?
+        # if e_int <= e_min: e_int=e_min
+        e_int[e_int < e_min] = e_min
 
-            alpha = Interpolation.int_alpha(e_avg, alpha_rock)
-            beta = Interpolation.int_beta(e_avg, beta_rock)
+        e_avg = 10**((np.log10(e_lep[mask])+np.log10(e_int))/2) # does this work?
 
-            e_int = Energy_loss.em_cont_part(e_lep, alpha, beta, x) # get the continuous energy
+        alpha = Interpolation.int_alpha(e_avg, alpha_rock)
+        beta = Interpolation.int_beta(e_avg, beta_rock)
 
-            if e_int <= e_min: # is it below minimum energy now?
-                e_fin = e_int
-                # go to 20
-                d_fin = d_max/1e5 # in km.w.e
-                e_fin = e_min
-                part_id = 'decayed'
-                return part_id, d_fin, e_fin
+        e_int = Energy_loss.em_cont_part(e_lep[mask], alpha, beta, x) # get the continuous energy
 
-            int_type = interaction_type_lep(e_int, xc_rock, rho)
+        # if e_int <= e_min: # is it below minimum energy now?
+        #     e_fin = e_int
+        #     # go to 20
+        #     d_fin = d_max/1e5 # in km.w.e
+        #     e_fin = e_min
+        #     part_id = 'decayed'
+        #     return part_id, d_fin, e_fin
+        low_ei_msk = e_int <= e_min
+        e_fin[mask][low_ei_msk] = e_int
+        d_fin[mask][low_ei_msk] = d_in[mask][low_ei_msk]
+        part_id[mask][low_ei_msk] = 'decayed'
 
-            if int_type == 'decay': # tau has decayed
-                part_id = 'decayed'
-                e_fin = e_int
-                # go to 50
-                # 50 continue
-                return part_id, d_fin, e_fin
+        mask[mask] = ~low_ei_msk
+        e_int = e_int[~low_ei_msk]
+        rho = rho[~low_ei_msk]
 
-            # tau didn't decay. Now how much energy does it have after interaction?
-            y = find_y(e_int, lep_ixc, int_type)
+        int_type = interaction_type_lep(e_int, xc_rock, rho)
 
-            # outgoing tau energy is old e_lep*(1-y)
-            e_lep = e_int*(1-y) # this is the energy for the next interaction
-            e_fin = e_lep
+        # if int_type == 'decay': # tau has decayed
+        #     part_id = 'decayed'
+        #     e_fin = e_int
+        #     # go to 50
+        #     # 50 continue
+        #     return part_id, d_fin, e_fin
+        decay_msk = int_type == 'decay'
+        part_id[mask] = 'decayed'
+        e_fin[mask] = e_int
 
-            # if e_lep > e_min: # go back and propagate again
-            # go to 10
-            
-        # Outside the while loop, e_lep has to be < e_min
-        if e_lep <= e_min: # only continuous energy loss; go to 20
-            d_fin = d_max/1e5
-            e_fin = e_min
-            part_id = 'decayed' # don't count this
-            return part_id, d_fin, e_fin
+        mask[mask] = ~decay_msk
+        int_type = int_type[~decay_msk]
+        e_int = e_int[~decay_msk]
+
+        # tau didn't decay. Now how much energy does it have after interaction?
+        y = find_y(e_int, lep_ixc, int_type)
+
+        # outgoing tau energy is old e_lep*(1-y)
+        e_lep[mask] = e_int*(1-y) # this is the energy for the next interaction
+        e_fin[mask] = e_lep[mask]
+
+        # if e_lep > e_min: # go back and propagate again
+        # go to 10
+
+    # # Outside the while loop, e_lep has to be < e_min
+    # if e_lep <= e_min: # only continuous energy loss; go to 20
+    #     d_fin = d_max/1e5
+    #     e_fin = e_min
+    #     part_id = 'decayed' # don't count this
+    #     return part_id, d_fin, e_fin
+    outer_mask = e_lep[mask] <= e_min
+    part_id[mask][outer_mask] = 'decayed'
+    d_fin[mask][outer_mask] = d_in[mask][outer_mask]
+    e_fin[mask][outer_mask] = e_min
+
+    return part_id, d_fin, e_fin
 
 
-    else: # type_loss = continuous - to be updated later; don't use for now
-    # loop for deltax, ask if it decays. If decay, go to regen, if not update energy and distance and keep going. Make sure to not go past the max distance. Ending check for not exceeding the total distance
-        return None
-
-@njit(nogil=True)
-def tau_thru_layers(angle, depth, d_water, depth_traj, e_lep_in, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong): # note: angle is now in angle
+# @njit(nogil=True)
+def tau_thru_layers(angle, depth, d_water, depth_traj, e_lep_in, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, cd2distd, densityatx): # note: angle is now in angle
 
     d_fin = depth_traj
     col_depth = depth_traj*1e5 # g/cm^2
     e_fin = e_lep_in
-    part_type = 'not_decayed' # tau going in
+    part_type = np.full_like('not_decayed', depth_traj) # tau going in
 
-    if e_lep_in < 1e3: # just in case
-        part_type = 'decayed'
-        d_fin = depth
-        return part_type, d_fin, e_fin
+    # if e_lep_in < 1e3: # just in case
+    #     part_type = 'decayed'
+    #     d_fin = depth
+    #     return part_type, d_fin, e_fin
+    e_lep_in_mask = e_lep_in < 1e3
 
-    if angle <= 1.5 or depth-depth_traj < d_water:
-        rho = rho_water # water
-    else:
-        x = Interpolation.cd2distd(xalong, cdalong, col_depth)
-        r, rho = Geometry.densityatx(x, angle)
-        if rho <= 0: # round off error happening here; went too far
-            print("col_depth = ", col_depth)
-            print("x = ", x)
-            print('rho is 0')
-        # print('r, rho = ', r, rho)
-        if rho <= 1.5 and r < 6365.0:
-            print('rho too small!')
+    # if angle <= 1.5 or depth-depth_traj < d_water:
+    #     rho = rho_water # water
+    # else:
+    #     x = cd2distd(col_depth)
+    #     r, rho = densityatx(x)
+    #     if rho <= 0: # round off error happening here; went too far
+    #         print("col_depth = ", col_depth)
+    #         print("x = ", x)
+    #         print('rho is 0')
+    #     # print('r, rho = ', r, rho)
+    #     if rho <= 1.5 and r < 6365.0:
+    #         print('rho too small!')
+    rho_mask_1 = ~((depth-depth_traj < d_water) | (angle <= 1.5))
 
-    if rho > 1.5: # we aren't in water yet
-        d_in = depth - depth_traj - d_water # propagate this far in rock
+    x = cd2distd(col_depth[rho_mask_1])
+    _, rho_prime = densityatx(x)
 
-        part_type, d_f, e_fin = propagate_lep_rock(angle, e_lep_in, xc_rock, lep_ixc_rock, alpha_rock, beta_rock, depth_traj, d_in, xalong, cdalong, 'stochastic')
+    rho = np.empty_like(col_depth)
+    rho[rho_mask_1] = rho_prime
+    rho[~rho_mask_1] = rho_water
 
-        if part_type == 'not_decayed': # still a tau
-            e_lep_in = e_fin
-            d_in = d_water
-            depth_traj = depth_traj + d_f # now propagate through final layer of water
-            d_fin = depth_traj
-            part_type, d_f, e_fin = propagate_lep_water(e_lep_in, xc_water, lep_ixc_water, alpha_water, beta_water, d_in, 'stochastic')
+    # if rho > 1.5: # we aren't in water yet
+    #     d_in = depth - depth_traj - d_water # propagate this far in rock
 
-        else: # neutrino
-            return part_type, d_fin, e_fin
+    #     part_type, d_f, e_fin = propagate_lep_rock(angle, e_lep_in, xc_rock, lep_ixc_rock, alpha_rock, beta_rock, depth_traj, d_in, 'stochastic', cd2distd, densityatx)
 
-        # 202 continue
-    else:
-        d_in = depth - depth_traj
-        part_type, d_f, e_fin = propagate_lep_water(e_lep_in, xc_water, lep_ixc_water, alpha_water, beta_water, d_in, 'stochastic')
-        depth_traj += d_f
-        return part_type, depth_traj, e_fin
+    #     if part_type == 'not_decayed': # still a tau
+    #         e_lep_in = e_fin
+    #         d_in = d_water
+    #         depth_traj = depth_traj + d_f # now propagate through final layer of water
+    #         d_fin = depth_traj
+    #         part_type, d_f, e_fin = propagate_lep_water(e_lep_in, xc_water, lep_ixc_water, alpha_water, beta_water, d_in, 'stochastic')
 
-    if part_type == 'decayed': # tau decayed
-        return part_type, d_fin, e_fin
+    #     else: # neutrino
+    #         return part_type, d_fin, e_fin
+    rho_mask_2 = rho > 1.5
+    d_in = (depth - depth_traj - d_water)[rho_mask_2] # propagate this far in rock
+
+    p_t, d_f, e_f = propagate_lep_rock(angle, e_lep_in[rho_mask_2], xc_rock, lep_ixc_rock, alpha_rock, beta_rock, depth_traj[rho_mask_2], d_in, 'stochastic', cd2distd, densityatx)
+    part_type[rho_mask_2] = p_t
+    e_fin[rho_mask_2] = e_f
+
+    nd_msk = p_t == 'not_decayed'
+    d_in[nd_msk] = d_water
+    depth_traj[rho_mask_2][nd_msk] += d_f[nd_msk] # now propagate through final layer of water
+    d_fin[rho_mask_2][nd_msk] = depth_traj[rho_mask_2][nd_msk]
+
+    p_t, _, e_f = propagate_lep_water(e_f[nd_msk], xc_water, lep_ixc_water, alpha_water, beta_water, d_in[nd_msk], 'stochastic')
+    part_type[rho_mask_2][nd_msk] = p_t
+    e_fin[rho_mask_2][nd_msk] = e_f
+
+    #     # 202 continue
+    # else:
+    #     d_in = depth - depth_traj
+    #     part_type, d_f, e_fin = propagate_lep_water(e_lep_in, xc_water, lep_ixc_water, alpha_water, beta_water, d_in, 'stochastic')
+    #     depth_traj += d_f
+    #     return part_type, depth_traj, e_fin
+    d_in = (depth - depth_traj)[~rho_mask_2] # propagate this far in rock
+    p_t, d_f, e_f = propagate_lep_water(e_lep_in[~rho_mask_2], xc_water, lep_ixc_water, alpha_water, beta_water, d_in, 'stochastic')
+    part_type[~rho_mask_2] = p_t
+    d_fin[~rho_mask_2] = depth_traj[~rho_mask_2] + d_f
+    e_fin[~rho_mask_2] = e_f
 
     return part_type, d_fin, e_fin
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def distnu(r, ithird): # ithird = 1 => 1/3 or ithird = 2 => dist; rename to decay_distnu
     fnu=lambda y: y/3 * (5 - 3* y**2 + y**3) - y/3 * (1 - 3 * y**2 + 2 * y**3) # polarized
     if ithird !=1:
@@ -449,8 +557,8 @@ def distnu(r, ithird): # ithird = 1 => 1/3 or ithird = 2 => dist; rename to deca
     else:
         return 1/3
 
-@njit(nogil=True)
-def regen(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, xc_rock, ixc_water, ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong): # note: angle is now in angle
+# @njit(nogil=True)
+def regen(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, xc_rock, ixc_water, ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, cd2distd, densityatx):
 
     # find the neutrino energy from the tau decay with tau energy e_lep
     r = my_rand()
@@ -495,7 +603,7 @@ def regen(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, 
 
     # we have a tau with room to travel for tauthrulayers
 
-    part_type, d_exit, e_fin = tau_thru_layers(angle, depth, d_water, d_lep, etau2, xc_water, xc_rock, ixc_water, ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong)
+    part_type, d_exit, e_fin = tau_thru_layers(angle, depth, d_water, d_lep, etau2, xc_water, xc_rock, ixc_water, ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, cd2distd, densityatx)
 
     # 60 continue
 
@@ -555,7 +663,7 @@ def regen_water(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_w
     return part_type, d_exit, e_fin
 
 @njit(nogil=True)
-def regen_rock(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong): # note: angle is now in angle
+def regen_rock(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, cd2distd, densityatx): # note: angle is now in angle
 
     # find the neutrino energy from the tau decay with tau energy e_lep
     r = my_rand()
@@ -599,7 +707,7 @@ def regen_rock(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_wa
         return part_type, d_exit, e_fin
 
     # we have a tau with room to travel 
-    part_type, d_exit, e_fin = propagate_lep_rock(0, etau2, xc_rock, lep_ixc_rock, alpha_rock, beta_rock, 0.0, d_left, xalong, cdalong, 'stochastic')
+    part_type, d_exit, e_fin = propagate_lep_rock(0, etau2, xc_rock, lep_ixc_rock, alpha_rock, beta_rock, 0.0, d_left, 'stochastic', cd2distd, densityatx)
 
     # 60 continue
     return part_type, d_exit, e_fin
@@ -644,7 +752,7 @@ def pexit_r(angle, energy, dm, xc_rock, lep_ixc_rock, alpha_rock, beta_rock, xal
         for k in prange(imax):
             # p_id, df, e_fin = propagate_lep_water(energy[j], xc_water, lep_ixc_water, alpha_water, beta_water, dm[j], 'stochastic')
             # propagate_lep_rock(e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d_entry, d_in, type_loss)
-            p_id, df, e_fin = propagate_lep_rock(0, energy[j], xc_rock, lep_ixc_rock, alpha_rock, beta_rock, 0.0, dm[j], xalong, cdalong, 'stochastic')
+            p_id, df, e_fin = propagate_lep_rock(0, energy[j], xc_rock, lep_ixc_rock, alpha_rock, beta_rock, 0.0, dm[j], 'stochastic', cd2distd, densityatx)
             print(dm[j], e_fin, df)
             if p_id == 'not_decayed' and e_fin>50:
                 ic+=1
@@ -671,7 +779,7 @@ def pexit_n(angle, energy, dm, nu_xc, nu_ixc, xc_water, lep_ixc_water, alpha_wat
                 etau0 = ef
                 dleft = dm[j]-dtravel
                 # p_id, df, etauf = propagate_lep_water(etau0, xc_water, lep_ixc_water, alpha_water, beta_water, dleft, 'stochastic')
-                p_id, df, etauf = propagate_lep_rock(0, etau0, xc_rock, lep_ixc_rock, alpha_rock, beta_rock, 0.0, dleft, xalong, cdalong, 'stochastic')
+                p_id, df, etauf = propagate_lep_rock(0, etau0, xc_rock, lep_ixc_rock, alpha_rock, beta_rock, 0.0, dleft, 'stochastic', cd2distd, densityatx)
                 if etauf>50 and p_id=='not_decayed':
                     ic+=1
                 jef = (np.abs(E_nu-etauf)).argmin()
@@ -724,7 +832,7 @@ def p_exit_regen(prop_type, angle, energy, dm, nu_xc, nu_ixc, xc_water, lep_ixc_
                     # p_id, df, etauf = propagate_lep_rock(0, etau0, xc_rock, lep_ixc_rock, alpha_rock, beta_rock, 0.0, dleft, xalong, cdalong, 'stochastic')
                     # print("dleft = ", dleft)
                     # print(etau0,dleft)
-                    p_id, df, etauf = propagate_lep_rock(angle, etau0, xc_rock, lep_ixc_rock, alpha_rock, beta_rock, 0.0, dleft, xalong, cdalong, 'stochastic')
+                    p_id, df, etauf = propagate_lep_rock(angle, etau0, xc_rock, lep_ixc_rock, alpha_rock, beta_rock, 0.0, dleft, 'stochastic', cd2distd, densityatx)
 
                     # print(etau0,dleft,etauf,df,p_id)
 
@@ -921,26 +1029,6 @@ def tau_cdf(material):
     plt.show()
     return None
 
-def ixc_nb(ixc_dict): # NOTE: This function is only used for individual testing since it has already been implemented in main.py
-    if 'cc' in ixc_dict.keys():
-        models = ['cc', 'nc']
-        energies = E_nu
-    else:
-        models = ['brem', 'pair', 'pn']
-        energies = E_lep
-
-    ind_dict = Dict.empty(key_type=nb.typeof(1),value_type=nb.typeof(1e4))
-    en_dict = Dict.empty(key_type=nb.typeof(1e3),value_type=nb.typeof(ind_dict))
-    ixc = Dict.empty(key_type=nb.typeof('brem'),value_type=nb.typeof(en_dict))
-    for model in models:
-        en_dict = Dict.empty(key_type=nb.typeof(1e3),value_type=nb.typeof(ind_dict))
-        for j in energies:
-            ind_dict = Dict.empty(key_type=nb.typeof(1),value_type=nb.typeof(1e4))
-            for i in range(1,31):
-                ind_dict[i] = ixc_dict[model][j][i]
-            en_dict[j] = ind_dict
-        ixc[model] = en_dict
-    return ixc
 '''
 # =============================================================================
 # Test

@@ -8,7 +8,7 @@ dependencies:
   - pandas
   - scipy
   - matplotlib
-  - numba
+  # - numba
   - sympy
   - interpolation
   - vitables

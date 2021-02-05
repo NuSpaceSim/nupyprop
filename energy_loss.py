@@ -18,7 +18,7 @@ import scipy.constants as scc
 import multiprocessing as mp
 from multiprocessing import Pool
 import matplotlib.pyplot as plt
-from numba import njit
+# from numba import njit
 import pickle
 
 m_e = scc.physical_constants["electron mass energy equivalent in MeV"][0]*1e-3 # GeV
@@ -495,12 +495,14 @@ def calc_ixc():
 
     return 'Problem in calc_ixc function'
 
-@njit(nogil=True)
+# @njit(nogil=True)
+@profile
 def em_cont_part(E_init, alpha_val, beta_val, x): # calculate continuous energy loss part for the stochastic process
-    if beta_val*x < 1e-6:
-        E_fin = E_init * (1-beta_val*x) - alpha_val*x
+    bx = beta_val * x
+    if bx < 1e-6:
+        E_fin = E_init * (1-bx) - alpha_val*x
     else:
-        E_fin = E_init * np.exp(-beta_val*x) - alpha_val/beta_val*(1-np.exp(-beta_val*x))
+        E_fin = E_init * np.exp(-bx) - alpha_val/beta_val*(1-np.exp(-bx))
 
     if E_fin<0:E_fin = m_tau
     return E_fin

@@ -12,9 +12,10 @@ from pandas import HDFStore
 # import collections
 import time
 
-
 E_nu = np.logspace(3,12,91,base=10).astype(np.float64)
 E_lep = np.logspace(0,12,121,base=10).astype(np.float64)
+# v2 = -np.linspace(0.1,3,num=30).astype(np.float64)
+# v2 = np.insert(v2,0,0) # padding 0 at the beginning to match index with ixc entry nos. as those start with 1
 
 
 def add_trajs(type_traj, idepth, traj_array):
@@ -96,7 +97,6 @@ def get_xc(xc_type, model, **kwargs):
     else: # energy loss; xc_type == 'tau' or 'muon'
         try:
             material = kwargs['material']
-
             dataset_xc = pd.read_hdf('lookup_tables.h5','Energy_Loss/%s/%s/xc' % (xc_type,material))
             cs_brem = dataset_xc.sigma_brem
             cs_pair = dataset_xc.sigma_pair
@@ -185,7 +185,7 @@ def get_nu_ixc(model, **kwargs):
     try:
         dataset_ixc_cc = pd.read_hdf('lookup_tables.h5','Neutrino_Cross_Sections/%s/ixc/%s_cc' % (particle,model))
         dataset_ixc_nc = pd.read_hdf('lookup_tables.h5','Neutrino_Cross_Sections/%s/ixc/%s_nc' % (particle,model))
-        return dataset_ixc_cc, dataset_ixc_nc
+        return {'cc':dataset_ixc_cc, 'nc':dataset_ixc_nc}
     except KeyError or TypeError:
         model = str(input(("Error finding integrated cross-section values for %s model, please enter a valid model name." % str(model))))
         return None
@@ -197,7 +197,8 @@ def get_lep_ixc(model, material):
         dataset_ixc_pn = pd.read_hdf('lookup_tables.h5','Energy_Loss/%s/%s/ixc/pn_bb' % ('tau',material))
     else: # ALLM/custom model for PN energy loss
         dataset_ixc_pn = pd.read_hdf('lookup_tables.h5','Energy_Loss/%s/%s/ixc/pn' % ('tau',material))
-        return dataset_ixc_brem, dataset_ixc_pair, dataset_ixc_pn
+        return {'brem':dataset_ixc_brem, 'pair':dataset_ixc_pair, 'pn':dataset_ixc_pn}
+        # return dataset_ixc_brem, dataset_ixc_pair, dataset_ixc_pn
     return None
 
 def add_alpha(alpha, **kwargs):
@@ -287,6 +288,27 @@ def get_lep_out(energy_val, angle_val):
     e_out = pd.read_hdf('output.h5','Lep_out_energies/%s/%s' % (energy_str,angle_val))
     no_cdf = np.asarray(e_out.lep_energy)
     return no_cdf
+
+def make_coef_arrays(ixc):
+    v2 = -np.linspace(0.1,3,num=30).astype(np.float64)
+    v2 = np.insert(v2,0,0)
+    v2diff = np.diff(v2)
+    coeffs = np.array([ v2diff / np.diff(ixc[e]) for e in ixc.columns ])
+    losses = np.array([ixc[e].to_numpy() for e in ixc.columns ])
+    return {'coeffs': coeffs, 'losses': losses}
+
+def get_nu_iixc(model, **kwargs):
+    ixc_nu = get_nu_ixc(model, **kwargs)
+    ixc_nu['cc'] = make_coef_arrays(ixc_nu['cc'])
+    ixc_nu['nc'] = make_coef_arrays(ixc_nu['nc'])
+    return ixc_nu
+
+def get_lep_iixc(model, material):
+    ixc_lep = get_lep_ixc(model, material)
+    ixc_lep['brem'] = make_coef_arrays(ixc_lep['brem'])
+    ixc_lep['pair'] = make_coef_arrays(ixc_lep['pair'])
+    ixc_lep['pn'] = make_coef_arrays(ixc_lep['pn'])
+    return ixc_lep
 
 
 # =============================================================================
