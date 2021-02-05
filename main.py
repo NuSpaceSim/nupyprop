@@ -107,7 +107,7 @@ def run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, le
         # tnu goes until neutrino either goes to dtot, or converts to a tau
 
         ip, dtr, ef = Transport.propagate_nu(energy, nu_xc, nu_ixc, depth)
-        print(ip, dtr, ef)
+        print(i, ip, dtr, ef)
 
         # how far did the neutrino go? dtr is how far traveled
 
