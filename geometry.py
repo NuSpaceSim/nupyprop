@@ -105,7 +105,6 @@ def trajlength(beta_deg):
     return trajlength
 
 # @njit(nogil=True)
-@profile
 def PREMdensity(Rin):
     '''
 
@@ -120,10 +119,15 @@ def PREMdensity(Rin):
         Density in g/cm^3.
 
     '''
-    x=Rin
-    y=x/Re
-    idx = np.searchsorted(Rlay_2, x)
-    return prem_density_functions[idx](y)
+    y=Rin/Re
+    idx = np.searchsorted(Rlay_2, Rin)
+    pden = np.empty_like(Rin)
+    # for f in prem_density_functions:
+    for i in range(len(Rlay_2)):
+        msk = idx == i
+        pden[msk] = prem_density_functions[i](y[msk])
+
+    return pden
 
 
 def PREMgramVSang(z):
@@ -210,7 +214,6 @@ def columndepth(beta_deg):
         columndepth = PREMgramVSang(z)
     return columndepth
 
-@profile
 def f_densityatx(beta_deg):
     tnadir = np.radians(90.0 - beta_deg)
     ell = Re*np.cos(tnadir)*2
@@ -226,7 +229,6 @@ def f_densityatx(beta_deg):
 
 
 # @njit(nogil=True)
-@profile
 def densityatx(x, beta_deg):
     '''
 

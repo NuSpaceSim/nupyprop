@@ -11,6 +11,7 @@ import pandas as pd
 from pandas import HDFStore
 # import collections
 import time
+from scipy import interpolate
 
 E_nu = np.logspace(3,12,91,base=10).astype(np.float64)
 E_lep = np.logspace(0,12,121,base=10).astype(np.float64)
@@ -289,25 +290,23 @@ def get_lep_out(energy_val, angle_val):
     no_cdf = np.asarray(e_out.lep_energy)
     return no_cdf
 
-def make_coef_arrays(ixc):
+def make_lerps(ixc):
     v2 = -np.linspace(0.1,3,num=30).astype(np.float64)
     v2 = np.insert(v2,0,0)
-    v2diff = np.diff(v2)
-    coeffs = np.array([ v2diff / np.diff(ixc[e]) for e in ixc.columns ])
-    losses = np.array([ixc[e].to_numpy() for e in ixc.columns ])
-    return {'coeffs': coeffs, 'losses': losses}
+    lerps = [interpolate.interp1d(ixc[e].to_numpy(), v2) for e in ixc.columns]
+    return lerps
 
 def get_nu_iixc(model, **kwargs):
     ixc_nu = get_nu_ixc(model, **kwargs)
-    ixc_nu['cc'] = make_coef_arrays(ixc_nu['cc'])
-    ixc_nu['nc'] = make_coef_arrays(ixc_nu['nc'])
+    ixc_nu['cc'] = make_lerps(ixc_nu['cc'])
+    ixc_nu['nc'] = make_lerps(ixc_nu['nc'])
     return ixc_nu
 
 def get_lep_iixc(model, material):
     ixc_lep = get_lep_ixc(model, material)
-    ixc_lep['brem'] = make_coef_arrays(ixc_lep['brem'])
-    ixc_lep['pair'] = make_coef_arrays(ixc_lep['pair'])
-    ixc_lep['pn'] = make_coef_arrays(ixc_lep['pn'])
+    ixc_lep['brem'] = make_lerps(ixc_lep['brem'])
+    ixc_lep['pair'] = make_lerps(ixc_lep['pair'])
+    ixc_lep['pn'] = make_lerps(ixc_lep['pn'])
     return ixc_lep
 
 

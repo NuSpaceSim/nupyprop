@@ -41,7 +41,6 @@ def cd2distd(xalong, cdalong, col_depth):
     else:
         return interpol(col_depth, cdalong, xalong)
 
-@profile
 def f_cd2distd(xalong, cdalong):
     mn = np.min(cdalong)
     mx = np.max(cdalong)

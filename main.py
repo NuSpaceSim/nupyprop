@@ -19,7 +19,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.ticker import ScalarFormatter
 
-import deepdiff
 import copy
 import numpy as np
 import time
@@ -109,6 +108,7 @@ def run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, le
     # continue here: we have a tau
     nu_mask = ip == 'nu'
     tau_mask = ~nu_mask
+    print(np.any(tau_mask))
     taus_count = np.count_nonzero(tau_mask)
     e_out = np.zeros(taus_count)
 

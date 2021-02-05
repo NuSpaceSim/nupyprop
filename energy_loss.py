@@ -496,7 +496,6 @@ def calc_ixc():
     return 'Problem in calc_ixc function'
 
 # @njit(nogil=True)
-@profile
 def em_cont_part(E_init, alpha_val, beta_val, x): # calculate continuous energy loss part for the stochastic process
     bx = beta_val * x
     if bx < 1e-6:
