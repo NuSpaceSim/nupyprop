@@ -69,10 +69,21 @@ def ixc_nb(ixc_dict):
     return ixc
 
 def init_ixc(lepton, nu_model, pn_model):
-    ixc_nu = Data.get_nu_iixc(nu_model, particle='neutrino')
-    ixc_water = Data.get_lep_iixc(pn_model, 'water')
-    ixc_rock = Data.get_lep_iixc(pn_model, 'rock')
-    return ixc_nu, ixc_water, ixc_rock
+    # ixc_nu = Data.get_nu_iixc(nu_model, particle='neutrino')
+    # ixc_water = Data.get_lep_iixc(pn_model, 'water')
+    # ixc_rock = Data.get_lep_iixc(pn_model, 'rock')
+    # return ixc_nu, ixc_water, ixc_rock
+    ixc_nu = Data.get_ixc('nu', nu_model, particle='neutrino')
+    nu_ixc = ixc_nb(ixc_nu)
+
+    ixc_water = Data.get_ixc(lepton, model=pn_model, material='water')
+    lep_ixc_water = ixc_nb(ixc_water)
+
+
+    ixc_rock = Data.get_ixc(lepton, model=pn_model, material='rock')
+    lep_ixc_rock = ixc_nb(ixc_rock)
+
+    return nu_ixc, lep_ixc_water, lep_ixc_rock
 
 # @njit(nogil=True)
 def bin_data(angle, energy, eb_no_regen, eb_regen):
@@ -101,6 +112,7 @@ def run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, le
 
     # tnu goes until neutrino either goes to dtot, or converts to a tau
     ip, dtr, ef = Transport.propagate_nu(energy, nu_xc, nu_ixc, depth)
+    # print(*((i, d, e) for i, d, e in zip(ip, dtr, ef)), sep='\n')
 
     # if ip == 'nu': # still a neutrino at the end of the road
     #     # go to 10
@@ -108,7 +120,7 @@ def run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, le
     # continue here: we have a tau
     nu_mask = ip == 'nu'
     tau_mask = ~nu_mask
-    print(np.any(tau_mask))
+    # print(np.any(tau_mask))
     taus_count = np.count_nonzero(tau_mask)
     e_out = np.zeros(taus_count)
 
@@ -122,8 +134,10 @@ def run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, le
 
 
     # still need to propagate the tau, column depth to go
+    # print(depth)
 
     ipp, dfinal, etauf = Transport.tau_thru_layers(angle, depth, dwater, dtr, etauin, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, cd2distd, densityatx) # note: angle is now in betad
+    # print(depth)
 
     dleft = depth-dfinal
 
@@ -149,7 +163,7 @@ def run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, le
     dfinal = dfinal[unemerged_mask]
 
     regen_cnt = 1 # tau out after first interaction
-    ipp3 = np.full('dummy_value', unemerged_count)
+    ipp3 = np.full(unemerged_count, 'dummy_value', dtype="object")
     # regen_emerged_mask = unemerged_mask
     while np.any(dfinal < depthE) and np.any(ipp3!='not_decayed') and regen_cnt<=10: # tau has decayed before the end
 
@@ -162,17 +176,20 @@ def run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, le
         regen_emerged_mask = (ipp3 == 'not_decayed') # size of subset, true where not decayed
         regen_tot += np.count_nonzero(regen_emerged_mask)
 
-        e_out[unemerged_mask][regen_emerged_mask] = etauf[regen_emerged_mask]
+        full_new_emerged_mask = np.copy(unemerged_mask)
+        full_new_emerged_mask[full_new_emerged_mask] = regen_emerged_mask
+
+        e_out[full_new_emerged_mask] = etauf[regen_emerged_mask]
 
         regen_unemerged_mask = ~regen_emerged_mask
         unemerged_mask[unemerged_mask] = regen_unemerged_mask
 
         unemerged_count = np.count_nonzero(regen_unemerged_mask)
-        ipp3 = np.full('dummy_value', unemerged_count)
+        ipp3 = np.full(unemerged_count, 'dummy_value', dtype="object")
 
-        etauf = ef2[unemerged_mask]
-        depth = depth[unemerged_mask]
-        dfinal = dtau2[unemerged_mask]
+        etauf = ef2[regen_unemerged_mask]
+        depth = depth[regen_unemerged_mask]
+        dfinal = dtau2[regen_unemerged_mask]
 
     e_out = e_out[~unemerged_mask]
 

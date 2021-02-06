@@ -498,12 +498,19 @@ def calc_ixc():
 # @njit(nogil=True)
 def em_cont_part(E_init, alpha_val, beta_val, x): # calculate continuous energy loss part for the stochastic process
     bx = beta_val * x
-    if bx < 1e-6:
-        E_fin = E_init * (1-bx) - alpha_val*x
-    else:
-        E_fin = E_init * np.exp(-bx) - alpha_val/beta_val*(1-np.exp(-bx))
+    # if bx < 1e-6:
+    #     E_fin = E_init * (1-bx) - alpha_val*x
+    # else:
+    #     E_fin = E_init * np.exp(-bx) - alpha_val/beta_val*(1-np.exp(-bx))
 
-    if E_fin<0:E_fin = m_tau
+    # if E_fin<0:E_fin = m_tau
+    # return E_fin
+    E_fin = np.empty_like(x)
+    mask = bx < 1e-6
+    # print(mask, E_init, alpha_val)
+    E_fin[mask] = E_init[mask] * (1-bx[mask]) - alpha_val[mask]*x[mask]
+    E_fin[~mask] = E_init[~mask] * np.exp(-bx[~mask]) - alpha_val[~mask]/beta_val[~mask]*(1-np.exp(-bx[~mask]))
+    E_fin[E_fin < 0] = m_tau
     return E_fin
 
 # =============================================================================

@@ -41,13 +41,25 @@ def cd2distd(xalong, cdalong, col_depth):
     else:
         return interpol(col_depth, cdalong, xalong)
 
+def l_cd2distd(col_depth, xalong, cdalong, mn, mx, xx):
+    d = np.empty_like(col_depth)
+    d[col_depth < mn] = (col_depth[col_depth < mn] / cdalong[0]) * xalong[0]
+    d[col_depth > mx] = xx
+    mask = ~((col_depth < mn) | (col_depth > mx))
+    d[mask] = interpol(col_depth[mask], cdalong, xalong)
+    return d
+    # # if col_depth < np.min(cdalong):
+    # #     return (col_depth/cdalong[0])*xalong[0]
+    # elif col_depth > np.max(cdalong):
+    #     return np.max(xalong)
+    # else:
+    #     return interpol(col_depth, cdalong, xalong)
+
 def f_cd2distd(xalong, cdalong):
     mn = np.min(cdalong)
     mx = np.max(cdalong)
     xx = np.max(xalong)
-    return lambda col_depth: (col_depth/cdalong[0])*xalong[0] if \
-                    col_depth < mn else xx if \
-                    col_depth > mx else interpol(col_depth, cdalong, xalong)
+    return lambda col_depth: l_cd2distd(col_depth, xalong, cdalong, mn, mx, xx)
 
 # @njit(nogil=True)
 def int_xc_nu(energy, nu_xc): # interpolate xc's & multiply them by N_A (only for neutrinos)

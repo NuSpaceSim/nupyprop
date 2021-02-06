@@ -104,6 +104,54 @@ def trajlength(beta_deg):
     trajlength = Re*np.cos(tnadir)*2
     return trajlength
 
+def v_PREMdensity(Rin):
+    '''
+
+    Parameters
+    ----------
+    Rin : float
+        Distance from the Earth Center (at sagitta), in km.
+
+    Returns
+    -------
+    rhoOUT : float
+        Density in g/cm^3.
+
+    '''
+    Rlay_2 = np.copy(Rlay)
+    Rlay_2[8] = 6368.0+(3.0-float(idepth))
+
+    x=Rin
+    y=x/Re
+
+    RR = np.empty_like(x)
+    mask = x<=Rlay_2[0]
+    RR[mask] = 13.0885-8.8381*y[mask]**2
+    mask = (x>Rlay_2[0]) & (x<=Rlay_2[1])
+    RR[mask] = 12.5815-1.2638*y[mask]-3.6426*y[mask]**2-5.5281*y[mask]**3
+    mask = (x>Rlay_2[1]) & (x<=Rlay_2[2])
+    RR[mask] = 7.9565-6.4761*y[mask]+5.5283*y[mask]**2-3.0807*y[mask]**3
+    mask = (x>Rlay_2[2]) & (x<=Rlay_2[3])
+    RR[mask] = 5.3197-1.4836*y[mask]
+    mask = (x>Rlay_2[3]) & (x<=Rlay_2[4])
+    RR[mask] = 11.2494-8.0298*y[mask]
+    mask = (x>Rlay_2[4]) & (x<=Rlay_2[5])
+    RR[mask] = 7.1089-3.8045*y[mask]
+    mask = (x>Rlay_2[5]) & (x<=Rlay_2[6])
+    RR[mask] = 2.6910+0.6924*y[mask]
+    mask = (x>Rlay_2[6]) & (x<=Rlay_2[7])
+    RR[mask] = 2.900
+    mask = (x>Rlay_2[7]) & (x<=Rlay_2[8])
+    RR[mask] = 2.600
+    mask = (x>Rlay_2[8]) & (x<=Rlay_2[9])
+    RR[mask] = 1.020
+    mask = (x>Rlay_2[9]) & (x<=Rlay_2[9]*1.001)
+    RR[mask] = 1.020 # too close to call!else:
+    mask = x>Rlay_2[9]*1.001
+    RR[mask] = 0
+
+    return RR
+
 # @njit(nogil=True)
 def PREMdensity(Rin):
     '''
@@ -119,15 +167,56 @@ def PREMdensity(Rin):
         Density in g/cm^3.
 
     '''
-    y=Rin/Re
-    idx = np.searchsorted(Rlay_2, Rin)
-    pden = np.empty_like(Rin)
-    # for f in prem_density_functions:
-    for i in range(len(Rlay_2)):
-        msk = idx == i
-        pden[msk] = prem_density_functions[i](y[msk])
+    Rlay_2 = np.copy(Rlay)
+    Rlay_2[8] = 6368.0+(3.0-float(idepth))
 
-    return pden
+    x=Rin
+    y=x/Re
+
+    if (x<=Rlay_2[0]):
+        # edens=13.0885-8.8381*y**2
+        return 13.0885-8.8381*y**2
+    elif (x<=Rlay_2[1]):
+        # edens=12.5815-1.2638*y-3.6426*y**2-5.5281*y**3
+        return 12.5815-1.2638*y-3.6426*y**2-5.5281*y**3
+    elif (x<=Rlay_2[2]):
+        # edens=7.9565-6.4761*y+5.5283*y**2-3.0807*y**3
+        return 7.9565-6.4761*y+5.5283*y**2-3.0807*y**3
+    elif (x<=Rlay_2[3]):
+        # edens=5.3197-1.4836*y
+        return 5.3197-1.4836*y
+    elif (x<=Rlay_2[4]):
+        # edens=11.2494-8.0298*y
+        return 11.2494-8.0298*y
+    elif (x<=Rlay_2[5]):
+        # edens=7.1089-3.8045*y
+        return 7.1089-3.8045*y
+    elif (x<=Rlay_2[6]):
+        # edens=2.6910+0.6924*y
+        return 2.6910+0.6924*y
+    elif (x<=Rlay_2[7]):
+        # edens=2.900
+        return 2.900
+    elif (x<=Rlay_2[8]):
+        # edens=2.600
+        return 2.600
+    elif (x<=Rlay_2[9]):
+        # edens=1.020
+        return 1.020
+    elif (x<=Rlay_2[9]*1.001): # too close to call!
+        return 1.020
+    else:
+        # edens=0.
+        return 0.
+    # y=Rin/Re
+    # idx = np.searchsorted(Rlay_2, Rin)
+    # pden = np.empty_like(Rin)
+    # # for f in prem_density_functions:
+    # for i in range(len(Rlay_2)):
+    #     msk = idx == i
+    #     pden[msk] = prem_density_functions[i](y[msk])
+
+    # return pden
 
 
 def PREMgramVSang(z):
@@ -217,13 +306,13 @@ def columndepth(beta_deg):
 def f_densityatx(beta_deg):
     tnadir = np.radians(90.0 - beta_deg)
     ell = Re*np.cos(tnadir)*2
-    Re2 = Re**2
-    f = lambda r: (r, PREMdensity(r))
+
+    f = lambda r: (r, v_PREMdensity(r))
 
     if beta_deg<5.0:
-        return lambda x: f(Re*(1.0 + 0.5*(x**2-ell*x)/Re2))
+        return lambda x: f(Re*(1.0 + 0.5*(x**2-ell*x)/Re**2))
     else:
-        return lambda x: f(np.sqrt((x**2-ell*x) + Re2))
+        return lambda x: f(np.sqrt(x**2-(ell*x) + Re**2))
 
     # return r, rho_at_x
 
