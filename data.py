@@ -290,9 +290,18 @@ def get_lep_out(energy_val, angle_val):
     no_cdf = np.asarray(e_out.lep_energy)
     return no_cdf
 
+# def make_2d_lerp(ixc):
+#     v2 = -np.linspace(0.1,3,num=30).astype(np.float64)
+#     v2 = np.insert(v2,0,0)
+#     x = np.tile(ixc.columns.to_numpy(), (31, 1))
+#     y = ixc.to_numpy()
+#     z = p.tile(v2, (y.shape[1], 1)).T
+#     print(x.shape, y.shape, z.shape)
+#     lerp = interpolate.interp2d(x, y, z)
+#     return lerp
+
 def make_lerps(ixc):
-    v2 = -np.linspace(0.1,3,num=30).astype(np.float64)
-    v2 = np.insert(v2,0,0)
+    v2 = np.linspace(0,-3,num=31).astype(np.float64)
     lerps = [interpolate.interp1d(ixc[e].to_numpy(), v2) for e in ixc.columns]
     return lerps
 

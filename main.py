@@ -24,7 +24,7 @@ import numpy as np
 import time
 import numba as nb
 # from numba.typed import Dict
-# from numba import njit, prange
+from numba import njit, prange
 import functools
 print = functools.partial(print, flush=True)
 
@@ -69,21 +69,21 @@ def ixc_nb(ixc_dict):
     return ixc
 
 def init_ixc(lepton, nu_model, pn_model):
-    # ixc_nu = Data.get_nu_iixc(nu_model, particle='neutrino')
-    # ixc_water = Data.get_lep_iixc(pn_model, 'water')
-    # ixc_rock = Data.get_lep_iixc(pn_model, 'rock')
-    # return ixc_nu, ixc_water, ixc_rock
-    ixc_nu = Data.get_ixc('nu', nu_model, particle='neutrino')
-    nu_ixc = ixc_nb(ixc_nu)
+    ixc_nu = Data.get_nu_iixc(nu_model, particle='neutrino')
+    ixc_water = Data.get_lep_iixc(pn_model, 'water')
+    ixc_rock = Data.get_lep_iixc(pn_model, 'rock')
+    return ixc_nu, ixc_water, ixc_rock
+    # ixc_nu = Data.get_ixc('nu', nu_model, particle='neutrino')
+    # nu_ixc = ixc_nb(ixc_nu)
 
-    ixc_water = Data.get_ixc(lepton, model=pn_model, material='water')
-    lep_ixc_water = ixc_nb(ixc_water)
+    # ixc_water = Data.get_ixc(lepton, model=pn_model, material='water')
+    # lep_ixc_water = ixc_nb(ixc_water)
 
 
-    ixc_rock = Data.get_ixc(lepton, model=pn_model, material='rock')
-    lep_ixc_rock = ixc_nb(ixc_rock)
+    # ixc_rock = Data.get_ixc(lepton, model=pn_model, material='rock')
+    # lep_ixc_rock = ixc_nb(ixc_rock)
 
-    return nu_ixc, lep_ixc_water, lep_ixc_rock
+    # return nu_ixc, lep_ixc_water, lep_ixc_rock
 
 # @njit(nogil=True)
 def bin_data(angle, energy, eb_no_regen, eb_regen):

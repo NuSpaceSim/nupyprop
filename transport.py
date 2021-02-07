@@ -16,7 +16,7 @@ import random
 import pandas as pd
 import scipy.constants as scc
 import time
-# from numba import njit,prange
+from numba import njit
 # import timeit
 # from numba.typed import Dict
 # import numba as nb
@@ -112,44 +112,35 @@ def interaction_type_lep(energy, xc_arr, rho):
 
     return part_type
 
-#        energy      ip   y
-# find_y 10000000.0  cc   0.9088968973117876
 # @njit(nogil=True)
 def find_y(energy, ixc_dict, ip):
-
+    '''
+    Piecewise interpolation over masked CDF tables for given energies and
+    ip types.
+    '''
     dlv = np.empty_like(energy)
-    for j in range(len(energy)):
-        dy = my_rand()
+    for j in ixc_dict.keys():
+        lerps = ixc_dict[j]
+        E__ = E_nu if j == 'cc' or j == 'nc' else E_lep
+        ipmask = ip == j
+        idxs = np.searchsorted(E__, energy[ipmask])
+        djlv = np.empty(np.count_nonzero(ipmask))
 
-        if ip[j] == 'cc' or ip[j] == 'nc':
-            enrg = E_nu[(np.abs(E_nu-energy[j])).argmin()] # find the nearest neighbor
-        else:
-            enrg = E_lep[(np.abs(E_lep-energy[j])).argmin()] # find the nearest neighbor
+        for i, lerp in enumerate(lerps):
+            msk = idxs == i
+            sz = np.count_nonzero(msk)
+            dy = np.random.uniform(0.0, 1.0, sz)
+            lv = lerp(dy)
+            djlv[msk] = lv
 
-        i = 2 # to do - start with i=1 after padding ixc_dict
-        while dy > ixc_dict[ip[j]][enrg][i]:
-            i+=1
-        dlv[j] = (v2[i] - v2[i-1])/(ixc_dict[ip[j]][enrg][i] - ixc_dict[ip[j]][enrg][i-1]) * (dy-ixc_dict[ip[j]][enrg][i-1]) + v2[i-1]
+        dlv[ipmask] = djlv
+
     y = 10**dlv
-    # y = min(y, 1.0)
     y[y > 1.0] = 1.0
     return y
-    # dy = np.random.uniform(0.0, 1.0, len(energy))
-    # dlv = np.empty_like(energy)
-    # for i in ixc_dict.keys():
-    #     lerps = ixc_dict[i]
-    #     E__ = E_nu if i == 'cc' or i == 'nc' else E_lep
-    #     ipmask = ip == i
-    #     idxs = np.argmin(np.abs(E__[:, None]-energy[ipmask]), axis=0)
-    #     for j in range(91):
-    #         msk = idxs == j
-    #         dlv[ipmask][msk] = lerps[j](dy[ipmask][msk])
 
-    # y = 10**dlv
-    # # y = min(y, 1.0)
-    # y[y > 1.0] = 1.0
-    # return y
 
+# @njit(nogil=True)
 def full_sub_mask(full_mask, sub_mask):
     fsmask = np.copy(full_mask)
     newmsk = np.copy(full_mask)
@@ -588,7 +579,8 @@ def tau_thru_layers(angle, depth, d_water, depth_traj, e_lep_in, xc_water, xc_ro
 
 # @njit(nogil=True)
 def distnu(r, ithird): # ithird = 1 => 1/3 or ithird = 2 => dist; rename to decay_distnu
-    fnu=lambda y: y/3 * (5 - 3* y**2 + y**3) - y/3 * (1 - 3 * y**2 + 2 * y**3) # polarized
+    # fnu=lambda y: y/3 * (5 - 3* y**2 + y**3) - y/3 * (1 - 3 * y**2 + 2 * y**3) # polarized
+    fnu=lambda y: (4*y - y**4)/3.
     if ithird !=1:
         # fm = 1 # max value of distribution
         # ff = r*fm

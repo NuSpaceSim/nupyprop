@@ -18,7 +18,7 @@ from pandas import HDFStore,DataFrame
 from scipy import interpolate
 import sympy as sp
 import warnings
-# from numba import njit,prange
+from numba import njit,prange
 from math import isclose
 
 
