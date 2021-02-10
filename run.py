@@ -102,7 +102,9 @@ Main.angles = angles
 
 if __name__ == "__main__":
     start_time = time.time()
-    prob_dict, e_out = Main.main()
-    print(prob_dict)
+    Geometry.idepth = 7
+    # prob_dict, e_out = Main.main()
+    # print(prob_dict)
+    print(Geometry.PREMdensity(1203))
     end_time = time.time()
     print(f"It took {end_time-start_time:.2f} seconds to compute")

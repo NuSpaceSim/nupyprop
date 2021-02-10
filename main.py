@@ -190,7 +190,7 @@ def main():
 
             chord, water = Data.get_trajs('water', angle, idepth)
             dwater = water*rho_water # depth in water [kmwe] in last or only section
-            depthE = Geometry.columndepth(angle)*1e-5 # column depth in g/cm^2
+            depthE = Geometry.columndepth(angle)*1e-5 # column depth in kmwe?
 
 
             no_regen, regen, e_out = run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird)
@@ -231,9 +231,9 @@ if __name__ == "__main__":
     # ray.init()
     # random.seed(30)
     start_time = time.time()
-    angles = np.array([1])
+    angles = np.array([10])
     # angles = np.array([1,3,5,7,10,12,15,17,20,25,30,35])
-    E_prop = np.array([1e7])
+    E_prop = np.array([1e8])
 
     idepth = 4
     Geometry.idepth = idepth
@@ -243,7 +243,7 @@ if __name__ == "__main__":
     # material = 'rock'
     cross_section_model = 'ncteq15'
     pn_model = 'allm'
-    stat = int(1e6)
+    stat = int(1e7)
     Transport.fac_nu = fac_nu
     c_tau = Transport.c_tau = 8.703e-3
 

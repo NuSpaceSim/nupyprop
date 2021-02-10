@@ -12,14 +12,11 @@ import numpy as np
 from scipy import integrate
 import multiprocessing as mp
 from multiprocessing import Pool
-from tables import *
+# from tables import *
 import pandas as pd
-from pandas import HDFStore,DataFrame
-from scipy import interpolate
 import sympy as sp
 import warnings
-from numba import njit,prange
-from math import isclose
+from numba import njit
 
 
 pd.set_option("display.max_rows", None, "display.max_columns", None)
@@ -31,6 +28,23 @@ Rlay = np.array([1221.5, 3480.0, 5701.0, 5771.0, 5971.0, 6151.0, 6346.6, 6356.0,
 rho_water = 1.02 # density of water in g/cm^3
 beta_arr = np.asarray([float('{:.1f}'.format(i)) for i in np.concatenate((np.linspace(0.1,5,50), np.linspace(6,90,85)))])
 
+# Rlay_mod = np.copy(Rlay)
+# Rlay_mod[8] = 6368.0+(3.0-float(idepth)) # fixed Rlay, accounting for depth of water/ice.
+
+# prem_density_functions = [
+#         lambda y : 13.0885-8.8381*y**2,
+#         lambda y : 12.5815-1.2638*y-3.6426*y**2-5.5281*y**3,
+#         lambda y : 7.9565-6.4761*y+5.5283*y**2-3.0807*y**3,
+#         lambda y : 5.3197-1.4836*y,
+#         lambda y : 11.2494-8.0298*y,
+#         lambda y : 7.1089-3.8045*y,
+#         lambda y : 2.6910+0.6924*y,
+#         lambda y : 2.900,
+#         lambda y : 2.600,
+#         lambda y : 1.020,
+#         lambda y : 1.020,
+#         lambda y : 0.0
+#         ]
 
 def sagitta_deg(beta_deg):
     '''
@@ -68,6 +82,7 @@ def pathlength(tnadir):
     pathlength = 2*Re*np.cos(tnadir)
     return pathlength
 
+@njit(nogil=True)
 def trajlength(beta_deg):
     '''
 
@@ -83,8 +98,10 @@ def trajlength(beta_deg):
 
     '''
     tnadir = (90.0-beta_deg)*(np.pi/180.0)
-    trajlength = Re*np.cos(tnadir)*2
-    return trajlength
+    traj_length = Re*np.cos(tnadir)*2
+    return float(traj_length)
+
+
 
 @njit(nogil=True)
 def PREMdensity(Rin):
@@ -101,8 +118,10 @@ def PREMdensity(Rin):
         Density in g/cm^3.
 
     '''
+    print("idepth = ", idepth)
     Rlay_2 = np.copy(Rlay)
     Rlay_2[8] = 6368.0+(3.0-float(idepth))
+    print("Rlay_2[8] = ", Rlay_2[8])
 
     x=Rin
     y=x/Re
@@ -142,6 +161,25 @@ def PREMdensity(Rin):
     else:
         # edens=0.
         return 0.
+
+def PREMdensity_2(Rin):
+    '''
+​
+    Parameters
+    ----------
+    Rin : float
+        Distance from the Earth Center (at sagitta), in km.
+​
+    Returns
+    -------
+    rhoOUT : float
+        Density in g/cm^3.
+​
+    '''
+    x=Rin
+    y=x/Re
+    idx = np.searchsorted(Rlay_mod, x)
+    return prem_density_functions[idx](y)
 
 def PREMgramVSang(z):
     '''
@@ -341,8 +379,10 @@ def create_traj_table():
 if __name__ == "__main__":
     # import data as Data
 
-    idepth = 4
-    print(find_interface()[0])
+    idepth = 6
+    # print(find_interface()[0])
+    print(PREMdensity(1203))
+    # print(PREMdensity_2(1203))
 
     # PREMdensity(1203)
     # r, rho = densityatx(6752.231264859498,32.0)

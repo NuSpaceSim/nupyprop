@@ -33,14 +33,6 @@ E_lep = Data.E_lep
 m_p = Cross_section.m_p
 N_A = Cross_section.N_A
 
-@njit(nogil=True)
-def my_rand(): # because we need a random no. in the range of (0,1) and not [0,1)
-    random_no = random.random()
-    while random_no == 0:
-        random_no = random.random()
-    return random_no
-    # return 0.33 # for debugging only!
-
 def integrator(args):
     fun = args[0]
     low_lim = args[1]
@@ -514,18 +506,6 @@ def em_cont_part(E_init, alpha_val, beta_val, x): # calculate continuous energy 
     if E_fin<0:E_fin = m_tau
     return E_fin
 
-@njit(nogil=True)
-def idecay(energy, distance):
-    # ctau = 87.11e-4
-    gamma = energy/m_le
-    prob_decay = 1 - np.exp(-distance/(gamma*c_tau))
-    dy = my_rand()
-    if dy < prob_decay:
-        dec_str = "decayed"
-    else:
-        dec_str = "not_decayed"
-    return dec_str
-
 # =============================================================================
 #     Plot Alpha
 # =============================================================================
@@ -719,10 +699,9 @@ if __name__ == "__main__":
     elif material=='iron':A=55.84
     else: A=float(input("Enter the atomic mass of %s: " % material))
 
-    c_tau = 8.703e-3
 
     # print(em_cont_part(1e4, 1e-3, 1e-3, 1))
     # calc_alpha()
-    betac = calc_beta_cut()
-    calc_beta_total()
-    calc_ixc()
+    # betac = calc_beta_cut()
+    # calc_beta_total()
+    # calc_ixc()

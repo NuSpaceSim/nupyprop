@@ -56,13 +56,14 @@ def idecay(energy, distance):
     return dec_str
 
 @njit(nogil=True)
-def int_length_nu(energy, nu_xc): # interaction lengths for neutrino & leptons; in cm
+def int_length_nu(energy, nu_xc): # interaction lengths for neutrinos; in cm
+    # int_length_nu = 1/(N_A * sigma) = 1/((1/cm^3)*cm) = cm
     sig_cc, sig_nc = Interpolation.int_xc_nu(energy, nu_xc) # initialize CC & NC xc interpolations
     x_int = 1/(((sig_cc + sig_nc))*fac_nu) # check the * or / fac_nu!
     return x_int
 
 @njit(nogil=True)
-def int_length_lep(energy, xc_arr, rho): # interaction lengths for neutrino & leptons; in cm
+def int_length_lep(energy, xc_arr, rho): # interaction lengths for leptons; in cm
     # print(rho)
     sig_cc = 0 # placeholder for CC lepton interactions
     sig_nc = 0 # placeholder for NC lepton interactions
@@ -136,27 +137,29 @@ def find_y(energy,ixc_dict,ip):
 #                 Nu propagation
 # =============================================================================
 @njit(nogil=True)
-def propagate_nu(e_init, nu_xc, nu_ixc, depth_max):
+def propagate_nu(e_init, nu_xc, nu_ixc, total_depth_kmwe):
+
+    # returns d_travel, which is the total col. depth traveled by the neutrino before interaction/decaying, in kmwe
 
     part_type = 'nu' # starting off as a neutrino
-    col_depth_total = depth_max*1e5 # in cm.w.e
+    total_depth_cmwe = total_depth_kmwe*1e5
     e_nu = e_init
     e_fin = e_init
-    x_0 = 0.0 # starting depth in cm.w.e
-    d_travel = depth_max # added this in case there is a problem and needed for breaking out when E<1e3
+    x_0 = 0.0 # starting depth in cm
+    d_travel = total_depth_kmwe # added this in case there is a problem and needed for breaking out when E<1e3
 
     # 10 continue
     while e_nu>1e3:
 
         dy = my_rand()
-        int_len = int_length_nu(e_nu, nu_xc) # get the interaction length
-        x = -int_len*np.log(dy) # logarithmic sampling
-        x_f = x_0 + x
-        if x_f > col_depth_total: # past max. depth
+        int_len = int_length_nu(e_nu, nu_xc) # get the interaction length in cm
+        x = -int_len*np.log(dy) # logarithmic sampling; x in cm
+        x_f = x_0 + x # cm
+        if x_f > total_depth_cmwe: # past max. depth
             # continue # cannot use break here
             return part_type, d_travel, e_fin
 
-        if x_f > col_depth_total: # check
+        if x_f > total_depth_cmwe: # check
             print("This should never happen")
 
         x_0 = x_f # keep going and update x_0
@@ -182,7 +185,7 @@ def propagate_nu(e_init, nu_xc, nu_ixc, depth_max):
             break
         else:
             e_nu = e_fin # now we have a nu with energy e_fin, which has gone x_f
-            d_travel = x_0*1e-5
+            d_travel = x_0*1e-5 # kmwe
 
         if e_nu<=1e3: # if e_nu<1e3, neglect interactions
             return part_type, d_travel, e_fin
@@ -301,7 +304,7 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
         # cnt = 0
 
         d0 = 0.
-        delta_d = 5000. #, for now, not adaptive, distance into decay, cm
+        delta_d = 1000. #, for now, not adaptive, distance into decay, cm
         j_max = int(cd_left/(delta_d*rho_water)) #we will get close to exit.
 
         # in rock, use (traj distance (pathlength)-xalong) actual distance to go/delta_d for jmax
@@ -353,33 +356,37 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
 # =============================================================================
 #                 Tau propagation in rock
 # =============================================================================
-@njit(nogil=True)
-def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d_entry, d_in, xalong, cdalong, prop_type):
+# @njit(nogil=True)
+def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d_entry, d_in, xalong, cdalong, prop_type, file):
+    e_min = 1e3 # minimum tau energy, in GeV
+    part_id = 'not_decayed' # start with tau
+    col_depth = d_entry*1e5 # how far in
+    d_max = d_in*1e5 # how much to go, in cm.w.e
+    e_lep = e_init
+    x_0 = 0.
+    cnt = 0
+    # cd_left = d_in*1e5
+
     if prop_type == 'stochastic':
-        e_min = 1e3 # minimum tau energy, in GeV
 
-        part_id = 'not_decayed' # start with tau
+        # stoch_int = 0 # no. of stochastic interactions
 
-        col_depth = d_entry*1e5 # how far in
-        d_max = d_in*1e5 # how much to go, in cm.w.e
-        e_lep = e_init
-        x_0 = 0.
-        cnt = 0
 
         while e_lep > e_min:
             cnt +=1
+            # print(cnt)
             # 10 continue
             x_interp = Interpolation.cd2distd(xalong, cdalong, col_depth) # find how far we are along the chord for given beta
             r, rho = Geometry.densityatx(x_interp, angle) # find the density at x
 
             # rho = rho_rock # USE FOR TESTING P_SURV FOR ROCK ONLY!
 
-            if e_lep <= e_min: # continuous energy loss only
-                # go to 20
-                d_fin = d_max/1e5 # in km.w.e
-                e_fin = e_min
-                part_id = 'decayed'
-                return part_id, d_fin, e_fin
+            # if e_lep <= e_min: # continuous energy loss only
+            #     # go to 20
+            #     d_fin = d_max/1e5 # in km.w.e
+            #     e_fin = e_min
+            #     part_id = 'decayed'
+            #     return part_id, d_fin, e_fin
 
             dy = my_rand()
             # dy = 0.33 # for debugging only!
@@ -417,6 +424,7 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
             e_int = Energy_loss.em_cont_part(e_lep, alpha, beta, x) # get the continuous energy
 
             if e_int <= e_min: # is it below minimum energy now?
+                # file.write("e_int < 1e3, so considering this to be a decay" + "\n")
                 e_fin = e_int
                 # go to 20
                 d_fin = d_max/1e5 # in km.w.e
@@ -427,6 +435,7 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
             int_type = interaction_type_lep(e_int, xc_rock, rho)
 
             if int_type == 'decay': # tau has decayed
+                # file.write(str("decayed; no. of stochastic interactions before decay = %d" % stoch_int) + "\n")
                 part_id = 'decayed'
                 e_fin = e_int
                 # go to 50
@@ -434,7 +443,9 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
                 return part_id, d_fin, e_fin
 
             # tau didn't decay. Now how much energy does it have after interaction?
+            # stoch_int += 1
             y = find_y(e_int, lep_ixc, int_type)
+            # file.write(str("interaction type = %s, y = %f" % (int_type,y)) + "\n")
 
             # outgoing tau energy is old e_lep*(1-y)
             e_lep = e_int*(1-y) # this is the energy for the next interaction
@@ -445,15 +456,84 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
 
         # Outside the while loop, e_lep has to be < e_min
         if e_lep <= e_min: # only continuous energy loss; go to 20
+            # file.write("e_int < 1e3, so considering this to be a decay" + "\n")
             d_fin = d_max/1e5
             e_fin = e_min
             part_id = 'decayed' # don't count this
             return part_id, d_fin, e_fin
 
 
+
     else: # prop_type = continuous - to be updated later; don't use for now
     # loop for deltax, ask if it decays. If decay, go to regen, if not update energy and distance and keep going. Make sure to not go past the max distance. Ending check for not exceeding the total distance
-        return None
+
+        # continuous energy loss:
+        # pass
+        # here is where we do energy loss with dE/dX
+        # we start with part_id = 'not_decayed'
+
+        x_0 = 0.
+        d_0 = 0
+        delta_x = 1000. #, for now, not adaptive, distance into decay, cm
+        x_interp = Interpolation.cd2distd(xalong, cdalong, col_depth) # find how far we are along the chord for given beta
+        # r, rho = Geometry.densityatx(x_interp, angle) # find the density at x
+
+        cd_left = d_max
+        x_left = max(xalong) - x_interp
+        j_max = (x_left*1e5)/(delta_x) # because delta_x is in cm and x_left is in km
+
+
+        while e_lep > e_min and cnt < j_max:
+            cnt += 1
+            x_interp = Interpolation.cd2distd(xalong, cdalong, col_depth) # find how far we are along the chord for given beta
+            r, rho = Geometry.densityatx(x_interp, angle) # find the density at x
+            delta_d = delta_x * rho
+
+            x_0 += delta_x
+            d_0 += delta_d
+
+            # delta_x = delta_d * rho  #distance goes into decay
+            # does the particle decay over this distance?
+            part_id = idecay(e_lep, delta_x)
+
+            if part_id == 'decayed': # we are all done
+                e_fin = e_lep
+                d_fin = d_0/1e5
+                return part_id, d_fin, e_fin
+            else: #find the new energy; assume alpha and beta are total values, not cut values
+                alpha = Interpolation.int_alpha(e_lep, alpha_water) # changed 12/9/2020
+                beta = Interpolation.int_beta(e_lep, beta_water) # changed 12/9/2020
+                e_fin = e_lep - (e_lep*beta + alpha)*delta_d
+                d_fin = d_0/1e5
+                # x_0 = x_f
+                e_lep = e_fin
+                col_depth = d_entry*1e5 + d_0 # in order to update rho
+
+                if cnt >= j_max:
+                    continue # if so, break out of while loop
+
+        if cnt >= j_max:
+            # delta_x = cd_left - d_0
+            if (delta_x>0): #last little energy loss
+                # e_fin = e_lep - (e_lep*beta + alpha)*delta_x
+                d_fin = d_in # take care of that last little delta-x
+                return part_id, d_fin, e_fin
+            else:
+                if e_fin <= e_min:
+                    e_fin = e_min
+                    d_fin = d_in
+                    part_id = 'no_count'
+                elif e_fin > e_init:
+                    e_fin = e_init # sanity check
+                return part_id, d_fin, e_fin
+
+        # Outside the while e_lep has to be < e_min
+        if e_lep <= e_min: # only continuous energy loss; go to 20
+            d_fin = d_in
+            e_fin = e_min
+            part_id = 'no_count' # don't count this
+            return part_id, d_fin, e_fin
+        # return None
 
 @njit(nogil=True)
 def tau_thru_layers(angle, depth, d_water, depth_traj, e_lep_in, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, prop_type): # note: angle is now in angle
@@ -707,30 +787,40 @@ def pexit_w(energy, dm, xc_water, lep_ixc_water, alpha_water, beta_water, prop_t
     # f.close()
     return None
 
-@njit(nogil=True)
+# @njit(nogil=True)
 def pexit_r(angle, energy, dm, xc_rock, lep_ixc_rock, alpha_rock, beta_rock, xalong, cdalong, prop_type):
 
     # dm = dm[:5]
-    dm = dm[3:5]
+    # dm = dm[3:5]
     # energy = np.genfromtxt('psurv-ALLM-v9r0-ebin.17', usecols = 0)
     # dm = np.genfromtxt('psurv-ALLM-v9r0-ebin.17', usecols = 1)
-    imax = int(1e4)
+    imax = int(10)
     # f = open('results_%d_rock' % imax,'w+')
 
-    for j in range(len(dm)):
-        surv = 0.0
-        ic = 0
-        for k in prange(imax):
-            # p_id, df, e_fin = propagate_lep_water(energy[j], xc_water, lep_ixc_water, alpha_water, beta_water, dm[j], 'stochastic')
-            # propagate_lep_rock(e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d_entry, d_in, prop_type)
-            p_id, df, e_fin = propagate_lep_rock(0, energy[j], xc_rock, lep_ixc_rock, alpha_rock, beta_rock, 0.0, dm[j], xalong, cdalong, prop_type)
-            print(dm[j], e_fin, df)
-            if p_id == 'not_decayed' and e_fin>50:
-                ic+=1
-        # surv = float(ic)/float(imax)
-        # print(energy[j], dm[j], surv, df)
-        # f.write(str("%.4f" % energy[j]) + "\t" + str("%.4f" % dm[j]) + "\t" + str("%.4f" % surv) + "\n")
-    # f.close()
+    f = open('rock_%.0e_%.2f' % (1e7, 80),'w+')
+
+    for k in range(imax):
+        f.write(str("imax = %d" % (k+1)) + "\n")
+        p_id, df, e_fin = propagate_lep_rock(0, 1e7, xc_rock, lep_ixc_rock, alpha_rock, beta_rock, 0.0, 80, xalong, cdalong, prop_type,f)
+        f.close
+
+
+    # for j in range(len(dm)):
+    #     surv = 0.0
+    #     ic = 0
+    #     for k in prange(imax):
+    #         f.write(str("imax = %d" % (k+1)) + "\n")
+    #         # p_id, df, e_fin = propagate_lep_water(energy[j], xc_water, lep_ixc_water, alpha_water, beta_water, dm[j], 'stochastic')
+    #         # propagate_lep_rock(e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d_entry, d_in, prop_type)
+    #         p_id, df, e_fin = propagate_lep_rock(0, energy[j], xc_rock, lep_ixc_rock, alpha_rock, beta_rock, 0.0, dm[j], xalong, cdalong, prop_type)
+
+    #         # print(dm[j], e_fin, df)
+    #         if p_id == 'not_decayed' and e_fin>50:
+    #             ic+=1
+    #     surv = float(ic)/float(imax)
+    #     print(energy[j], dm[j], surv, df)
+    #     # f.write(str("%.4f" % energy[j]) + "\t" + str("%.4f" % dm[j]) + "\t" + str("%.4f" % surv) + "\n")
+    # # f.close()
     return None
 
 @njit(nogil=True)
@@ -738,6 +828,7 @@ def pexit_n(angle, energy, dm, nu_xc, nu_ixc, xc_water, lep_ixc_water, alpha_wat
     ebin = np.zeros(91)
 
     imax = int(1e5)
+
 
     for j in range(len(dm)):
         surv = 1.0
@@ -1038,7 +1129,7 @@ if __name__ == "__main__":
     c_tau = 8.703e-3
 
 
-    prop_type = 'continuous'
+    prop_type = 'stochastic'
 
     if prop_type == 'stochastic':
         beta_type = 'cut'
@@ -1109,14 +1200,15 @@ if __name__ == "__main__":
     # pexit_plot('regen_rock')
     # tau_cdf('water')
     # tau_cdf('rock')
-    energy_water, dm_water = np.genfromtxt('psurv-ALLM-v9w0-ebin.16', usecols = (0,1), unpack=True)
+    # energy_water, dm_water = np.genfromtxt('psurv-ALLM-v9w0-ebin.16', usecols = (0,1), unpack=True)
 
-    # energy_rock, dm_rock = np.genfromtxt('psurv-ALLM-v9r0-ebin.17', usecols = (0,1), unpack=True)
+    energy_rock, dm_rock = np.genfromtxt('psurv-ALLM-v9r0-ebin.17', usecols = (0,1), unpack=True)
 
     # pexit_w(energy_water, dm_water, xc_water, lep_ixc_water, alpha_water, beta_water, prop_type)
-    pexit_plot('water', prop_type)
+    pexit_r(0, energy_rock, dm_rock, xc_rock, lep_ixc_rock, alpha_rock, beta_rock, xalong, cdalong, prop_type)
+    # pexit_plot('rock', prop_type)
     # propagate_lep_water(1e6, xc_water, lep_ixc_water, alpha_water, beta_water, 1e5, prop_type)
-    # pexit_r(0, energy_rock, dm_rock, xc_rock, lep_ixc_rock, alpha_rock, beta_rock, xalong, cdalong)
+
 
     # for i in range(len(dm_rock)):
     #     p_id, df, e_fin = propagate_lep_rock(0, energy_rock[i], xc_rock, lep_ixc_rock, alpha_rock, beta_rock, 0.0, dm_rock[i], xalong, cdalong, 'stochastic')

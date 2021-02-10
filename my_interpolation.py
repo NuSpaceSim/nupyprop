@@ -115,7 +115,8 @@ if __name__ == "__main__":
 
 
     beta_water = Data.get_beta(lepton, 'water', 'cut', pn_model)
-    print(int_beta(1e7, beta_water, log=False))
+    # print(int_beta(1e7, beta_water, log=False))
+    print(int_alpha(1e7, beta_water))
 
 
 
