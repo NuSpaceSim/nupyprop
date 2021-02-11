@@ -99,6 +99,7 @@ def run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, le
     regen_tot = 0
     e_out = [] # initialize e_out list
     for i in prange(1,stat+1):
+    # for i in range(1,stat+1):
 
         depth0 = 0.0 # start with this each time
 
