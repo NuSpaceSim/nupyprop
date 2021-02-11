@@ -238,7 +238,7 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
                     e_fin = e_min
                     part_id = 'no_count'
                 # 50 continue
-                print("This is happening")
+                # print("This is happening")
                 return part_id, d_fin, e_fin
 
             x_0 = x_f # update x_0 and keep going
@@ -286,78 +286,78 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
             part_id = 'no_count' # don't count this
             return part_id, d_fin, e_fin
 
-    else:
-        # continuous energy loss:
-        # pass
-        # here is where we do energy loss with dE/dX
-        # we start with part_id = 'not_decayed'
+    # else:
+    #     # continuous energy loss:
+    #     # pass
+    #     # here is where we do energy loss with dE/dX
+    #     # we start with part_id = 'not_decayed'
 
-        # i/p's: e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in, prop_type
+    #     # i/p's: e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in, prop_type
 
-        # Copied init variables here:
-        # e_min = 1e3 # minimum tau energy, in GeV
-        # part_id = 'not_decayed' # start with tau that's obviously not decayed
-        # cd_left = d_in*1e5 # how much to go, in cm.w.e
-        # e_lep = e_init
-        # e_fin = e_init # in case the first interaction is too far
-        # x_0 = 0 # haven't gone anywhere yet
-        # cnt = 0
+    #     # Copied init variables here:
+    #     # e_min = 1e3 # minimum tau energy, in GeV
+    #     # part_id = 'not_decayed' # start with tau that's obviously not decayed
+    #     # cd_left = d_in*1e5 # how much to go, in cm.w.e
+    #     # e_lep = e_init
+    #     # e_fin = e_init # in case the first interaction is too far
+    #     # x_0 = 0 # haven't gone anywhere yet
+    #     # cnt = 0
 
-        d0 = 0.
-        delta_d = 1000. #, for now, not adaptive, distance into decay, cm
-        j_max = int(cd_left/(delta_d*rho_water)) #we will get close to exit.
+    #     d0 = 0.
+    #     delta_d = 1000. #, for now, not adaptive, distance into decay, cm
+    #     j_max = int(cd_left/(delta_d*rho_water)) #we will get close to exit.
 
-        # in rock, use (traj distance (pathlength)-xalong) actual distance to go/delta_d for jmax
-        while e_lep > e_min and cnt < j_max:
-            cnt += 1
+    #     # in rock, use (traj distance (pathlength)-xalong) actual distance to go/delta_d for jmax
+    #     while e_lep > e_min and cnt < j_max:
+    #         cnt += 1
 
-            d0+= delta_d # where we are in xalong - use in rock to find rho
-            delta_x = delta_d * rho_water  #distance goes into decay
-            x_f = x_0 + delta_x
-            # does the particle decay over this distance?
-            part_id = idecay(e_lep, delta_d)
+    #         d0+= delta_d # where we are in xalong - use in rock to find rho
+    #         delta_x = delta_d * rho_water  #distance goes into decay
+    #         x_f = x_0 + delta_x
+    #         # does the particle decay over this distance?
+    #         part_id = idecay(e_lep, delta_d)
 
-            if part_id == 'decayed': # we are all done
-                e_fin = e_lep
-                d_fin = d_in
-                return part_id, d_fin, e_fin
-            else: #find the new energy; assume alpha and beta are total values, not cut values
-                alpha = Interpolation.int_alpha(e_lep, alpha_water) # changed 12/9/2020
-                beta = Interpolation.int_beta(e_lep, beta_water) # changed 12/9/2020
-                e_fin = e_lep - (e_lep*beta + alpha)*delta_x
-                d_fin = x_f/1e+5
-                x_0 = x_f
-                e_lep = e_fin
+    #         if part_id == 'decayed': # we are all done
+    #             e_fin = e_lep
+    #             d_fin = d_in
+    #             return part_id, d_fin, e_fin
+    #         else: #find the new energy; assume alpha and beta are total values, not cut values
+    #             alpha = Interpolation.int_alpha(e_lep, alpha_water) # changed 12/9/2020
+    #             beta = Interpolation.int_beta(e_lep, beta_water) # changed 12/9/2020
+    #             e_fin = e_lep - (e_lep*beta + alpha)*delta_x
+    #             d_fin = x_f/1e+5
+    #             x_0 = x_f
+    #             e_lep = e_fin
 
-                if cnt >= j_max:
-                    continue # if so, break out of while loop
+    #             if cnt >= j_max:
+    #                 continue # if so, break out of while loop
 
-        if cnt >= j_max:
-            delta_x = cd_left - x_f
-            if (delta_x>0): #last little energy loss
-                e_fin = e_lep - (e_lep*beta + alpha)*delta_x
-                d_fin = d_in # take care of that last little delta-x
-                return part_id, d_fin, e_fin
-            else:
-                if e_fin <= e_min:
-                    e_fin = e_min
-                    d_fin = d_in
-                    part_id = 'no_count'
-                elif e_fin > e_init:
-                    e_fin = e_init # sanity check
-                return part_id, d_fin, e_fin
+    #     if cnt >= j_max:
+    #         delta_x = cd_left - x_f
+    #         if (delta_x>0): #last little energy loss
+    #             e_fin = e_lep - (e_lep*beta + alpha)*delta_x
+    #             d_fin = d_in # take care of that last little delta-x
+    #             return part_id, d_fin, e_fin
+    #         else:
+    #             if e_fin <= e_min:
+    #                 e_fin = e_min
+    #                 d_fin = d_in
+    #                 part_id = 'no_count'
+    #             elif e_fin > e_init:
+    #                 e_fin = e_init # sanity check
+    #             return part_id, d_fin, e_fin
 
-        # Outside the while e_lep has to be < e_min
-        if e_lep <= e_min: # only continuous energy loss; go to 20
-            d_fin = d_in
-            e_fin = e_min
-            part_id = 'no_count' # don't count this
-            return part_id, d_fin, e_fin
+    #     # Outside the while e_lep has to be < e_min
+    #     if e_lep <= e_min: # only continuous energy loss; go to 20
+    #         d_fin = d_in
+    #         e_fin = e_min
+    #         part_id = 'no_count' # don't count this
+    #         return part_id, d_fin, e_fin
 # =============================================================================
 #                 Tau propagation in rock
 # =============================================================================
-# @njit(nogil=True)
-def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d_entry, d_in, xalong, cdalong, prop_type, file):
+@njit(nogil=True)
+def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d_entry, d_in, xalong, cdalong, prop_type):
     e_min = 1e3 # minimum tau energy, in GeV
     part_id = 'not_decayed' # start with tau
     col_depth = d_entry*1e5 # how far in
@@ -464,76 +464,76 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
 
 
 
-    else: # prop_type = continuous - to be updated later; don't use for now
-    # loop for deltax, ask if it decays. If decay, go to regen, if not update energy and distance and keep going. Make sure to not go past the max distance. Ending check for not exceeding the total distance
+    # else: # prop_type = continuous - to be updated later; don't use for now
+    # # loop for deltax, ask if it decays. If decay, go to regen, if not update energy and distance and keep going. Make sure to not go past the max distance. Ending check for not exceeding the total distance
 
-        # continuous energy loss:
-        # pass
-        # here is where we do energy loss with dE/dX
-        # we start with part_id = 'not_decayed'
+    #     # continuous energy loss:
+    #     # pass
+    #     # here is where we do energy loss with dE/dX
+    #     # we start with part_id = 'not_decayed'
 
-        x_0 = 0.
-        d_0 = 0
-        delta_x = 1000. #, for now, not adaptive, distance into decay, cm
-        x_interp = Interpolation.cd2distd(xalong, cdalong, col_depth) # find how far we are along the chord for given beta
-        # r, rho = Geometry.densityatx(x_interp, angle) # find the density at x
+    #     x_0 = 0.
+    #     d_0 = 0
+    #     delta_x = 1000. #, for now, not adaptive, distance into decay, cm
+    #     x_interp = Interpolation.cd2distd(xalong, cdalong, col_depth) # find how far we are along the chord for given beta
+    #     # r, rho = Geometry.densityatx(x_interp, angle) # find the density at x
 
-        cd_left = d_max
-        x_left = max(xalong) - x_interp
-        j_max = (x_left*1e5)/(delta_x) # because delta_x is in cm and x_left is in km
+    #     cd_left = d_max
+    #     x_left = max(xalong) - x_interp
+    #     j_max = (x_left*1e5)/(delta_x) # because delta_x is in cm and x_left is in km
 
 
-        while e_lep > e_min and cnt < j_max:
-            cnt += 1
-            x_interp = Interpolation.cd2distd(xalong, cdalong, col_depth) # find how far we are along the chord for given beta
-            r, rho = Geometry.densityatx(x_interp, angle) # find the density at x
-            delta_d = delta_x * rho
+    #     while e_lep > e_min and cnt < j_max:
+    #         cnt += 1
+    #         x_interp = Interpolation.cd2distd(xalong, cdalong, col_depth) # find how far we are along the chord for given beta
+    #         r, rho = Geometry.densityatx(x_interp, angle) # find the density at x
+    #         delta_d = delta_x * rho
 
-            x_0 += delta_x
-            d_0 += delta_d
+    #         x_0 += delta_x
+    #         d_0 += delta_d
 
-            # delta_x = delta_d * rho  #distance goes into decay
-            # does the particle decay over this distance?
-            part_id = idecay(e_lep, delta_x)
+    #         # delta_x = delta_d * rho  #distance goes into decay
+    #         # does the particle decay over this distance?
+    #         part_id = idecay(e_lep, delta_x)
 
-            if part_id == 'decayed': # we are all done
-                e_fin = e_lep
-                d_fin = d_0/1e5
-                return part_id, d_fin, e_fin
-            else: #find the new energy; assume alpha and beta are total values, not cut values
-                alpha = Interpolation.int_alpha(e_lep, alpha_water) # changed 12/9/2020
-                beta = Interpolation.int_beta(e_lep, beta_water) # changed 12/9/2020
-                e_fin = e_lep - (e_lep*beta + alpha)*delta_d
-                d_fin = d_0/1e5
-                # x_0 = x_f
-                e_lep = e_fin
-                col_depth = d_entry*1e5 + d_0 # in order to update rho
+    #         if part_id == 'decayed': # we are all done
+    #             e_fin = e_lep
+    #             d_fin = d_0/1e5
+    #             return part_id, d_fin, e_fin
+    #         else: #find the new energy; assume alpha and beta are total values, not cut values
+    #             alpha = Interpolation.int_alpha(e_lep, alpha_water) # changed 12/9/2020
+    #             beta = Interpolation.int_beta(e_lep, beta_water) # changed 12/9/2020
+    #             e_fin = e_lep - (e_lep*beta + alpha)*delta_d
+    #             d_fin = d_0/1e5
+    #             # x_0 = x_f
+    #             e_lep = e_fin
+    #             col_depth = d_entry*1e5 + d_0 # in order to update rho
 
-                if cnt >= j_max:
-                    continue # if so, break out of while loop
+    #             if cnt >= j_max:
+    #                 continue # if so, break out of while loop
 
-        if cnt >= j_max:
-            # delta_x = cd_left - d_0
-            if (delta_x>0): #last little energy loss
-                # e_fin = e_lep - (e_lep*beta + alpha)*delta_x
-                d_fin = d_in # take care of that last little delta-x
-                return part_id, d_fin, e_fin
-            else:
-                if e_fin <= e_min:
-                    e_fin = e_min
-                    d_fin = d_in
-                    part_id = 'no_count'
-                elif e_fin > e_init:
-                    e_fin = e_init # sanity check
-                return part_id, d_fin, e_fin
+    #     if cnt >= j_max:
+    #         # delta_x = cd_left - d_0
+    #         if (delta_x>0): #last little energy loss
+    #             # e_fin = e_lep - (e_lep*beta + alpha)*delta_x
+    #             d_fin = d_in # take care of that last little delta-x
+    #             return part_id, d_fin, e_fin
+    #         else:
+    #             if e_fin <= e_min:
+    #                 e_fin = e_min
+    #                 d_fin = d_in
+    #                 part_id = 'no_count'
+    #             elif e_fin > e_init:
+    #                 e_fin = e_init # sanity check
+    #             return part_id, d_fin, e_fin
 
-        # Outside the while e_lep has to be < e_min
-        if e_lep <= e_min: # only continuous energy loss; go to 20
-            d_fin = d_in
-            e_fin = e_min
-            part_id = 'no_count' # don't count this
-            return part_id, d_fin, e_fin
-        # return None
+    #     # Outside the while e_lep has to be < e_min
+    #     if e_lep <= e_min: # only continuous energy loss; go to 20
+    #         d_fin = d_in
+    #         e_fin = e_min
+    #         part_id = 'no_count' # don't count this
+    #         return part_id, d_fin, e_fin
+    #     # return None
 
 @njit(nogil=True)
 def tau_thru_layers(angle, depth, d_water, depth_traj, e_lep_in, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, prop_type): # note: angle is now in angle
@@ -542,6 +542,8 @@ def tau_thru_layers(angle, depth, d_water, depth_traj, e_lep_in, xc_water, xc_ro
     col_depth = depth_traj*1e5 # g/cm^2
     e_fin = e_lep_in
     part_type = 'not_decayed' # tau going in
+
+    # print("part_type = ", part_type)
 
     if e_lep_in < 1e3: # just in case
         part_type = 'decayed'
@@ -720,6 +722,7 @@ def regen_rock(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_wa
     r = my_rand()
     frac = distnu(r,ithird)
     e_nu = frac * e_lep
+
 
     d_left = depth-d_lep # this is how far the neutrino can go
     e_fin = e_nu # in case we need to exit
@@ -1205,7 +1208,12 @@ if __name__ == "__main__":
     energy_rock, dm_rock = np.genfromtxt('psurv-ALLM-v9r0-ebin.17', usecols = (0,1), unpack=True)
 
     # pexit_w(energy_water, dm_water, xc_water, lep_ixc_water, alpha_water, beta_water, prop_type)
-    pexit_r(0, energy_rock, dm_rock, xc_rock, lep_ixc_rock, alpha_rock, beta_rock, xalong, cdalong, prop_type)
+    # pexit_r(0, energy_rock, dm_rock, xc_rock, lep_ixc_rock, alpha_rock, beta_rock, xalong, cdalong, prop_type)
+    # part_type, d_f, e_fin = propagate_lep_rock(0, 1e7, xc_rock, lep_ixc_rock, alpha_rock, beta_rock, 0, 2.41e-2, xalong, cdalong, prop_type)
+    tau_thru_layers(0, 2.41e-2, 2.41e-2, 2.41e-2, 1e7, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, prop_type)
+
+    # tau_thru_layers(angle, depth, d_water, depth_traj, e_lep_in, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, prop_type): # note: angle is now in angle
+    # part_type, d_f, e_fin = propagate_lep_water(1e7, xc_water, lep_ixc_water, alpha_water, beta_water, 2.41e-2, prop_type)
     # pexit_plot('rock', prop_type)
     # propagate_lep_water(1e6, xc_water, lep_ixc_water, alpha_water, beta_water, 1e5, prop_type)
 

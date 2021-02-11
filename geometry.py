@@ -118,10 +118,10 @@ def PREMdensity(Rin):
         Density in g/cm^3.
 
     '''
-    print("idepth = ", idepth)
+    # print("idepth = ", idepth)
     Rlay_2 = np.copy(Rlay)
     Rlay_2[8] = 6368.0+(3.0-float(idepth))
-    print("Rlay_2[8] = ", Rlay_2[8])
+    # print("Rlay_2[8] = ", Rlay_2[8])
 
     x=Rin
     y=x/Re
@@ -161,25 +161,6 @@ def PREMdensity(Rin):
     else:
         # edens=0.
         return 0.
-
-def PREMdensity_2(Rin):
-    '''
-​
-    Parameters
-    ----------
-    Rin : float
-        Distance from the Earth Center (at sagitta), in km.
-​
-    Returns
-    -------
-    rhoOUT : float
-        Density in g/cm^3.
-​
-    '''
-    x=Rin
-    y=x/Re
-    idx = np.searchsorted(Rlay_mod, x)
-    return prem_density_functions[idx](y)
 
 def PREMgramVSang(z):
     '''

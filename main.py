@@ -92,7 +92,7 @@ def bin_data(angle, energy, eb_no_regen, eb_regen):
     return energy, angle, prob_no_regen, prob_regen, emid
 
 @njit(nogil=True, parallel=True)
-def run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird): # depthE is the total column depth from PREM at an angle
+def run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, prop_type): # depthE is the total column depth from PREM at an angle
     depth = depthE
     regen_cnt = 0
     no_regen_tot = 0
@@ -167,7 +167,7 @@ def run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, le
 
     return no_regen_tot, regen_tot, e_out
 
-def main():
+def main(prop_type):
 
     nu_xc, xc_water, xc_rock, alpha_water, alpha_rock, beta_water, beta_rock = init_xc(lepton, cross_section_model, pn_model, prop_type)
 
@@ -193,7 +193,7 @@ def main():
             depthE = Geometry.columndepth(angle)*1e-5 # column depth in kmwe?
 
 
-            no_regen, regen, e_out = run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird)
+            no_regen, regen, e_out = run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, prop_type)
 
             prob_no_regen = no_regen/float(stat)
             prob_regen = regen/float(stat)
@@ -231,9 +231,9 @@ if __name__ == "__main__":
     # ray.init()
     # random.seed(30)
     start_time = time.time()
-    angles = np.array([10])
+    angles = np.array([5])
     # angles = np.array([1,3,5,7,10,12,15,17,20,25,30,35])
-    E_prop = np.array([1e8])
+    E_prop = np.array([1e7])
 
     idepth = 4
     Geometry.idepth = idepth
@@ -243,16 +243,16 @@ if __name__ == "__main__":
     # material = 'rock'
     cross_section_model = 'ncteq15'
     pn_model = 'allm'
-    stat = int(1e7)
+    stat = int(1e6)
     Transport.fac_nu = fac_nu
     c_tau = Transport.c_tau = 8.703e-3
 
-    prop_type = 'continuous'
+    prop_type = 'stochastic'
 
     nu_xc, xc_water, xc_rock, alpha_water, alpha_rock, beta_water, beta_rock = init_xc(lepton, cross_section_model, pn_model, prop_type)
 
     nu_ixc, lep_ixc_water, lep_ixc_rock = init_ixc(lepton, cross_section_model, pn_model)
-    prob_dict, e_out = main()
+    prob_dict, e_out = main(prop_type)
 
     end_time = time.time()
     print(f"It took {end_time-start_time:.2f} seconds to compute")
