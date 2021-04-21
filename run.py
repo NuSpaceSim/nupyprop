@@ -29,7 +29,7 @@ parser.add_argument('-a', '--angle', dest='angle_val', nargs='?', const=np.arang
 
 # parser.add_argument('-a', '--angle', dest='angle_val', nargs='?', const=np.array([1,2,3,5,7,10,12,15,17,20,25,30,35]), default=np.array([1,2,3,5,7,10,12,15,17,20,25,30,35]), help='value of angle; defaults are 1,3,5,7,10,12,15,17,20,25,30,35 degrees')
 
-parser.add_argument('-i', '--idepth', dest='idepth_val', nargs='?', type=float, const=4, default=4, help='value of idepth; default is 4')
+parser.add_argument('-i', '--idepth', dest='idepth_val', nargs='?', type=float, const=4, default=4, help='value of water layer depth; default is 4')
 
 parser.add_argument('-l', '--lepton', dest='lepton_id', nargs='?', type=str, const='tau', default='tau', help='particle for energy loss and propagation - can be tau or muon; default is tau')
 
@@ -37,7 +37,7 @@ parser.add_argument('-t', '--energy_loss', dest='loss_type', nargs='?', type=str
 
 parser.add_argument('-m', '--material', dest='material_id', nargs='?', type=str, const='rock', default='rock', help='material for energy loss - can be rock or water; default is rock')
 
-parser.add_argument('-x', '--xc_model', dest='xc_model_id', nargs='?', type=str, const='ncteq15', default='ncteq15', help='neutrino cross-section model; default is ncteq15')
+parser.add_argument('-x', '--xc_model', dest='xc_model_id', nargs='?', type=str, const='cteq18_nlo', default='cteq18_nlo', help='neutrino cross-section model; default is CT18-NLO')
 
 parser.add_argument('-p', '--pn_model', dest='pn_model_id', nargs='?', type=str, const='allm', default='allm', help='lepton photonuclear energy loss model; default is allm')
 
