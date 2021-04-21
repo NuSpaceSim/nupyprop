@@ -23,11 +23,11 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument('-e', '--energy', dest='energy_val', nargs='?', const=np.array([1e7, 1e8, 1e9, 1e10, 1e11]), default=np.array([1e7, 1e8, 1e9, 1e10, 1e11]), help='value of incoming neutrino energy; defaults are 10^7-10^11 GeV')
 
-# parser.add_argument('-a', '--angle', dest='angle_val', nargs='?', const=np.arange(1,41), default=np.arange(1,41), help='value of angle; defaults are 1-40 degrees')
+parser.add_argument('-a', '--angle', dest='angle_val', nargs='?', const=np.arange(1,41), default=np.arange(1,36), help='value of angle; defaults are 1-35 degrees')
 
 # parser.add_argument('-a', '--angle', dest='angle_val', nargs='?', const=np.arange(1,36), default=np.arange(1,36), help='value of angle; defaults are 1,3,5,7,10,12,15,17,20,25,30,35 degrees')
 
-parser.add_argument('-a', '--angle', dest='angle_val', nargs='?', const=np.array([1,2,3,5,7,10,12,15,17,20,25,30,35]), default=np.array([1,2,3,5,7,10,12,15,17,20,25,30,35]), help='value of angle; defaults are 1,3,5,7,10,12,15,17,20,25,30,35 degrees')
+# parser.add_argument('-a', '--angle', dest='angle_val', nargs='?', const=np.array([1,2,3,5,7,10,12,15,17,20,25,30,35]), default=np.array([1,2,3,5,7,10,12,15,17,20,25,30,35]), help='value of angle; defaults are 1,3,5,7,10,12,15,17,20,25,30,35 degrees')
 
 parser.add_argument('-i', '--idepth', dest='idepth_val', nargs='?', type=float, const=4, default=4, help='value of idepth; default is 4')
 
