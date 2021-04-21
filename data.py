@@ -1,0 +1,319 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Sat Sep 26 16:44:13 2020
+
+@author: sam
+"""
+
+import numpy as np
+import pandas as pd
+from pandas import HDFStore
+# import collections
+import time
+
+
+E_nu = np.logspace(3,12,91,base=10).astype(np.float64)
+E_lep = np.logspace(0,12,121,base=10).astype(np.float64)
+
+
+def add_trajs(type_traj, idepth, traj_array):
+    hdf = HDFStore('lookup_tables.h5','a')
+    if type_traj == 'col':branch = 'Column_Trajectories' # sub-sub branch inside the Earth/traj_idepth branch
+    elif type_traj == 'water':branch = 'Water_Trajectories'
+    hdf.put('Earth/traj_%s/%s' % (str(idepth),branch), traj_array, format='t', data_columns=True)
+    hdf.close()
+    return print("%s lookup table successfully created for idepth = %s" % (branch,str(idepth)))
+
+def get_trajs(type_traj, beta, idepth): # returns {xalong:cdalong} for beta if type=col or returns chord, water for beta if type=water
+    if type_traj == 'col':
+        dataset = pd.read_hdf('lookup_tables.h5','Earth/traj_%s/Column_Trajectories' % str(idepth))
+        dataset_sliced = dataset[dataset['beta']==beta]
+        xalong = np.asfortranarray(dataset_sliced.xalong.T)
+        cdalong = np.asfortranarray(dataset_sliced.cdalong.T)
+        return xalong, cdalong
+
+    elif type_traj == 'water':
+        dataset = pd.read_hdf('lookup_tables.h5','Earth/traj_%s/Water_Trajectories' % str(idepth))
+        chord = float(dataset.chord[dataset['beta']==beta])
+        water = float(dataset.water[dataset['beta']==beta])
+        return chord, water
+    return "Error in get_trajs in Data"
+
+def add_xc(part_type, xc_obj, model, **kwargs):
+    '''
+    Parameters
+    ----------
+    model : string
+        Name of the model you want to add the cross-section values of, to the hdf file
+    xc_dict : dictionary
+        If ixc_type='nu', this dictionary should contain 4 keys: 'nucc', 'nunc', 'anucc' & 'anunc' and their corresponding keys , and if ixc_type='tau' or 'muon', this dictionary should contain 4 keys: 'brem', 'pair', 'pn_bb' & 'pn' and their corresponding keys
+
+    Returns
+    -------
+    None.
+
+    '''
+    hdf = HDFStore('lookup_tables.h5','a')
+    if part_type=='nu': # here, xc_obj is a dict
+        particle_type = ['nu','anu']
+        for particle in particle_type:
+            cc = xc_obj[particle]['cc']
+            nc = xc_obj[particle]['nc']
+            dframe = pd.DataFrame({'energy':E_nu, 'sigma_cc':cc, 'sigma_nc':nc})
+            if 'a' in particle: # anti-neutrino group
+                hdf.put('Neutrino_Cross_Sections/anti_neutrino/xc/%s' % model, dframe, format='t', data_columns=True)
+            else: # neutrino group
+                hdf.put('Neutrino_Cross_Sections/neutrino/xc/%s' % model, dframe, format='t', data_columns=True)
+        hdf.close()
+        return print("%s_sigma CC & NC lookup tables successfully created for %s model" % (part_type, model))
+    else: # energy loss XC; here, xc_obj is an array
+        material = kwargs['material']
+        dframe = pd.DataFrame({'energy':E_lep, 'sigma_%s' % model:xc_obj})
+        hdf.put('Energy_Loss/%s/%s/xc/%s' % (part_type,material,model), dframe, format='t', data_columns=True)
+        hdf.close()
+        return print("%s_sigma lookup table successfully created for %s in %s" % (part_type, model, material))
+    return None
+
+def get_xc(part_type, model, **kwargs):
+    if part_type=='nu':
+        particle = kwargs['particle']
+        if particle=='anti-neutrino':particle='anti_neutrino'
+        try:
+            dataset_xc = pd.read_hdf('lookup_tables.h5','Neutrino_Cross_Sections/%s/xc/%s' % (particle,model))
+            cscc = dataset_xc.sigma_cc
+            csnc = dataset_xc.sigma_nc
+            out_arr = np.asarray([cscc,csnc])
+            return np.asfortranarray(out_arr.T)
+        except KeyError:
+            model = str(input(("Error finding cross-section values for %s model, please enter a valid model name: " % model)))
+            return None
+    else: # energy loss; part_type == 'tau' or 'muon'
+        try:
+            material = kwargs['material']
+
+            dataset_xc = pd.read_hdf('lookup_tables.h5','Energy_Loss/%s/%s/xc/%s' % (part_type,material,model))
+
+            out_arr = np.asarray(dataset_xc['sigma_%s' % model])
+            return np.asfortranarray(out_arr.T)
+
+        except KeyError:
+            model = str(input(("Error finding cross-section values for %s model, please enter a valid model name: " % model)))
+            return None
+    return None
+
+def add_ixc(part_type, ixc_dict, model, **kwargs):
+    '''
+    Parameters
+    ----------
+    model : string
+        Name of the model you want to add the integrated cross-section values of, to the hdf file
+    cross_dict : dictionary
+        If ixc_type='nu', this dictionary should contain 4 keys: 'nucc', 'nunc', 'anucc' & 'anunc' and their corresponding keys as dictionaries, and if ixc_type='tau' or 'muon', this dictionary should contain 4 keys: 'brem', 'pair', 'pn_bb' & 'pn' and their corresponding keys as dictionaries
+
+    Returns
+    -------
+    None.
+
+    '''
+    hdf = HDFStore('lookup_tables.h5','a')
+    if part_type == 'nu':
+        particle_current = ['anucc','anunc','nucc','nunc']
+        for particle in particle_current:
+            if 'a' in particle: # anti-neutrino group
+                hdf.put('Neutrino_Cross_Sections/anti_neutrino/ixc/%s_%s' % (model,particle[3:]),ixc_dict[particle], format='t')
+            else: # neutrino group
+                hdf.put('Neutrino_Cross_Sections/neutrino/ixc/%s_%s' % (model,particle[2:]),ixc_dict[particle], format='t')
+        hdf.close()
+        return print("%s_sigma CDF CC & NC lookup tables successfully created for %s model" % (part_type, model))
+
+    else: # energy_loss; ixc_type == 'muon' or 'tau'
+        material = kwargs['material']
+        hdf.put('Energy_Loss/%s/%s/ixc/%s' % (part_type,material,model),ixc_dict, format='t')
+        hdf.close()
+        return print("%s_sigma CDF lookup table successfully created for %s model in %s" % (part_type, model, material))
+    return None
+
+def get_ixc(part_type, model, **kwargs):
+
+    if part_type == 'nu':
+        particle = kwargs['particle']
+        if particle=='anti-neutrino':particle='anti_neutrino'
+        try:
+            dataset_ixc_cc = pd.read_hdf('lookup_tables.h5','Neutrino_Cross_Sections/%s/ixc/%s_cc' % (particle,model))
+            dataset_ixc_nc = pd.read_hdf('lookup_tables.h5','Neutrino_Cross_Sections/%s/ixc/%s_nc' % (particle,model))
+
+            ixc_cc, ixc_nc = [], []
+
+            for energy in range(len(E_nu)):
+                ixc_cc.append(np.asarray(dataset_ixc_cc[E_nu[energy]]))
+                ixc_nc.append(np.asarray(dataset_ixc_nc[E_nu[energy]]))
+
+            ixc_cc = np.asarray(ixc_cc)
+            ixc_nc = np.asarray(ixc_cc)
+
+            out_arr = np.asarray([ixc_cc, ixc_nc])
+            return np.asfortranarray(out_arr.T)
+
+        except KeyError or TypeError:
+            model = str(input(("Error finding integrated cross-section values for %s model, please enter a valid model name." % str(model))))
+            return None
+    else: # energy loss; ixc_type == 'tau' or 'muon'
+        try:
+            material = kwargs['material']
+            dataset_ixc = pd.read_hdf('lookup_tables.h5','Energy_Loss/%s/%s/ixc/%s' % (part_type,material,model))
+
+
+            ixc = []
+            for energy in range(len(E_lep)):
+                ixc.append(np.asarray(dataset_ixc[E_lep[energy]]))
+
+            ixc = np.asarray(ixc)
+
+            out_arr = ixc
+            return np.asfortranarray(out_arr)
+
+        except KeyError or TypeError:
+            model = str(input("Error finding energy loss cross-section values for %s model, please enter a valid model name: " % str(model)))
+            return None
+    return None
+
+def add_alpha(alpha, particle, material):
+    hdf = HDFStore('lookup_tables.h5','a')
+    alpha_df = pd.DataFrame({'energy':E_lep,'alpha':alpha})
+    hdf.put('Energy_Loss/%s/%s/alpha' % (particle,material),alpha_df, format='t', data_columns=True)
+    hdf.close()
+    return print("%s_alpha lookup table successfully created in %s" % (particle,material))
+
+def get_alpha(particle, material):
+    alpha_df = pd.read_hdf('lookup_tables.h5','Energy_Loss/%s/%s/alpha' % (particle,material))
+    alpha_arr = alpha_df.alpha
+    out_arr = np.asarray(alpha_arr)
+    return np.asfortranarray(out_arr.T)
+
+def add_beta(beta_arr, particle, material, model, beta_type):
+    hdf = HDFStore('lookup_tables.h5','a')
+    beta_df = pd.DataFrame({'energy':E_lep, 'beta_%s' % model:beta_arr})
+    hdf.put('Energy_Loss/%s/%s/beta_%s/%s' % (particle,material,beta_type,model), beta_df, format='t', data_columns=True)
+    hdf.close()
+    return print("%s_beta_%s lookup table successfully created in %s" % (particle,beta_type,material))
+
+def get_beta(particle, material, model, beta_type):
+    beta_df = pd.read_hdf('lookup_tables.h5','Energy_Loss/%s/%s/beta_%s/%s' % (particle,material,beta_type,model))
+    beta_arr = beta_df['beta_%s' % model]
+    out_arr = np.asarray(beta_arr)
+    return np.asfortranarray(out_arr.T)
+
+def combine_lep(data_type, particle, material, pn_model, **kwargs):
+
+    if data_type == 'xc':
+        xc_brem = get_xc(particle, 'brem', material=material)
+        xc_pair = get_xc(particle, 'pair', material=material)
+        xc_pn = get_xc(particle, pn_model, material=material)
+        xc_arr = np.asarray([xc_brem, xc_pair, xc_pn])
+        xc = np.asfortranarray(xc_arr.T)
+        return xc
+
+    elif data_type == 'beta':
+        beta_type = kwargs['beta_type']
+        beta_brem = get_beta(particle, material, 'brem', beta_type)
+        beta_pair = get_beta(particle, material, 'pair', beta_type)
+        beta_pn = get_beta(particle, material, pn_model, beta_type)
+        beta_arr = np.asarray([beta_brem, beta_pair, beta_pn])
+        beta = np.asfortranarray(beta_arr.T)
+        return beta
+
+    elif data_type == 'ixc':
+        ixc_brem = get_ixc(particle, 'brem', material=material)
+        ixc_pair = get_ixc(particle, 'pair', material=material)
+        ixc_pn = get_ixc(particle, pn_model, material=material)
+        ixc_arr = np.asarray([ixc_brem, ixc_pair, ixc_pn])
+        ixc = np.asfortranarray(ixc_arr.T)
+        return ixc
+
+    return None
+
+def add_pexit(energy_val, prob_dict):
+    energy_str = str("%.0e" % energy_val).replace("+",'')
+    angle = prob_dict['angle']
+    no_regen = prob_dict['no_regen']
+    regen = prob_dict['regen']
+
+    hdf = HDFStore('output.h5','a')
+    prob_df = pd.DataFrame({'angle':angle, 'no_regen':no_regen,'regen':regen})
+    prob_df.set_index("angle", inplace = True)
+
+    hdf.put('Exit_Probability/%s' % energy_str,prob_df, format='t', data_columns=True)
+    hdf.close()
+    return None
+
+def get_pexit(lepton, energy_val, p_type='regen', loss_type='stochastic'):
+    energy_str = str("%.0e" % energy_val).replace("+",'')
+    p_exit = pd.read_hdf('output_%s_%s.h5' % (lepton,loss_type),'Exit_Probability/%s' % energy_str)
+    no_regen = dict(zip(p_exit.index, p_exit.no_regen))
+    regen = dict(zip(p_exit.index, p_exit.regen))
+
+    if p_type == 'no_regen':
+        return no_regen
+    elif p_type == 'regen':
+        return regen
+    return "Error in get_prob in data"
+
+def add_lep_out(energy_val, angle_val, lep_dict):
+    energy_str = str("%.0e" % energy_val).replace("+",'')
+    lep_energies = lep_dict["lep_energy"]
+
+    hdf = HDFStore('output.h5','a')
+    try:
+        if len(lep_energies) > 1:
+            lep_df = pd.DataFrame({'lep_energy':lep_energies})
+        elif len(lep_energies) == 1:
+            lep_df = pd.DataFrame({'lep_energy':lep_energies}, index=[0])
+        else:
+            lep_df = pd.DataFrame({'lep_energy':np.array([0])}, index=[0])
+    except TypeError or ValueError:
+        lep_df = pd.DataFrame({'lep_energy':np.array([0])}, index=[0])
+
+    hdf.put('Lep_out_energies/%s/%d' % (energy_str,angle_val),lep_df, format='t', data_columns=True)
+    hdf.close()
+    return None
+
+def get_lep_out(lepton, energy_val, angle_val, loss_type='stochastic'):
+    energy_str = str("%.0e" % energy_val).replace("+",'')
+    e_out = pd.read_hdf('output_%s_%s.h5' % (lepton,loss_type),'Lep_out_energies/%s/%s' % (energy_str,angle_val))
+    no_cdf = np.asarray(e_out.lep_energy)
+    return no_cdf
+
+def add_pexit_manual(energy_val, angles, stat_val): # manual will only work for regen (so basically, for muons)
+    energy_str = str("%.0e" % energy_val).replace("+",'')
+    angle, no_regen, regen = [],[],[]
+    for angle_val in angles:
+        e_out = pd.read_hdf('output.h5','Lep_out_energies/%s/%s' % (energy_str,angle_val))
+        e_out_len =  len(e_out.lep_energy)
+        if e_out_len == 1:
+            if np.asarray(e_out.lep_energy)[0] == 0:
+                p_exit = 0.0
+            else:
+                p_exit = e_out_len/stat_val
+        else:
+            p_exit = e_out_len/stat_val
+        angle.append(angle_val)
+        no_regen.append(p_exit)
+        regen.append(p_exit)
+
+    hdf = HDFStore('output.h5','a')
+    prob_df = pd.DataFrame({'angle':angle, 'no_regen':no_regen,'regen':regen})
+    prob_df.set_index("angle", inplace = True)
+
+    hdf.put('Exit_Probability/%s' % energy_str,prob_df, format='t', data_columns=True)
+    hdf.close()
+    return None
+
+
+# =============================================================================
+# Test
+# =============================================================================
+if __name__ == "__main__":
+    # arr = get_beta('tau', 'rock', 'total', 'allm', True)
+    # add_pexit_manual(1e9, np.arange(1,36), 1e8)
+    pass
