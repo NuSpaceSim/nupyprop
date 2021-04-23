@@ -39,14 +39,14 @@ output.h5 will contain the results of the code after it has finished running. In
 **Code Execution Timing Table for Taus**:
 Charged Lepton | Energy Loss Type | E<sub>&nu;</sub> [GeV] | Angles | N<sub>&nu;;in</sub> | Time (hrs) |
 |---|---|---|---|---|---|
-| &tau; | Stochastic | 10<sup>7</sup> | 1-35 | 10<sup>8</sup> | 1.07 |
-| &tau; | Continuous | 10<sup>7</sup> | 1-35 | 10<sup>8</sup> | 0.88 |
-| &tau; | Stochastic | 10<sup>8</sup> | 1-35 | 10<sup>8</sup> | 6.18 |
-| &tau; | Continuous | 10<sup>8</sup> | 1-35 | 10<sup>8</sup> | 5.51 |
+| &tau; | Stochastic | 10<sup>7</sup> | 1-35 | 10<sup>8</sup> | 1.07* |
+| &tau; | Continuous | 10<sup>7</sup> | 1-35 | 10<sup>8</sup> | 0.88* |
+| &tau; | Stochastic | 10<sup>8</sup> | 1-35 | 10<sup>8</sup> | 6.18* |
+| &tau; | Continuous | 10<sup>8</sup> | 1-35 | 10<sup>8</sup> | 5.51* |
 | &tau; | Stochastic | 10<sup>9</sup> | 1-35 | 10<sup>8</sup> | - |
-| &tau; | Continuous | 10<sup>9</sup> | 1-35 | 10<sup>8</sup> | 19.11 |
+| &tau; | Continuous | 10<sup>9</sup> | 1-35 | 10<sup>8</sup> | 19.11* |
 | &tau; | Stochastic | 10<sup>10</sup> | 1-35 | 10<sup>8</sup> | - |
-| &tau; | Continuous | 10<sup>10</sup> | 1-35 | 10<sup>8</sup> | 35.59 |
+| &tau; | Continuous | 10<sup>10</sup> | 1-35 | 10<sup>8</sup> | 35.59* |
 | &tau; | Stochastic | 10<sup>11</sup> | 1-35 | 10<sup>8</sup> | - |
 | &tau; | Continuous | 10<sup>11</sup> | 1-35 | 10<sup>8</sup> | - |
 
@@ -56,15 +56,17 @@ Charged Lepton | Energy Loss Type | E<sub>&nu;</sub> [GeV] | Angles | N<sub>&nu;
 | &mu; | Stochastic | 10<sup>6</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | - |
 | &mu; | Continuous | 10<sup>6</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | - |
 | &mu; | Stochastic | 10<sup>7</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | - |
-| &mu; | Continuous | 10<sup>7</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 3.19 |
+| &mu; | Continuous | 10<sup>7</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 3.19* |
 | &mu; | Stochastic | 10<sup>8</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | - |
-| &mu; | Continuous | 10<sup>8</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 5.17 |
+| &mu; | Continuous | 10<sup>8</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 5.17* |
 | &mu; | Stochastic | 10<sup>9</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | - |
-| &mu; | Continuous | 10<sup>9</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 7.42 |
+| &mu; | Continuous | 10<sup>9</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 7.42* |
 | &mu; | Stochastic | 10<sup>10</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | - |
-| &mu; | Continuous | 10<sup>10</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 9.76 |
+| &mu; | Continuous | 10<sup>10</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 9.76* |
 | &mu; | Stochastic | 10<sup>11</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | - |
 | &mu; | Continuous | 10<sup>11</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | - |
+
+\* - Intel Core i7-8750H; 6 cores & 12 threads.
 
 **For debugging/development:**
 The correct order to look at the code is in the following order:
