@@ -66,7 +66,7 @@ Charged Lepton | Energy Loss Type | E<sub>&nu;</sub> [GeV] | Angles | N<sub>&nu;
 | &mu; | Stochastic | 10<sup>11</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | - |
 | &mu; | Continuous | 10<sup>11</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | - |
 
-\* - Intel Core i7-8750H; 6 cores & 12 threads.
+\* - Intel Core i7-8750H; 6 cores & 12 threads.<br></br>
 \** - Intel Core i5-10210; 4 cores & 8 threads.
 
 **For debugging/development:**
