@@ -54,7 +54,7 @@ Charged Lepton | Energy Loss Type | E<sub>&nu;</sub> [GeV] | Angles | N<sub>&nu;
 Charged Lepton | Energy Loss Type | E<sub>&nu;</sub> [GeV] | Angles | N<sub>&nu;;in</sub> | Time (hrs) |
 |---|---|---|---|---|---|
 | &mu; | Stochastic | 10<sup>6</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | - |
-| &mu; | Continuous | 10<sup>6</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | - |
+| &mu; | Continuous | 10<sup>6</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 0.95* |
 | &mu; | Stochastic | 10<sup>7</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | - |
 | &mu; | Continuous | 10<sup>7</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 3.19* |
 | &mu; | Stochastic | 10<sup>8</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | - |
