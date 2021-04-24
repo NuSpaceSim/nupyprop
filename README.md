@@ -59,14 +59,15 @@ Charged Lepton | Energy Loss Type | E<sub>&nu;</sub> [GeV] | Angles | N<sub>&nu;
 | &mu; | Continuous | 10<sup>7</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 3.19* |
 | &mu; | Stochastic | 10<sup>8</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | - |
 | &mu; | Continuous | 10<sup>8</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 5.17* |
-| &mu; | Stochastic | 10<sup>9</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | - |
+| &mu; | Stochastic | 10<sup>9</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 111.77** |
 | &mu; | Continuous | 10<sup>9</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 7.42* |
-| &mu; | Stochastic | 10<sup>10</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | - |
+| &mu; | Stochastic | 10<sup>10</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 98.17* |
 | &mu; | Continuous | 10<sup>10</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 9.76* |
 | &mu; | Stochastic | 10<sup>11</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | - |
 | &mu; | Continuous | 10<sup>11</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | - |
 
 \* - Intel Core i7-8750H; 6 cores & 12 threads.
+\** - Intel Core i5-10210; 4 cores & 8 threads.
 
 **For debugging/development:**
 The correct order to look at the code is in the following order:
