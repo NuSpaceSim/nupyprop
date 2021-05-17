@@ -41,13 +41,13 @@ Charged Lepton | Energy Loss Type | E<sub>&nu;</sub> [GeV] | Angles | N<sub>&nu;
 |---|---|---|---|---|---|
 | &tau; | Stochastic | 10<sup>7</sup> | 1-35 | 10<sup>8</sup> | 1.07*, 0.26*** |
 | &tau; | Continuous | 10<sup>7</sup> | 1-35 | 10<sup>8</sup> | 0.88* |
-| &tau; | Stochastic | 10<sup>8</sup> | 1-35 | 10<sup>8</sup> | 6.18*, 1.61*** |
+| &tau; | Stochastic | 10<sup>8</sup> | 1-35 | 10<sup>8</sup> | 6.18*, 1.53*** |
 | &tau; | Continuous | 10<sup>8</sup> | 1-35 | 10<sup>8</sup> | 5.51* |
-| &tau; | Stochastic | 10<sup>9</sup> | 1-35 | 10<sup>8</sup> | 27.96*, 6.34*** |
+| &tau; | Stochastic | 10<sup>9</sup> | 1-35 | 10<sup>8</sup> | 27.96*, 5.08*** |
 | &tau; | Continuous | 10<sup>9</sup> | 1-35 | 10<sup>8</sup> | 19.11* |
-| &tau; | Stochastic | 10<sup>10</sup> | 1-35 | 10<sup>8</sup> | 49.80*, 14.93*** |
+| &tau; | Stochastic | 10<sup>10</sup> | 1-35 | 10<sup>8</sup> | 49.80*, 12.43*** |
 | &tau; | Continuous | 10<sup>10</sup> | 1-35 | 10<sup>8</sup> | 35.59* |
-| &tau; | Stochastic | 10<sup>11</sup> | 1-35 | 10<sup>8</sup> | - |
+| &tau; | Stochastic | 10<sup>11</sup> | 1-35 | 10<sup>8</sup> | 12.73*** |
 | &tau; | Continuous | 10<sup>11</sup> | 1-35 | 10<sup>8</sup> | - |
 
 **Code Execution Timing Table for Muons**:
@@ -68,7 +68,7 @@ Charged Lepton | Energy Loss Type | E<sub>&nu;</sub> [GeV] | Angles | N<sub>&nu;
 
 \* - Intel Core i7-8750H; 6 cores & 12 threads.</br>
 \** - Intel Core i5-10210; 4 cores & 8 threads.</br>
-\*** - UIowa Argon cluster; 56 cores
+\*** - UIowa Argon cluster; 56 cores.
 
 **For debugging/development:**
 The correct order to look at the code is in the following order:
