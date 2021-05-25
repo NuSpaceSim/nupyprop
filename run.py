@@ -22,8 +22,8 @@ import glob
 parser = argparse.ArgumentParser()
 
 # parser.add_argument('-e', '--energy', dest='energy_val', nargs='?', const=np.array([1e7, 1e8, 1e9, 1e10]), default=np.array([1e7, 1e8, 1e9, 1e10, 1e11]), help='value of incoming neutrino energy; defaults are 10^7-10^11 GeV')
-# parser.add_argument('-e', '--energy', dest='energy_val', nargs='?', const=np.logspace(7,11,17), default=np.logspace(7,11,17), help='value of incoming neutrino energy; defaults are 10^7-10^11 GeV')
-parser.add_argument('-e', '--energy', dest='energy_val', nargs='?', const=np.array([10**8.75,10**9,10**9.25,10**9.75,10**10,10**10.25,10**10.75,10**11]), default=np.array([10**8.75,10**9,10**9.25,10**9.75,10**10,10**10.25,10**10.75,10**11]), help='value of incoming neutrino energy; defaults are 10^7-10^11 GeV')
+parser.add_argument('-e', '--energy', dest='energy_val', nargs='?', const=np.logspace(7,11,17), default=np.logspace(7,11,17), help='value of incoming neutrino energy; defaults are 10^7-10^11 GeV')
+# parser.add_argument('-e', '--energy', dest='energy_val', nargs='?', const=np.array([10**8.75,10**9,10**9.25,10**9.75,10**10,10**10.25,10**10.75,10**11]), default=np.array([10**8.75,10**9,10**9.25,10**9.75,10**10,10**10.25,10**10.75,10**11]), help='value of incoming neutrino energy; defaults are 10^7-10^11 GeV')
 
 # parser.add_argument('-a', '--angle', dest='angle_val', nargs='?', const=np.arange(1,41), default=np.arange(1,41), help='value of angle; defaults are 1-40 degrees')
 
