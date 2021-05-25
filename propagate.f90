@@ -1636,15 +1636,20 @@ subroutine run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_wate
     real(dp), intent(in) :: energy, angle, nu_xc(:,:), nu_ixc(:,:,:), depthE, dwater, xc_water(:,:), xc_rock(:,:)
     real(dp), intent(in) :: lep_ixc_water(:,:,:), lep_ixc_rock(:,:,:), alpha_water(:), alpha_rock(:)
     real(dp), intent(in) :: beta_water(:,:), beta_rock(:,:), xalong(:), cdalong(:), fac_nu
-    integer, intent(in) :: ithird, idepth, lepton, stats, prop_type
+    integer, intent(in) :: ithird, idepth, lepton, prop_type
+    integer(kind=8), intent(in) :: stats
 
     !f2py intent(out) :: no_regen_tot, regen_tot
     integer :: no_regen_tot, regen_tot
 
     real(dp) :: depth, depth0, dtr, ef, etauin, dfinal, etauf, dleft, dtau2, ef2
-    integer :: regen_cnt, i, ip, ipp, ipp3
-    integer(dp) :: u
+    integer(kind=8):: regen_cnt, i
+    integer :: ip, ipp, ipp3
+!    integer :: regen_cnt, i
+    integer(kind=8) :: u
     character(25) filename
+
+!    write(6,*)'stat_val=',stats
 
     if (angle < 10._dp) then
         write(filename,'(a,es8.2,a,F4.2)') 'e_out_',energy,'_',angle ! filename is e_out_energy_angle
