@@ -21,14 +21,16 @@ from matplotlib.ticker import ScalarFormatter
 import time
 import os
 import glob
+import functools
+print = functools.partial(print, flush=True)
 
 rho_water = 1.02 # g/cm^3
 rho_rock = 2.65 # g/cm^3
 
-def init_xc(lepton, nu_model, pn_model, prop_type):
+def init_xc(nu_type, lepton, nu_model, pn_model, prop_type):
     pn_model = 'pn_' + pn_model
 
-    nu_xc = Data.get_xc('nu', nu_model, particle='neutrino')
+    nu_xc = Data.get_xc('nu', nu_model, particle=nu_type)
 
     xc_water = Data.combine_lep('xc', lepton, 'water', pn_model)
 
@@ -47,10 +49,10 @@ def init_xc(lepton, nu_model, pn_model, prop_type):
 
     return nu_xc,xc_water,xc_rock,alpha_water,alpha_rock,beta_water,beta_rock
 
-def init_ixc(lepton, nu_model, pn_model):
+def init_ixc(nu_type, lepton, nu_model, pn_model):
     pn_model = 'pn_' + pn_model
 
-    ixc_nu = Data.get_ixc('nu', nu_model, particle='neutrino')
+    ixc_nu = Data.get_ixc('nu', nu_model, particle=nu_type)
 
     ixc_water = Data.combine_lep('ixc', lepton, 'water', pn_model)
 
@@ -68,12 +70,18 @@ def create_lep_out_dict(energy, angle):
 
     return lep_dict
 
-def main(E_prop, angles, cross_section_model, pn_model, idepth, lepton, fac_nu, stat, prop_type):
+def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton, fac_nu, stat, prop_type):
 
-    nu_xc, xc_water, xc_rock, alpha_water, alpha_rock, beta_water, beta_rock = init_xc(lepton, cross_section_model, pn_model, prop_type)
+    chk_flag = Data.chk_file(nu_type, lepton, idepth, cross_section_model, pn_model, prop_type, stat)
+
+    if chk_flag == 0:
+        return print("No changes made")
 
 
-    nu_ixc, lep_ixc_water, lep_ixc_rock = init_ixc(lepton, cross_section_model, pn_model)
+    nu_xc, xc_water, xc_rock, alpha_water, alpha_rock, beta_water, beta_rock = init_xc(nu_type, lepton, cross_section_model, pn_model, prop_type)
+
+
+    nu_ixc, lep_ixc_water, lep_ixc_rock = init_ixc(nu_type, lepton, cross_section_model, pn_model)
 
     ithird = 0 # use dn/dy in tau to neutrino
 
@@ -83,14 +91,19 @@ def main(E_prop, angles, cross_section_model, pn_model, idepth, lepton, fac_nu, 
     regen_arr = []
 
     if prop_type == 'stochastic':
-        prop_type = 1
+        prop_type_int = 1
     else:
-        prop_type = 2
+        prop_type_int = 2
 
     if lepton == 'tau':
-        	lepton = 1
+        lepton_int = 1
     else:
-        	lepton = 2
+        lepton_int = 2
+
+    if nu_type == 'neutrino':
+        nu_type = 'nu'
+    else:
+        nu_type = 'anu'
 
     print("The water -> rock transition occurs at %.2f degrees" % geom_py.find_interface(idepth)[0])
 
@@ -106,7 +119,7 @@ def main(E_prop, angles, cross_section_model, pn_model, idepth, lepton, fac_nu, 
             depthE = geom_py.columndepth(angle, idepth)*1e-5 # column depth in kmwe?
 
 
-            no_regen, regen = Run.run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu, stat, prop_type)
+            no_regen, regen = Run.run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton_int, fac_nu, stat, prop_type_int)
 
 
             prob_no_regen = no_regen/float(stat)
@@ -117,12 +130,12 @@ def main(E_prop, angles, cross_section_model, pn_model, idepth, lepton, fac_nu, 
             regen_arr.append(prob_regen)
 
             lep_dict = create_lep_out_dict(energy, angle)
-            Data.add_lep_out(energy, angle, lep_dict)
+            Data.add_lep_out(nu_type, lepton, energy, angle, lep_dict, idepth, cross_section_model, pn_model, prop_type, stat)
 
         # # end of for loop for angles
 
         prob_dict_single = {'angle':np.asarray(angle_arr),'no_regen':np.asarray(no_regen_arr),'regen':np.asarray(regen_arr)}
-        Data.add_pexit(energy, prob_dict_single)
+        Data.add_pexit(nu_type, lepton, energy, prob_dict_single, idepth, cross_section_model, pn_model, prop_type, stat)
 
         angle_arr = []
         no_regen_arr = []
@@ -147,26 +160,28 @@ if __name__ == "__main__":
     # for i in range(10):
     # random.seed(30)
     start_time = time.time()
-    angles = np.array([10])
+    angles = np.array([1])
     # angles = np.arange(1,36)
     # angles = np.array([1,2,3,4,5])
     # angles = np.array([1,2,3,5,7,10,12,15,17,20,25,30,35])
     # angles = np.array([17,20,25,30,35])
-    E_prop = np.array([1e7])
+    E_prop = np.array([10**7])
 
     idepth = 4
     fac_nu = 1
     lepton = 'tau'
-    cross_section_model = 'ctw'
+    cross_section_model = 'ct18nlo'
     pn_model = 'allm'
     prop_type = 'stochastic'
     stat = int(1e8)
+    nu_type = 'neutrino'
 
     # nu_xc, xc_water, xc_rock, alpha_water, alpha_rock, beta_water, beta_rock = init_xc(lepton, cross_section_model, pn_model, prop_type)
 
     # nu_ixc, lep_ixc_water, lep_ixc_rock = init_ixc(lepton, cross_section_model, pn_model)
 
-    prob_dict, lep_dict = main(E_prop, angles, cross_section_model, pn_model, idepth, lepton, fac_nu, stat, prop_type)
+    prob_dict, lep_dict = main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton, fac_nu, stat, prop_type)
+    # main(E_prop, angles, cross_section_model, pn_model, idepth, lepton, fac_nu, stat, prop_type)
 
     print(prob_dict)
 
