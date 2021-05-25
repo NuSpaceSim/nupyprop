@@ -9,12 +9,39 @@ Created on Sat Sep 26 16:44:13 2020
 import numpy as np
 import pandas as pd
 from pandas import HDFStore
+from decimal import Decimal
 # import collections
 import time
+import os
 
+
+data_dir = '/home/sam/nupyprop_test/output'
 
 E_nu = np.logspace(3,12,91,base=10).astype(np.float64)
 E_lep = np.logspace(0,12,121,base=10).astype(np.float64)
+
+def sci_str(exp_value):
+    dec = Decimal(exp_value)
+    str_val = ('{:.' + str(len(dec.normalize().as_tuple().digits) - 1) + 'e}').format(dec).replace('+', '')
+    return str_val
+
+def chk_file(nu_type, lepton,idepth,nu_cs,lep_pn,loss_type,stats):
+    idepth_str = str(idepth) + 'km'
+    stats_str = sci_str(stats)
+    if os.path.exists("output_%s_%s_%s_%s_%s_%s_%s.h5" % (nu_type,lepton,idepth_str,nu_cs,lep_pn,loss_type,stats_str)):
+        y_n = input('There already exists a output file with these set of parameters (output_%s_%s_%s_%s_%s_%s_%s.h5). Do you wish to overwrite it? Press \'y\' for yes and \'n\' for no: ' % (nu_type,lepton,idepth_str,nu_cs,lep_pn,loss_type,stats_str))
+        # if y_n not in {"y", "n"}:print("please enter valid input")
+        if y_n not in {"y", "n"}:
+            print("Invalid option. Please press \'y\' for yes and \'n\' for no")
+            return chk_file(lepton,idepth,nu_cs,lep_pn,loss_type,stats)
+        elif y_n == 'y':return 1
+        elif y_n == 'n':return 0
+        # else:
+        #     print('Invalid option. Please try again')
+            # return chk_file(lepton,idepth,nu_cs,lep_pn,loss_type,stats)
+    else:
+        return 1 # output file non existant or overwrite enabled
+    # return out_val
 
 
 def add_trajs(type_traj, idepth, traj_array):
@@ -135,7 +162,6 @@ def add_ixc(part_type, ixc_dict, model, **kwargs):
     return None
 
 def get_ixc(part_type, model, **kwargs):
-
     if part_type == 'nu':
         particle = kwargs['particle']
         if particle=='anti-neutrino':particle='anti_neutrino'
@@ -233,13 +259,19 @@ def combine_lep(data_type, particle, material, pn_model, **kwargs):
 
     return None
 
-def add_pexit(energy_val, prob_dict):
-    energy_str = str("%.0e" % energy_val).replace("+",'')
+def add_pexit(nu_type, lepton, energy_val, prob_dict, idepth, nu_cs, lep_pn, loss_type, stats):
+
+    log_energy = np.log10(energy_val)
+    # energy_str = str("%.0e" % energy_val).replace("+",'')
+    energy_str = str(log_energy)
+    idepth_str = str(idepth) + 'km'
+    stats_str = sci_str(stats)
+
     angle = prob_dict['angle']
     no_regen = prob_dict['no_regen']
     regen = prob_dict['regen']
 
-    hdf = HDFStore('output.h5','a')
+    hdf = HDFStore('output_%s_%s_%s_%s_%s_%s_%s.h5' % (nu_type,lepton,idepth_str,nu_cs,lep_pn,loss_type,stats_str),'a')
     prob_df = pd.DataFrame({'angle':angle, 'no_regen':no_regen,'regen':regen})
     prob_df.set_index("angle", inplace = True)
 
@@ -247,9 +279,15 @@ def add_pexit(energy_val, prob_dict):
     hdf.close()
     return None
 
-def get_pexit(lepton, energy_val, p_type='regen', loss_type='stochastic'):
-    energy_str = str("%.0e" % energy_val).replace("+",'')
-    p_exit = pd.read_hdf('output_%s_%s.h5' % (lepton,loss_type),'Exit_Probability/%s' % energy_str)
+def get_pexit(nu_type, lepton, energy_val, p_type, idepth, nu_cs, lep_pn, loss_type, stats):
+    os.chdir(data_dir)
+    log_energy = np.log10(energy_val)
+    # energy_str = str("%.0e" % energy_val).replace("+",'')
+    energy_str = str(log_energy)
+    idepth_str = str(idepth) + 'km'
+    stats_str = sci_str(stats)
+
+    p_exit = pd.read_hdf('output_%s_%s_%s_%s_%s_%s_%s.h5' % (nu_type,lepton,idepth_str,nu_cs,lep_pn,loss_type,stats_str),'Exit_Probability/%s' % energy_str)
     no_regen = dict(zip(p_exit.index, p_exit.no_regen))
     regen = dict(zip(p_exit.index, p_exit.regen))
 
@@ -259,11 +297,16 @@ def get_pexit(lepton, energy_val, p_type='regen', loss_type='stochastic'):
         return regen
     return "Error in get_prob in data"
 
-def add_lep_out(energy_val, angle_val, lep_dict):
-    energy_str = str("%.0e" % energy_val).replace("+",'')
+def add_lep_out(nu_type, lepton, energy_val, angle_val, lep_dict, idepth, nu_cs, lep_pn, loss_type, stats):
+    log_energy = np.log10(energy_val)
+    # energy_str = str("%.0e" % energy_val).replace("+",'')
+    energy_str = str(log_energy)
+    idepth_str = str(idepth) + 'km'
+    stats_str = sci_str(stats)
+
     lep_energies = lep_dict["lep_energy"]
 
-    hdf = HDFStore('output.h5','a')
+    hdf = HDFStore('output_%s_%s_%s_%s_%s_%s_%s.h5' % (nu_type,lepton,idepth_str,nu_cs,lep_pn,loss_type,stats_str),'a')
     try:
         if len(lep_energies) > 1:
             lep_df = pd.DataFrame({'lep_energy':lep_energies})
@@ -278,30 +321,42 @@ def add_lep_out(energy_val, angle_val, lep_dict):
     hdf.close()
     return None
 
-def get_lep_out(lepton, energy_val, angle_val, loss_type='stochastic'):
-    energy_str = str("%.0e" % energy_val).replace("+",'')
-    e_out = pd.read_hdf('output_%s_%s.h5' % (lepton,loss_type),'Lep_out_energies/%s/%s' % (energy_str,angle_val))
+def get_lep_out(nu_type, lepton, energy_val, angle_val, idepth, nu_cs, lep_pn, loss_type, stats):
+    os.chdir(data_dir)
+    log_energy = np.log10(energy_val)
+    # energy_str = str("%.0e" % energy_val).replace("+",'')
+    energy_str = str(log_energy)
+    idepth_str = str(idepth) + 'km'
+    stats_str = sci_str(stats)
+
+    e_out = pd.read_hdf('output_%s_%s_%s_%s_%s_%s_%s.h5' % (nu_type,lepton,idepth_str,nu_cs,lep_pn,loss_type,stats_str),'Lep_out_energies/%s/%s' % (energy_str,angle_val))
     no_cdf = np.asarray(e_out.lep_energy)
     return no_cdf
 
-def add_pexit_manual(energy_val, angles, stat_val): # manual will only work for regen (so basically, for muons)
-    energy_str = str("%.0e" % energy_val).replace("+",'')
+def add_pexit_manual(nu_type, energy_val, angles, idepth, nu_cs, lep_pn, loss_type, stats): # manual will only work for regen (so basically, for muons)
+    log_energy = np.log10(energy_val)
+    lepton = 'muon'
+    # energy_str = str("%.0e" % energy_val).replace("+",'')
+    energy_str = str(log_energy)
+    idepth_str = str(idepth) + 'km'
+    stats_str = sci_str(stats)
+
     angle, no_regen, regen = [],[],[]
     for angle_val in angles:
-        e_out = pd.read_hdf('output.h5','Lep_out_energies/%s/%s' % (energy_str,angle_val))
+        e_out = pd.read_hdf('output_%s_%s_%s_%s_%s_%s_%s.h5' % (nu_type,lepton,idepth_str,nu_cs,lep_pn,loss_type,stats_str),'Lep_out_energies/%s/%s' % (energy_str,angle_val))
         e_out_len =  len(e_out.lep_energy)
         if e_out_len == 1:
             if np.asarray(e_out.lep_energy)[0] == 0:
                 p_exit = 0.0
             else:
-                p_exit = e_out_len/stat_val
+                p_exit = e_out_len/stats
         else:
-            p_exit = e_out_len/stat_val
+            p_exit = e_out_len/stats
         angle.append(angle_val)
         no_regen.append(p_exit)
         regen.append(p_exit)
 
-    hdf = HDFStore('output.h5','a')
+    hdf = HDFStore('output_%s_%s_%s_%s_%s_%s_%s.h5' % (nu_type,lepton,idepth_str,nu_cs,lep_pn,loss_type,stats_str),'a')
     prob_df = pd.DataFrame({'angle':angle, 'no_regen':no_regen,'regen':regen})
     prob_df.set_index("angle", inplace = True)
 
@@ -309,6 +364,44 @@ def add_pexit_manual(energy_val, angles, stat_val): # manual will only work for 
     hdf.close()
     return None
 
+def add_cdf(nu_type, lepton, idepth, nu_cs, lep_pn, loss_type, stats):
+    os.chdir(data_dir)
+
+    idepth_str = str(idepth) + 'km'
+    stats_str = sci_str(stats)
+
+    energies = np.logspace(7,11,17)
+    angles = np.arange(1,36)
+
+    for energy in energies:
+        # print('energy = ', energy)
+        log_energy = np.log10(energy)
+        # energy_str = str("%.0e" % energy_val).replace("+",'')
+        energy_str = str(log_energy)
+        for angle in angles:
+            # print("angle = ", angle)
+            lep_out = get_lep_out(lepton, energy, angle, loss_type)
+            hdf = HDFStore('output_%s_%s_%s_%s_%s_%s_%s.h5' % (nu_type,lepton,idepth_str,nu_cs,lep_pn,loss_type,stats_str),'a')
+            bins = np.logspace(-5,0,51)
+            z = lep_out/energy
+            binned_z = np.digitize(z, bins)
+            bin_counts = np.bincount(binned_z)
+            if len(bin_counts) < len(bins):
+                zeros_z = np.zeros(len(bins) - len(bin_counts))
+                binned_z_fixed = np.concatenate((bin_counts, zeros_z))
+            else:
+                binned_z_fixed = bin_counts
+            z_cumsum = np.cumsum(binned_z_fixed)
+            # z_cdf = binned_z_fixed/max(binned_z_fixed)
+            z_cdf = z_cumsum/z_cumsum[-1]
+            z_cdf[0] = 0
+            # print("len_z = ",len(bins))
+            # print("len_z_cdf = ",len(z_cdf))
+            z_cdf_df = pd.DataFrame({'z':bins, 'cdf':z_cdf})
+            # z_cdf_df.set_index("z", inplace = True)
+            hdf.put('Lep_out_cdf/%s/%d' % (energy_str,angle),z_cdf_df, format='t', data_columns=True)
+            hdf.close()
+    return None
 
 # =============================================================================
 # Test
@@ -317,3 +410,5 @@ if __name__ == "__main__":
     # arr = get_beta('tau', 'rock', 'total', 'allm', True)
     # add_pexit_manual(1e9, np.arange(1,36), 1e8)
     pass
+    # pexit = get_pexit('tau', 1e7, p_type='regen', loss_type='stochastic')
+    # add_cdf('tau', 'full')
