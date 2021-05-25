@@ -7,7 +7,7 @@ Once you have anaconda up and running, run `conda env create -f dependencies.yml
 
 **Run parameters** are defined in run.py. Different switches are described as follows:
 
-1. -e or --energy: incoming neutrino energy in GeV. Works for single energy or multiple energies. For multiple energies, separate energies with commas eg. 1e7,1e8,1e9. Default energies are 1e7,1e8,1e9,1e10,1e11 GeV. For running non standard energies like 10^7.5 GeV, you'll have to change it in the run.py file.
+1. -e or --energy: incoming neutrino energy in GeV. Works for single energy or multiple energies. For multiple energies, separate energies with commas eg. 1e7,1e8,1e9. Default energies are 10<sup>7</sup>,10<sup>7.25</sup>,10<sup>7.5</sup>,...10<sup>11</sup> GeV. For running single, non standard energies like 10<sup>7.5</sup> GeV, you'll have to change it in the run.py file.
 
 2. -a or --angle: slant Earth angles in degrees. Works for single angle or multiple angles. For multiple angles, separate angles with commas eg. 1,3,5,7,10. Default angles are 1->35 degrees, in steps of 1 degree.
 
