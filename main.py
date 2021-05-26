@@ -7,7 +7,7 @@ Created on Mon Mar 15 14:04:46 2021
 """
 
 import data as Data
-import geometry_py as geom_py
+import geometry as geom_py
 
 from propagate import interpolation as Interpolation
 from propagate import geometry as Geometry
@@ -72,16 +72,13 @@ def create_lep_out_dict(energy, angle):
 
 def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton, fac_nu, stat, prop_type):
 
-    chk_flag = Data.chk_file(nu_type, lepton, idepth, cross_section_model, pn_model, prop_type, stat)
-
-    if chk_flag == 0:
-        return print("No changes made")
 
 
     nu_xc, xc_water, xc_rock, alpha_water, alpha_rock, beta_water, beta_rock = init_xc(nu_type, lepton, cross_section_model, pn_model, prop_type)
 
 
     nu_ixc, lep_ixc_water, lep_ixc_rock = init_ixc(nu_type, lepton, cross_section_model, pn_model)
+
 
     ithird = 0 # use dn/dy in tau to neutrino
 
@@ -102,8 +99,13 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton,
 
     if nu_type == 'neutrino':
         nu_type = 'nu'
-    else:
+    elif nu_type == 'antii-neutrino':
         nu_type = 'anu'
+
+    chk_flag = Data.chk_file(nu_type, lepton, idepth, cross_section_model, pn_model, prop_type, stat)
+
+    if chk_flag == 0:
+        return print("No changes made")
 
     print("The water -> rock transition occurs at %.2f degrees" % geom_py.find_interface(idepth)[0])
 
@@ -151,6 +153,8 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton,
 
     # close of for loop for energy
 
+    Data.add_cdf(E_prop, angles, nu_type, lepton, idepth, cross_section_model, pn_model, prop_type, stat)
+
     return prob_dict, lep_dict
 
 # =============================================================================
@@ -171,7 +175,7 @@ if __name__ == "__main__":
     fac_nu = 1
     lepton = 'tau'
     cross_section_model = 'ct18nlo'
-    pn_model = 'allm'
+    pn_model = 'bb'
     prop_type = 'stochastic'
     stat = int(1e8)
     nu_type = 'neutrino'
@@ -180,10 +184,10 @@ if __name__ == "__main__":
 
     # nu_ixc, lep_ixc_water, lep_ixc_rock = init_ixc(lepton, cross_section_model, pn_model)
 
-    prob_dict, lep_dict = main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton, fac_nu, stat, prop_type)
-    # main(E_prop, angles, cross_section_model, pn_model, idepth, lepton, fac_nu, stat, prop_type)
+    # prob_dict, lep_dict = main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton, fac_nu, stat, prop_type)
+    main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton, fac_nu, stat, prop_type)
 
-    print(prob_dict)
+    # print(prob_dict)
 
     e_out_files = glob.glob("e_out_*")
 

@@ -20,7 +20,7 @@ from multiprocessing import Pool
 import matplotlib.pyplot as plt
 import pickle
 import random
-import quadpy
+# import quadpy
 import time
 
 m_e = scc.physical_constants["electron mass energy equivalent in MeV"][0]*1e-3 # GeV

@@ -16,7 +16,7 @@ m_p = scc.physical_constants["proton mass energy equivalent in MeV"][0]*1e-3 # G
 G_F = scc.physical_constants["Fermi coupling constant"][0] # GeV^-2
 N_A = scc.Avogadro
 
-def hls_xc(model): # Hallsie data files
+def user_xc(model): # Hallsie data files
     sigma_n_cc = np.asarray(np.genfromtxt('./nutables/%s/nucc-xc.dat' % str(model),usecols=1)*1e-38) # neutrino; CC
 
     sigma_n_nc = np.asarray(np.genfromtxt('./nutables/%s/nunc-xc.dat' % str(model),usecols=1)*1e-38) # neutrino; NC
@@ -31,7 +31,7 @@ def hls_xc(model): # Hallsie data files
     return None
 
 
-def hls_ixc(model): # Hallsie data files
+def user_ixc(model): # Hallsie data files
     particle_current = ['anucc','anunc','nucc','nunc']
     ixc_dict={}
     for particle in particle_current:
@@ -158,7 +158,7 @@ def ctw_ixc(): # CTW parameterization (eqs. 12, 13)
 
 #     return None
 
-def ncteq15_lhapdf_xc(): # Directly from data files
+def nct15_xc(): # Directly from data files
     sigma_n_cc = np.genfromtxt('./nutables/nutables-nCTEQ15-LHAPDF/nct15-nu-cc-xc.dat',usecols=1) # neutrino; CC
     sigma_n_nc = np.genfromtxt('./nutables/nutables-nCTEQ15-LHAPDF/nct15-nu-nc-xc.dat',usecols=1) # neutrino; NC
     sigma_an_cc = np.genfromtxt('./nutables/nutables-nCTEQ15-LHAPDF/nct15-anu-cc-xc.dat',usecols=1) # anti-neutrino; CC
@@ -166,11 +166,11 @@ def ncteq15_lhapdf_xc(): # Directly from data files
 
     xc_dict = {'nu':{'cc':sigma_n_cc,'nc':sigma_n_nc}, 'anu':{'cc':sigma_an_cc,'nc':sigma_an_nc}}
 
-    Data.add_xc('nu', xc_dict, model='ncteq15_lhapdf')
+    Data.add_xc('nu', xc_dict, model='nct15')
 
     return None
 
-def ncteq15_lhapdf_ixc(): # Directly from data files
+def nct15_ixc(): # Directly from data files
     particle_current = ['anucc','anunc','nucc','nunc']
     ixc_dict={}
     for particle in particle_current:
@@ -186,7 +186,7 @@ def ncteq15_lhapdf_ixc(): # Directly from data files
         dframe = pd.DataFrame.from_dict(data_dict,orient='index',columns=[i for i in range(0,31)])
         ixc_dict.update({particle:dframe.transpose()})
 
-    Data.add_ixc('nu', ixc_dict, model='ncteq15_lhapdf')
+    Data.add_ixc('nu', ixc_dict, model='nct15')
 
     return None
 

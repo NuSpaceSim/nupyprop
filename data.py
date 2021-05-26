@@ -15,7 +15,8 @@ import time
 import os
 
 
-data_dir = '/home/sam/nupyprop_test/output'
+# data_dir = '/home/sam/nupyprop_test/output'
+data_dir = '/home/sam/nupyprop_test'
 
 E_nu = np.logspace(3,12,91,base=10).astype(np.float64)
 E_lep = np.logspace(0,12,121,base=10).astype(np.float64)
@@ -26,6 +27,9 @@ def sci_str(exp_value):
     return str_val
 
 def chk_file(nu_type, lepton,idepth,nu_cs,lep_pn,loss_type,stats):
+    # print('inside chk_file')
+    # if nu_type == 'neutrino':nu_type = 'nu'
+    # if nu_type == 'antii-neutrino':nu_type = 'anu'
     idepth_str = str(idepth) + 'km'
     stats_str = sci_str(stats)
     if os.path.exists("output_%s_%s_%s_%s_%s_%s_%s.h5" % (nu_type,lepton,idepth_str,nu_cs,lep_pn,loss_type,stats_str)):
@@ -330,8 +334,8 @@ def get_lep_out(nu_type, lepton, energy_val, angle_val, idepth, nu_cs, lep_pn, l
     stats_str = sci_str(stats)
 
     e_out = pd.read_hdf('output_%s_%s_%s_%s_%s_%s_%s.h5' % (nu_type,lepton,idepth_str,nu_cs,lep_pn,loss_type,stats_str),'Lep_out_energies/%s/%s' % (energy_str,angle_val))
-    no_cdf = np.asarray(e_out.lep_energy)
-    return no_cdf
+    out_lep = np.asarray(e_out.lep_energy)
+    return out_lep
 
 def add_pexit_manual(nu_type, energy_val, angles, idepth, nu_cs, lep_pn, loss_type, stats): # manual will only work for regen (so basically, for muons)
     log_energy = np.log10(energy_val)
@@ -364,14 +368,14 @@ def add_pexit_manual(nu_type, energy_val, angles, idepth, nu_cs, lep_pn, loss_ty
     hdf.close()
     return None
 
-def add_cdf(nu_type, lepton, idepth, nu_cs, lep_pn, loss_type, stats):
+def add_cdf(energies, angles, nu_type, lepton, idepth, nu_cs, lep_pn, loss_type, stats):
     os.chdir(data_dir)
 
     idepth_str = str(idepth) + 'km'
     stats_str = sci_str(stats)
 
-    energies = np.logspace(7,11,17)
-    angles = np.arange(1,36)
+    # energies = np.logspace(7,11,17)
+    # angles = np.arange(1,36)
 
     for energy in energies:
         # print('energy = ', energy)
@@ -380,7 +384,7 @@ def add_cdf(nu_type, lepton, idepth, nu_cs, lep_pn, loss_type, stats):
         energy_str = str(log_energy)
         for angle in angles:
             # print("angle = ", angle)
-            lep_out = get_lep_out(lepton, energy, angle, loss_type)
+            lep_out = get_lep_out(nu_type, lepton, energy, angle, idepth, nu_cs, lep_pn, loss_type, stats)
             hdf = HDFStore('output_%s_%s_%s_%s_%s_%s_%s.h5' % (nu_type,lepton,idepth_str,nu_cs,lep_pn,loss_type,stats_str),'a')
             bins = np.logspace(-5,0,51)
             z = lep_out/energy
