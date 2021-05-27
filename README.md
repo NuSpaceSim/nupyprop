@@ -29,7 +29,7 @@ Once you have anaconda up and running, run `conda env create -f dependencies.yml
 
 11. -s or --stat: statistics. Default is 1e7 particles.
 
-**Example** for running tau propagation for 10<sup>7</sup> GeV neutrinos at 10 degrees with a statistics of 10<sup>7</sup> particles with stochastic energy loss & with all other parameters as defaults:
+**Example** for running tau propagation for 10<sup>7</sup> GeV neutrinos at 10 degrees with a statistics of 10<sup>7</sup> particles with stochastic energy loss & with all other parameters as defaults:</br?
 ~~1. `f2py -m propagate --fcompiler=gfortran --f90flags='-fopenmp' -lgomp -c propagate.f90` This is to compile the fortran file. Be sure to change `--fcompiler=gfortran` to your fortran compiler in case you use a different one. In the future, this will be done through a makefile.~~
 1. `make`
 2. `python run.py -e 1e7 -a 10 -t stochastic -s 1e7`
