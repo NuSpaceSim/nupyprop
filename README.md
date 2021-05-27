@@ -93,3 +93,5 @@ The correct order to look at the code is in the following order:
 5. _propagate.f90_: heart of the code; contains fortran modules to interpolate between geometry variables, cross-sections, energy loss parameters & propagate neutrinos and leptons through the Earth.
 6. _main.py_: forms the main skeleton of the code; propagates the neutrinos and leptons, and calculates the p_exit and collects outgoing lepton energies.
 7. _run.py_: contains all the run parameters and variables needed for all the other .py files.
+
+![UML Diagram](/figures/nupyprop_uml_full.png)
