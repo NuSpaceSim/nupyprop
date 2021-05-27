@@ -16,7 +16,7 @@ import os
 
 
 # data_dir = '/home/sam/nupyprop_test/output'
-data_dir = '/home/sam/nupyprop_test'
+# data_dir = '/home/sam/nupyprop_test'
 
 E_nu = np.logspace(3,12,91,base=10).astype(np.float64)
 E_lep = np.logspace(0,12,121,base=10).astype(np.float64)
@@ -37,7 +37,7 @@ def chk_file(nu_type, lepton,idepth,nu_cs,lep_pn,loss_type,stats):
         # if y_n not in {"y", "n"}:print("please enter valid input")
         if y_n not in {"y", "n"}:
             print("Invalid option. Please press \'y\' for yes and \'n\' for no")
-            return chk_file(lepton,idepth,nu_cs,lep_pn,loss_type,stats)
+            return chk_file(nu_type, lepton,idepth,nu_cs,lep_pn,loss_type,stats)
         elif y_n == 'y':return 1
         elif y_n == 'n':return 0
         # else:
@@ -284,7 +284,7 @@ def add_pexit(nu_type, lepton, energy_val, prob_dict, idepth, nu_cs, lep_pn, los
     return None
 
 def get_pexit(nu_type, lepton, energy_val, p_type, idepth, nu_cs, lep_pn, loss_type, stats):
-    os.chdir(data_dir)
+    # os.chdir(data_dir)
     log_energy = np.log10(energy_val)
     # energy_str = str("%.0e" % energy_val).replace("+",'')
     energy_str = str(log_energy)
@@ -326,7 +326,7 @@ def add_lep_out(nu_type, lepton, energy_val, angle_val, lep_dict, idepth, nu_cs,
     return None
 
 def get_lep_out(nu_type, lepton, energy_val, angle_val, idepth, nu_cs, lep_pn, loss_type, stats):
-    os.chdir(data_dir)
+    # os.chdir(data_dir)
     log_energy = np.log10(energy_val)
     # energy_str = str("%.0e" % energy_val).replace("+",'')
     energy_str = str(log_energy)
@@ -369,7 +369,7 @@ def add_pexit_manual(nu_type, energy_val, angles, idepth, nu_cs, lep_pn, loss_ty
     return None
 
 def add_cdf(energies, angles, nu_type, lepton, idepth, nu_cs, lep_pn, loss_type, stats):
-    os.chdir(data_dir)
+    # os.chdir(data_dir)
 
     idepth_str = str(idepth) + 'km'
     stats_str = sci_str(stats)
