@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=46",
+            "setuptools_scm[toml]>=3.4",
+            "wheel",
+            "numpy>1.17",
+           ]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+local_scheme = ""
+
+[tool.black]
+line-length = 80
+skip-string-normalization = false
+exclude = '''
+(
+  /(
+      \.eggs         # exclude a few common directories in the
+    | \.git          # root of the project
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+  )/
+#  | foo.py           # also separately exclude a file named foo.py in
+#                     # the root of the project
+)
+'''
+
+[tool.autopep8]
+max_line_length = 80
+ignore = "E501,W6"  # or ["E501", "W6"]
