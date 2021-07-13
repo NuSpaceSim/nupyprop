@@ -28,7 +28,7 @@ jobs:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.test_pypi_secret }}
       run: |
-        twine upload --repository testpypi dist/*manylinux*.whl
+        twine upload --repository testpypi dist/*manylinux*
 
 
 #   macos-build-n-publish:
