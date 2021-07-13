@@ -2,3 +2,8 @@ __pycache__/
 *.ipynb
 .ipynb_checkpoints/
 *.lprof
+*.egg-info/
+*.so
+*.dylib
+build/
+dist/

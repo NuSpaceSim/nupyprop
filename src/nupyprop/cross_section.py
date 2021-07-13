@@ -5,7 +5,7 @@ Created on Wed Jun 24 18:37:16 2020
 
 @author: sam
 """
-import data as Data
+import nupyprop.data as Data
 import numpy as np
 import pandas as pd
 import scipy.constants as scc

@@ -6,9 +6,6 @@ requires = ["setuptools>=46",
            ]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools_scm]
-local_scheme = ""
-
 [tool.black]
 line-length = 80
 skip-string-normalization = false

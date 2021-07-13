@@ -6,13 +6,13 @@ Created on Mon Mar 15 14:04:46 2021
 @author: sam
 """
 
-import data as Data
-import geometry as geom_py
+import nupyprop.data as Data
+import nupyprop.geometry as geom_py
 
-from propagate import interpolation as Interpolation
-from propagate import geometry as Geometry
-from propagate import transport as Transport
-from propagate import run as Run
+from nupyprop.propagate import interpolation as Interpolation
+from nupyprop.propagate import geometry as Geometry
+from nupyprop.propagate import transport as Transport
+from nupyprop.propagate import run as Run
 
 import numpy as np
 import random
