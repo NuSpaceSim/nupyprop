@@ -6,6 +6,9 @@ requires = ["setuptools>=46",
            ]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools_scm]
+write_to = '_version.py'
+
 [tool.black]
 line-length = 80
 skip-string-normalization = false
