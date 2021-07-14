@@ -45,16 +45,16 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Update PIP build requirements
-      run: python3 -m pip install --upgrade pip
     - name: Install build requirements
-      run: python3 -m pip install setuptools wheel twine numpy setuptools_scm
+      run: |
+        run: python3 -m pip install --upgrade pip
+        python3 -m pip install build numpy setuptools setuptools_scm twine wheel
     - name: Which gfortran?
       run: |
         which gfortran-11
     - name: Python wheels MacOS build
       run: |
-        pip3 wheel -w dist --no-deps .
+        python3 -m build -w -o dist -C fcompiler=gfortran-11 .
     - name: Publish to test-pypi
       env:
         TWINE_USERNAME: __token__
