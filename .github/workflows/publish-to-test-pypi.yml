@@ -17,7 +17,7 @@ jobs:
     - name: Install build requirements
       run: |
         python3 -m pip install --upgrade pip
-        python3 -m pip install setuptools wheel twine numpy
+        python3 -m pip install setuptools wheel twine numpy setuptools_scm
     - name: Python wheels manylinux build
       uses: RalfG/python-wheels-manylinux-build@v0.3.3
       with:
@@ -31,28 +31,28 @@ jobs:
         twine upload --repository testpypi dist/*manylinux*
 
 
-#   macos-build-n-publish:
-#     name: Build and publish MacOS Python 🐍 distributions 📦 to TestPyPI
-#     runs-on: macos-latest
-#     strategy:
-#       matrix:
-#         python-version: [3.6, 3.7, 3.8, 3.9]
-#     steps:
-#     - uses: actions/checkout@v2
-#     - name: Set up Python ${{ matrix.python-version }}
-#       uses: actions/setup-python@v2
-#       with:
-#         python-version: ${{ matrix.python-version }}
-#     - name: Install build requirements
-#       run: |
-#         python3 -m pip install --upgrade pip
-#         pip3 install setuptools wheel twine pybind11 setuptools_scm
-#     - name: Python wheels MacOS build
-#       run: |
-#         pip3 wheel -w dist --no-deps .
-#     - name: Publish to test-pypi
-#       env:
-#         TWINE_USERNAME: __token__
-#         TWINE_PASSWORD: ${{ secrets.test_pypi_password }}
-#       run: |
-#         twine upload --repository testpypi dist/nuSpaceSim*
+  macos-build-n-publish:
+    name: Build and publish MacOS Python 🐍 distributions 📦 to TestPyPI
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        python-version: [3.6, 3.7, 3.8, 3.9]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install build requirements
+      run: |
+        python3 -m pip install --upgrade pip
+        python3 -m pip install setuptools wheel twine numpy setuptools_scm
+    - name: Python wheels MacOS build
+      run: |
+        pip3 wheel -w dist --no-deps .
+    - name: Publish to test-pypi
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.test_pypi_secret }}
+      run: |
+        twine upload --repository testpypi dist/*
