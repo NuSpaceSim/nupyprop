@@ -51,8 +51,7 @@ jobs:
       run: python3 -m pip install setuptools wheel twine numpy setuptools_scm
     - name: Which gfortran?
       run: |
-        brew install --cask gfortran
-        which gfortran
+        which gfortran-11
     - name: Python wheels MacOS build
       run: |
         pip3 wheel -w dist --no-deps .
