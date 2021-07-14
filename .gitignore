@@ -1,0 +1,10 @@
+__pycache__/
+*.ipynb
+.ipynb_checkpoints/
+*.lprof
+*.egg-info/
+*.so
+_version.py
+*.dylib
+build/
+dist/

@@ -6,7 +6,7 @@ Created on Wed May 26 11:55:30 2021
 @author: sam
 """
 
-import data as Data
+import nupyprop.data as Data
 
 import numpy as np
 # cimport numpy as np
@@ -20,7 +20,9 @@ import warnings
 pd.set_option("display.max_rows", None, "display.max_columns", None)
 warnings.filterwarnings('ignore')
 
-from propagate import geometry as Geometry
+from nupyprop.propagate import geometry as Geometry
+
+import importlib.resources
 
 Re = 6371.0 # radius of the earth in km
 Rlay = np.array([1221.5, 3480.0, 5701.0, 5771.0, 5971.0, 6151.0, 6346.6, 6356.0, 6368.0, 6371.0]) # PREM layers based on R_earth. If you're using another Earth model, be sure to change it here as well as propagate.f90, in PREMdensity subroutine.
@@ -232,8 +234,11 @@ def find_interface(idepth):
     return sp.solve(eqn)
 
 def create_traj_table(idepth):
+
     try:
-        pd.read_hdf('lookup_tables.h5','Earth/traj_%s/Column_Trajectories' % str(int(idepth)))[0:2]
+        ref = importlib.resources.files('nupyprop.data') / 'lookup_tables.h5'
+        with importlib.resources.as_file(ref) as path:
+            pd.read_hdf(path,'Earth/traj_%s/Column_Trajectories' % str(int(idepth)))[0:2]
         return print("idepth = %s already exists in the lookup table. Will initialize that data." % (int(idepth)))
     except (KeyError, FileNotFoundError) as e:
         beta_col, xalong, cdalong = gen_col_trajs()

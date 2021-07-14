@@ -8,8 +8,8 @@ Created on Mon Aug 3 14:17:24 2020
 # import matplotlib as mpl
 # mpl.use('Agg') # for clusters
 
-import data as Data
-import cross_section as Cross_section
+import nupyprop.data as Data
+import nupyprop.cross_section as Cross_section
 
 import numpy as np
 import pandas as pd
