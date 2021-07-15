@@ -9,7 +9,7 @@ Created on Mon Mar 15 14:04:46 2021
 import nupyprop.data as Data
 import nupyprop.geometry as Geometry
 
-from propagate import run as Run
+from nupyprop.propagate import run as Run
 
 import numpy as np
 import random

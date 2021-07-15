@@ -15,23 +15,14 @@ import time
 import os
 # import h5py
 
-# import importlib.resources
-# from importlib_resources import files
 
-data_dir = '../output'
 
 E_nu = np.logspace(3,12,91,base=10).astype(np.float64)
 E_lep = np.logspace(0,12,121,base=10).astype(np.float64)
 
-try:
-    import importlib.resources as  importlib_resources
-except:
-    import importlib_resources
+import importlib_resources
 
 ref = importlib_resources.files('nupyprop.datafiles') / 'lookup_tables.h5'
-lookup_tables = importlib_resources.as_file(ref)
-
-# lookup_tables = '/src/nupyprop/datafiles/lookup_tables.h5'
 
 def output_file(nu_type, lepton, idepth, cross_section_model, pn_model, prop_type, stats):
     '''
@@ -96,7 +87,6 @@ def chk_file(nu_type, lepton, idepth, cross_section_model, pn_model, prop_type, 
         Option no. 2 can be used if you need to 'add' more results for the same set of parameters or in case of abrupt code termination.
 
     '''
-    os.chdir(data_dir)
     fnm = output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats)
     if os.path.exists(fnm):
         choice = input('There already exists a output file with these set of parameters (%s). Press \'d\' for deleting the output old file and creating a new output file, \'s\' for keeping the old output file or \'o\' for overwriting the old output file: ' % fnm)
@@ -133,11 +123,12 @@ def add_trajs(type_traj, idepth, traj_array):
         Adds trajectory lookup tables to lookup_tables.h5.
 
     '''
-    hdf = HDFStore(lookup_tables,'a')
-    if type_traj == 'col':branch = 'Column_Trajectories' # sub-sub branch inside the Earth/traj_idepth branch
-    elif type_traj == 'water':branch = 'Water_Trajectories'
-    hdf.put('Earth/traj_%s/%s' % (str(idepth),branch), traj_array, format='t', data_columns=True)
-    hdf.close()
+    with importlib_resources.as_file(ref) as lookup_tables:
+        hdf = HDFStore(lookup_tables,'a')
+        if type_traj == 'col':branch = 'Column_Trajectories' # sub-sub branch inside the Earth/traj_idepth branch
+        elif type_traj == 'water':branch = 'Water_Trajectories'
+        hdf.put('Earth/traj_%s/%s' % (str(idepth),branch), traj_array, format='t', data_columns=True)
+        hdf.close()
     return print("%s lookup table successfully created for idepth = %s" % (branch,str(idepth)))
 
 def get_trajs(type_traj, beta, idepth):# returns {xalong:cdalong} for beta if type=col or returns chord, water for beta if type=water
@@ -163,17 +154,19 @@ def get_trajs(type_traj, beta, idepth):# returns {xalong:cdalong} for beta if ty
 
     '''
     if type_traj == 'col':
-        dataset = pd.read_hdf(lookup_tables,'Earth/traj_%s/Column_Trajectories' % str(idepth))
-        dataset_sliced = dataset[dataset['beta']==beta]
-        xalong = np.asfortranarray(dataset_sliced.xalong.T)
-        cdalong = np.asfortranarray(dataset_sliced.cdalong.T)
-        return xalong, cdalong
+        with importlib_resources.as_file(ref) as lookup_tables:
+            dataset = pd.read_hdf(lookup_tables,'Earth/traj_%s/Column_Trajectories' % str(idepth))
+            dataset_sliced = dataset[dataset['beta']==beta]
+            xalong = np.asfortranarray(dataset_sliced.xalong.T)
+            cdalong = np.asfortranarray(dataset_sliced.cdalong.T)
+            return xalong, cdalong
 
     elif type_traj == 'water':
-        dataset = pd.read_hdf(lookup_tables,'Earth/traj_%s/Water_Trajectories' % str(idepth))
-        chord = float(dataset.chord[dataset['beta']==beta])
-        water = float(dataset.water[dataset['beta']==beta])
-        return chord, water
+        with importlib_resources.as_file(ref) as lookup_tables:
+            dataset = pd.read_hdf(lookup_tables,'Earth/traj_%s/Water_Trajectories' % str(idepth))
+            chord = float(dataset.chord[dataset['beta']==beta])
+            water = float(dataset.water[dataset['beta']==beta])
+            return chord, water
     return "Error in get_trajs in Data"
 
 def add_xc(part_type, xc_obj, model, **kwargs):
@@ -196,25 +189,27 @@ def add_xc(part_type, xc_obj, model, **kwargs):
         Creates neutrino/lepton cross-section lookup entries in lookup_tables.h5.
 
     '''
-    hdf = HDFStore(lookup_tables,'a')
-    if part_type=='nu': # here, xc_obj is a dict
-        particle_type = ['nu','anu']
-        for particle in particle_type:
-            cc = xc_obj[particle]['cc']
-            nc = xc_obj[particle]['nc']
-            dframe = pd.DataFrame({'energy':E_nu, 'sigma_cc':cc, 'sigma_nc':nc})
-            if 'a' in particle: # anti-neutrino group
-                hdf.put('Neutrino_Cross_Sections/anti_neutrino/xc/%s' % model, dframe, format='t', data_columns=True)
-            else: # neutrino group
-                hdf.put('Neutrino_Cross_Sections/neutrino/xc/%s' % model, dframe, format='t', data_columns=True)
-        hdf.close()
-        return print("%s_sigma CC & NC lookup tables successfully created for %s model" % (part_type, model))
-    else: # energy loss XC; here, xc_obj is an array
-        material = kwargs['material']
-        dframe = pd.DataFrame({'energy':E_lep, 'sigma_%s' % model:xc_obj})
-        hdf.put('Energy_Loss/%s/%s/xc/%s' % (part_type,material,model), dframe, format='t', data_columns=True)
-        hdf.close()
-        return print("%s_sigma lookup table successfully created for %s in %s" % (part_type, model, material))
+
+    with importlib_resources.as_file(ref) as lookup_tables:
+        hdf = HDFStore(lookup_tables,'a')
+        if part_type=='nu': # here, xc_obj is a dict
+            particle_type = ['nu','anu']
+            for particle in particle_type:
+                cc = xc_obj[particle]['cc']
+                nc = xc_obj[particle]['nc']
+                dframe = pd.DataFrame({'energy':E_nu, 'sigma_cc':cc, 'sigma_nc':nc})
+                if 'a' in particle: # anti-neutrino group
+                    hdf.put('Neutrino_Cross_Sections/anti_neutrino/xc/%s' % model, dframe, format='t', data_columns=True)
+                else: # neutrino group
+                    hdf.put('Neutrino_Cross_Sections/neutrino/xc/%s' % model, dframe, format='t', data_columns=True)
+            hdf.close()
+            return print("%s_sigma CC & NC lookup tables successfully created for %s model" % (part_type, model))
+        else: # energy loss XC; here, xc_obj is an array
+            material = kwargs['material']
+            dframe = pd.DataFrame({'energy':E_lep, 'sigma_%s' % model:xc_obj})
+            hdf.put('Energy_Loss/%s/%s/xc/%s' % (part_type,material,model), dframe, format='t', data_columns=True)
+            hdf.close()
+            return print("%s_sigma lookup table successfully created for %s in %s" % (part_type, model, material))
     return None
 
 def get_xc(part_type, model, **kwargs):
@@ -241,11 +236,12 @@ def get_xc(part_type, model, **kwargs):
         particle = kwargs['particle']
         if particle=='anti-neutrino':particle='anti_neutrino'
         try:
-            dataset_xc = pd.read_hdf(lookup_tables,'Neutrino_Cross_Sections/%s/xc/%s' % (particle,model))
-            cscc = dataset_xc.sigma_cc
-            csnc = dataset_xc.sigma_nc
-            out_arr = np.asarray([cscc,csnc])
-            return np.asfortranarray(out_arr.T)
+            with importlib_resources.as_file(ref) as lookup_tables:
+                dataset_xc = pd.read_hdf(lookup_tables,'Neutrino_Cross_Sections/%s/xc/%s' % (particle,model))
+                cscc = dataset_xc.sigma_cc
+                csnc = dataset_xc.sigma_nc
+                out_arr = np.asarray([cscc,csnc])
+                return np.asfortranarray(out_arr.T)
         except KeyError:
             model = str(input(("Error finding cross-section values for %s model, please enter a valid model name: " % model)))
             return None
@@ -253,7 +249,8 @@ def get_xc(part_type, model, **kwargs):
         try:
             material = kwargs['material']
 
-            dataset_xc = pd.read_hdf(lookup_tables,'Energy_Loss/%s/%s/xc/%s' % (part_type,material,model))
+            with importlib_resources.as_file(ref) as lookup_tables:
+                dataset_xc = pd.read_hdf(lookup_tables,'Energy_Loss/%s/%s/xc/%s' % (part_type,material,model))
 
             out_arr = np.asarray(dataset_xc['sigma_%s' % model])
             return np.asfortranarray(out_arr.T)
@@ -283,22 +280,23 @@ def add_ixc(part_type, ixc_dict, model, **kwargs):
         Creates neutrino/lepton integrated cross-section lookup entries in lookup_tables.h5.
 
     '''
-    hdf = HDFStore(lookup_tables,'a')
-    if part_type == 'nu':
-        particle_current = ['anucc','anunc','nucc','nunc']
-        for particle in particle_current:
-            if 'a' in particle: # anti-neutrino group
-                hdf.put('Neutrino_Cross_Sections/anti_neutrino/ixc/%s_%s' % (model,particle[3:]),ixc_dict[particle], format='t')
-            else: # neutrino group
-                hdf.put('Neutrino_Cross_Sections/neutrino/ixc/%s_%s' % (model,particle[2:]),ixc_dict[particle], format='t')
-        hdf.close()
-        return print("%s_sigma CDF CC & NC lookup tables successfully created for %s model" % (part_type, model))
+    with importlib_resources.as_file(ref) as lookup_tables:
+        hdf = HDFStore(lookup_tables,'a')
+        if part_type == 'nu':
+            particle_current = ['anucc','anunc','nucc','nunc']
+            for particle in particle_current:
+                if 'a' in particle: # anti-neutrino group
+                    hdf.put('Neutrino_Cross_Sections/anti_neutrino/ixc/%s_%s' % (model,particle[3:]),ixc_dict[particle], format='t')
+                else: # neutrino group
+                    hdf.put('Neutrino_Cross_Sections/neutrino/ixc/%s_%s' % (model,particle[2:]),ixc_dict[particle], format='t')
+            hdf.close()
+            return print("%s_sigma CDF CC & NC lookup tables successfully created for %s model" % (part_type, model))
 
-    else: # energy_loss; ixc_type == 'muon' or 'tau'
-        material = kwargs['material']
-        hdf.put('Energy_Loss/%s/%s/ixc/%s' % (part_type,material,model),ixc_dict, format='t')
-        hdf.close()
-        return print("%s_sigma CDF lookup table successfully created for %s model in %s" % (part_type, model, material))
+        else: # energy_loss; ixc_type == 'muon' or 'tau'
+            material = kwargs['material']
+            hdf.put('Energy_Loss/%s/%s/ixc/%s' % (part_type,material,model),ixc_dict, format='t')
+            hdf.close()
+            return print("%s_sigma CDF lookup table successfully created for %s model in %s" % (part_type, model, material))
     return None
 
 def get_ixc(part_type, model, **kwargs):
@@ -324,8 +322,9 @@ def get_ixc(part_type, model, **kwargs):
         particle = kwargs['particle']
         if particle=='anti-neutrino':particle='anti_neutrino'
         try:
-            dataset_ixc_cc = pd.read_hdf(lookup_tables,'Neutrino_Cross_Sections/%s/ixc/%s_cc' % (particle,model))
-            dataset_ixc_nc = pd.read_hdf(lookup_tables,'Neutrino_Cross_Sections/%s/ixc/%s_nc' % (particle,model))
+            with importlib_resources.as_file(ref) as lookup_tables:
+                dataset_ixc_cc = pd.read_hdf(lookup_tables,'Neutrino_Cross_Sections/%s/ixc/%s_cc' % (particle,model))
+                dataset_ixc_nc = pd.read_hdf(lookup_tables,'Neutrino_Cross_Sections/%s/ixc/%s_nc' % (particle,model))
 
             ixc_cc, ixc_nc = [], []
 
@@ -345,7 +344,8 @@ def get_ixc(part_type, model, **kwargs):
     else: # energy loss; ixc_type == 'tau' or 'muon'
         try:
             material = kwargs['material']
-            dataset_ixc = pd.read_hdf(lookup_tables,'Energy_Loss/%s/%s/ixc/%s' % (part_type,material,model))
+            with importlib_resources.as_file(ref) as lookup_tables:
+                dataset_ixc = pd.read_hdf(lookup_tables,'Energy_Loss/%s/%s/ixc/%s' % (part_type,material,model))
 
 
             ixc = []
@@ -380,11 +380,12 @@ def add_alpha(alpha, particle, material):
         Creates lepton ionization energy loss lookup entries in lookup_tables.h5.
 
     '''
-    hdf = HDFStore(lookup_tables,'a')
-    alpha_df = pd.DataFrame({'energy':E_lep,'alpha':alpha})
-    hdf.put('Energy_Loss/%s/%s/alpha' % (particle,material),alpha_df, format='t', data_columns=True)
-    hdf.close()
-    return print("%s_alpha lookup table successfully created in %s" % (particle,material))
+    with importlib_resources.as_file(ref) as lookup_tables:
+        hdf = HDFStore(lookup_tables,'a')
+        alpha_df = pd.DataFrame({'energy':E_lep,'alpha':alpha})
+        hdf.put('Energy_Loss/%s/%s/alpha' % (particle,material),alpha_df, format='t', data_columns=True)
+        hdf.close()
+        return print("%s_alpha lookup table successfully created in %s" % (particle,material))
 
 def get_alpha(particle, material):
     '''
@@ -402,10 +403,11 @@ def get_alpha(particle, material):
         1D array of lepton ionization energy loss, in (GeV*cm^2)/g.
 
     '''
-    alpha_df = pd.read_hdf(lookup_tables,'Energy_Loss/%s/%s/alpha' % (particle,material))
-    alpha_arr = alpha_df.alpha
-    out_arr = np.asarray(alpha_arr)
-    return np.asfortranarray(out_arr.T)
+    with importlib_resources.as_file(ref) as lookup_tables:
+        alpha_df = pd.read_hdf(lookup_tables,'Energy_Loss/%s/%s/alpha' % (particle,material))
+        alpha_arr = alpha_df.alpha
+        out_arr = np.asarray(alpha_arr)
+        return np.asfortranarray(out_arr.T)
 
 def add_beta(beta_arr, particle, material, model, beta_type):
     '''
@@ -429,11 +431,12 @@ def add_beta(beta_arr, particle, material, model, beta_type):
         Creates lepton (non-ionization) energy loss lookup entries in lookup_tables.h5.
 
     '''
-    hdf = HDFStore(lookup_tables,'a')
-    beta_df = pd.DataFrame({'energy':E_lep, 'beta_%s' % model:beta_arr})
-    hdf.put('Energy_Loss/%s/%s/beta_%s/%s' % (particle,material,beta_type,model), beta_df, format='t', data_columns=True)
-    hdf.close()
-    return print("%s_beta_%s lookup table successfully created in %s" % (particle,beta_type,material))
+    with importlib_resources.as_file(ref) as lookup_tables:
+        hdf = HDFStore(lookup_tables,'a')
+        beta_df = pd.DataFrame({'energy':E_lep, 'beta_%s' % model:beta_arr})
+        hdf.put('Energy_Loss/%s/%s/beta_%s/%s' % (particle,material,beta_type,model), beta_df, format='t', data_columns=True)
+        hdf.close()
+        return print("%s_beta_%s lookup table successfully created in %s" % (particle,beta_type,material))
 
 def get_beta(particle, material, model, beta_type):
     '''
@@ -455,10 +458,11 @@ def get_beta(particle, material, model, beta_type):
         1D array containing lepton energy loss model/process.
 
     '''
-    beta_df = pd.read_hdf(lookup_tables,'Energy_Loss/%s/%s/beta_%s/%s' % (particle,material,beta_type,model))
-    beta_arr = beta_df['beta_%s' % model]
-    out_arr = np.asarray(beta_arr)
-    return np.asfortranarray(out_arr.T)
+    with importlib_resources.as_file(ref) as lookup_tables:
+        beta_df = pd.read_hdf(lookup_tables,'Energy_Loss/%s/%s/beta_%s/%s' % (particle,material,beta_type,model))
+        beta_arr = beta_df['beta_%s' % model]
+        out_arr = np.asarray(beta_arr)
+        return np.asfortranarray(out_arr.T)
 
 def combine_lep(data_type, particle, material, pn_model, **kwargs):
     '''
@@ -584,7 +588,6 @@ def get_pexit(nu_type, lepton, energy, p_type, idepth, cross_section_model, pn_m
         Returns a exit probability results dictionary with {angle:p_type}.
 
     '''
-    # os.chdir(data_dir)
     log_energy = np.log10(energy)
     energy_str = str(log_energy)
 
@@ -680,7 +683,6 @@ def get_lep_out(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_
         1D array containing lepton out energies, in GeV.
 
     '''
-    # os.chdir(data_dir)
     log_energy = np.log10(energy)
     energy_str = str(log_energy)
 
@@ -719,7 +721,6 @@ def add_pexit_manual(nu_type, energy, angles, idepth, cross_section_model, pn_mo
 
 def add_cdf(nu_type, lepton, energy, angle, lep_dict, idepth, cross_section_model, pn_model, prop_type, stats):
 
-    # os.chdir(data_dir)
 
     log_energy = np.log10(energy)
     energy_str = str(log_energy)
@@ -745,7 +746,6 @@ def add_cdf(nu_type, lepton, energy, angle, lep_dict, idepth, cross_section_mode
     return None
 
 def get_cdf(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats):
-    # os.chdir(data_dir)
 
     log_energy = np.log10(energy)
     energy_str = str(log_energy)
@@ -757,7 +757,6 @@ def get_cdf(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_mode
     return cdf
 
 # def add_header(nu_type, lepton, idepth, nu_cs, lep_pn, loss_type, stats):
-#     os.chdir(data_dir)
 #     f = h5py.File('output_nu_tau_4km_ct18nlo_allm_stochastic_1e8.h5','a')
 #     if nu_type=='nu':f.attrs['Matter of Neutrino'] = "Neutrino"
 #     elif nu_type=='anu':f.attrs['Matter of Neutrino'] = "Anti-Neutrino"

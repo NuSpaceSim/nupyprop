@@ -6,7 +6,7 @@ Created on Wed May 26 11:55:30 2021
 @author: sam
 """
 
-import data as Data
+import nupyprop.data as Data
 
 import numpy as np
 from scipy import integrate
@@ -21,15 +21,9 @@ warnings.filterwarnings('ignore')
 # from propagate import geometry as Geometry
 from nupyprop.propagate import geometry as Geometry
 
-try:
-    import importlib.resources as  importlib_resources
-except:
-    import importlib_resources
+import importlib_resources
 
 ref = importlib_resources.files('nupyprop.datafiles') / 'lookup_tables.h5'
-lookup_tables = importlib_resources.as_file(ref)
-
-# lookup_tables = '/src/nupyprop/datafiles/lookup_tables.h5'
 
 Re = 6371.0 # radius of the earth in km
 Rlay = np.array([1221.5, 3480.0, 5701.0, 5771.0, 5971.0, 6151.0, 6346.6, 6356.0, 6368.0, 6371.0]) # PREM layers based on R_earth. If you're using another Earth model, be sure to change it here as well as propagate.f90, in PREMdensity subroutine.
@@ -304,8 +298,9 @@ def create_traj_table(idepth):
 
     '''
     try:
-        pd.read_hdf(lookup_tables,'Earth/traj_%s/Column_Trajectories' % str(int(idepth)))[0:2]
-        return print("idepth = %s already exists in the lookup table. Will initialize that data." % (int(idepth)))
+        with importlib_resources.as_file(ref) as lookup_tables:
+            pd.read_hdf(lookup_tables,'Earth/traj_%s/Column_Trajectories' % str(int(idepth)))[0:2]
+            return print("idepth = %s already exists in the lookup table. Will initialize that data." % (int(idepth)))
     except (KeyError, FileNotFoundError) as e:
         beta_col, xalong, cdalong = gen_col_trajs()
         dataset_col = pd.DataFrame({'beta':beta_col, 'xalong':xalong, 'cdalong':cdalong}).sort_values(by=['beta','xalong','cdalong'])

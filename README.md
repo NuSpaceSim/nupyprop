@@ -1,9 +1,29 @@
+# nupyprop
+
+Propagate neutrinos through the earth.
+
+A python package and command line utility, including fortran for performance with openMP.
+
+## Installation
+
+`python3 -m pip install nupyprop`
+
+## Usage
+
+`nupyprop --help`
+
+## Developers editable install
+
+For developers, install the package as an editable package for ease of use when
+implementing improvements.
+
+`python3 -m pip install -e .`
+
+## Developers build
+
+`python3 -m pip wheel -w dist .`
+
 ### **Dependencies:**
-python 3+ (anaconda recommended), numpy, pandas, scipy, sympy, matplotlib, fortran compiler (gfortran with openMP enabled), vitables (conda-forge; optional).
-
-**Note:** For those who had already created a nuPyProp environment in anaconda before, you can remove it by:</br>`conda env remove --n nupyprop`
-
-Once you have anaconda up and running, run `conda env create -f dependencies.yml`. This will create a new environment named 'nupyprop' and will install all the dependencies. It may take a while to do so. After it finishes installing, run `conda activate nupyprop` and you should be ready to run the code.
 
 **Run parameters** are defined in run.py. Different switches are described as follows:
 
@@ -52,33 +72,33 @@ G = Statistics (ie. no. of neutrinos/anti-neutrinos injected).
 
 **Code Execution Timing Table for Taus**:
 Charged Lepton | Energy Loss Type | E<sub>&nu;</sub> [GeV] | Angles | N<sub>&nu;;in</sub> | Time (hrs) |
-|---|---|---|---|---|---|
-| &tau; | Stochastic | 10<sup>7</sup> | 1-35 | 10<sup>8</sup> | 1.07*, 0.26*** |
-| &tau; | Continuous | 10<sup>7</sup> | 1-35 | 10<sup>8</sup> | 0.88* |
-| &tau; | Stochastic | 10<sup>8</sup> | 1-35 | 10<sup>8</sup> | 6.18*, 1.53*** |
-| &tau; | Continuous | 10<sup>8</sup> | 1-35 | 10<sup>8</sup> | 5.51* |
-| &tau; | Stochastic | 10<sup>9</sup> | 1-35 | 10<sup>8</sup> | 27.96*, 5.08*** |
-| &tau; | Continuous | 10<sup>9</sup> | 1-35 | 10<sup>8</sup> | 19.11* |
+|-------|------------|-----------------|------|----------------|------------------|
+| &tau; | Stochastic | 10<sup>7</sup>  | 1-35 | 10<sup>8</sup> | 1.07*, 0.26***   |
+| &tau; | Continuous | 10<sup>7</sup>  | 1-35 | 10<sup>8</sup> | 0.88*            |
+| &tau; | Stochastic | 10<sup>8</sup>  | 1-35 | 10<sup>8</sup> | 6.18*, 1.53***   |
+| &tau; | Continuous | 10<sup>8</sup>  | 1-35 | 10<sup>8</sup> | 5.51*            |
+| &tau; | Stochastic | 10<sup>9</sup>  | 1-35 | 10<sup>8</sup> | 27.96*, 5.08***  |
+| &tau; | Continuous | 10<sup>9</sup>  | 1-35 | 10<sup>8</sup> | 19.11*           |
 | &tau; | Stochastic | 10<sup>10</sup> | 1-35 | 10<sup>8</sup> | 49.80*, 12.43*** |
-| &tau; | Continuous | 10<sup>10</sup> | 1-35 | 10<sup>8</sup> | 35.59* |
-| &tau; | Stochastic | 10<sup>11</sup> | 1-35 | 10<sup>8</sup> | 12.73*** |
-| &tau; | Continuous | 10<sup>11</sup> | 1-35 | 10<sup>8</sup> | - |
+| &tau; | Continuous | 10<sup>10</sup> | 1-35 | 10<sup>8</sup> | 35.59*           |
+| &tau; | Stochastic | 10<sup>11</sup> | 1-35 | 10<sup>8</sup> | 12.73***         |
+| &tau; | Continuous | 10<sup>11</sup> | 1-35 | 10<sup>8</sup> | -                |
 
 **Code Execution Timing Table for Muons**:
 Charged Lepton | Energy Loss Type | E<sub>&nu;</sub> [GeV] | Angles | N<sub>&nu;;in</sub> | Time (hrs) |
-|---|---|---|---|---|---|
-| &mu; | Stochastic | 10<sup>6</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | - |
-| &mu; | Continuous | 10<sup>6</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 0.95* |
-| &mu; | Stochastic | 10<sup>7</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | - |
-| &mu; | Continuous | 10<sup>7</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 3.19* |
-| &mu; | Stochastic | 10<sup>8</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | - |
-| &mu; | Continuous | 10<sup>8</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 5.17* |
-| &mu; | Stochastic | 10<sup>9</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 111.77** |
-| &mu; | Continuous | 10<sup>9</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 7.42* |
-| &mu; | Stochastic | 10<sup>10</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 98.17* |
-| &mu; | Continuous | 10<sup>10</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 9.76* |
-| &mu; | Stochastic | 10<sup>11</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | - |
-| &mu; | Continuous | 10<sup>11</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | - |
+|------|------------|-----------------|-----------------------------------|----------------|----------|
+| &mu; | Stochastic | 10<sup>6</sup>  | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> |          |
+| &mu; | Continuous | 10<sup>6</sup>  | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 0.95*    |
+| &mu; | Stochastic | 10<sup>7</sup>  | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> |          |
+| &mu; | Continuous | 10<sup>7</sup>  | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 3.19*    |
+| &mu; | Stochastic | 10<sup>8</sup>  | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> |          |
+| &mu; | Continuous | 10<sup>8</sup>  | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 5.17*    |
+| &mu; | Stochastic | 10<sup>9</sup>  | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 111.77** |
+| &mu; | Continuous | 10<sup>9</sup>  | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 7.42*    |
+| &mu; | Stochastic | 10<sup>10</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 98.17*   |
+| &mu; | Continuous | 10<sup>10</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 9.76*    |
+| &mu; | Stochastic | 10<sup>11</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> |          |
+| &mu; | Continuous | 10<sup>11</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> |          |
 
 \* - Intel Core i7-8750H; 6 cores & 12 threads.</br>
 \** - Intel Core i5-10210; 4 cores & 8 threads.</br>
