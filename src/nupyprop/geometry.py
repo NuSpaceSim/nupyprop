@@ -22,7 +22,11 @@ warnings.filterwarnings('ignore')
 
 from nupyprop.propagate import geometry as Geometry
 
-import importlib.resources
+try:
+    import importlib.resources as  importlib_resources
+except:
+    import importlib_resources
+
 
 Re = 6371.0 # radius of the earth in km
 Rlay = np.array([1221.5, 3480.0, 5701.0, 5771.0, 5971.0, 6151.0, 6346.6, 6356.0, 6368.0, 6371.0]) # PREM layers based on R_earth. If you're using another Earth model, be sure to change it here as well as propagate.f90, in PREMdensity subroutine.
@@ -236,8 +240,8 @@ def find_interface(idepth):
 def create_traj_table(idepth):
 
     try:
-        ref = importlib.resources.files('nupyprop.data') / 'lookup_tables.h5'
-        with importlib.resources.as_file(ref) as path:
+        ref = importlib_resources.files('nupyprop.data') / 'lookup_tables.h5'
+        with importlib_resources.as_file(ref) as path:
             pd.read_hdf(path,'Earth/traj_%s/Column_Trajectories' % str(int(idepth)))[0:2]
         return print("idepth = %s already exists in the lookup table. Will initialize that data." % (int(idepth)))
     except (KeyError, FileNotFoundError) as e:

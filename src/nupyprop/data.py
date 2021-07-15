@@ -14,7 +14,10 @@ from decimal import Decimal
 import time
 import os
 
-import importlib.resources
+try:
+    import importlib.resources as  importlib_resources
+except:
+    import importlib_resources
 
 # data_dir = '/home/sam/nupyprop_test/output'
 # data_dir = '/home/sam/nupyprop_test'
@@ -50,8 +53,8 @@ def chk_file(nu_type, lepton,idepth,nu_cs,lep_pn,loss_type,stats):
 
 
 def add_trajs(type_traj, idepth, traj_array):
-    ref = importlib.resources.files('nupyprop.datafiles') / 'lookup_tables.h5'
-    with importlib.resources.as_file(ref) as lookup_tables:
+    ref = importlib_resources.files('nupyprop.datafiles') / 'lookup_tables.h5'
+    with importlib_resources.as_file(ref) as lookup_tables:
         hdf = HDFStore(lookup_tables,'a')
         if type_traj == 'col':branch = 'Column_Trajectories' # sub-sub branch inside the Earth/traj_idepth branch
         elif type_traj == 'water':branch = 'Water_Trajectories'
@@ -61,8 +64,8 @@ def add_trajs(type_traj, idepth, traj_array):
 
 def get_trajs(type_traj, beta, idepth): # returns {xalong:cdalong} for beta if type=col or returns chord, water for beta if type=water
     if type_traj == 'col':
-        ref = importlib.resources.files('nupyprop.datafiles') / 'lookup_tables.h5'
-        with importlib.resources.as_file(ref) as lookup_tables:
+        ref = importlib_resources.files('nupyprop.datafiles') / 'lookup_tables.h5'
+        with importlib_resources.as_file(ref) as lookup_tables:
             dataset = pd.read_hdf(lookup_tables,'Earth/traj_%s/Column_Trajectories' % str(idepth))
             dataset_sliced = dataset[dataset['beta']==beta]
             xalong = np.asfortranarray(dataset_sliced.xalong.T)
@@ -70,8 +73,8 @@ def get_trajs(type_traj, beta, idepth): # returns {xalong:cdalong} for beta if t
             return xalong, cdalong
 
     elif type_traj == 'water':
-        ref = importlib.resources.files('nupyprop.datafiles') / 'lookup_tables.h5'
-        with importlib.resources.as_file(ref) as lookup_tables:
+        ref = importlib_resources.files('nupyprop.datafiles') / 'lookup_tables.h5'
+        with importlib_resources.as_file(ref) as lookup_tables:
             dataset = pd.read_hdf(lookup_tables,'Earth/traj_%s/Water_Trajectories' % str(idepth))
             chord = float(dataset.chord[dataset['beta']==beta])
             water = float(dataset.water[dataset['beta']==beta])
@@ -92,8 +95,8 @@ def add_xc(part_type, xc_obj, model, **kwargs):
     None.
 
     '''
-    ref = importlib.resources.files('nupyprop.datafiles') / 'lookup_tables.h5'
-    with importlib.resources.as_file(ref) as lookup_tables:
+    ref = importlib_resources.files('nupyprop.datafiles') / 'lookup_tables.h5'
+    with importlib_resources.as_file(ref) as lookup_tables:
         hdf = HDFStore(lookup_tables,'a')
         if part_type=='nu': # here, xc_obj is a dict
             particle_type = ['nu','anu']
@@ -120,8 +123,8 @@ def get_xc(part_type, model, **kwargs):
         particle = kwargs['particle']
         if particle=='anti-neutrino':particle='anti_neutrino'
         try:
-            ref = importlib.resources.files('nupyprop.datafiles') / 'lookup_tables.h5'
-            with importlib.resources.as_file(ref) as lookup_tables:
+            ref = importlib_resources.files('nupyprop.datafiles') / 'lookup_tables.h5'
+            with importlib_resources.as_file(ref) as lookup_tables:
                 dataset_xc = pd.read_hdf(lookup_tables,'Neutrino_Cross_Sections/%s/xc/%s' % (particle,model))
                 cscc = dataset_xc.sigma_cc
                 csnc = dataset_xc.sigma_nc
@@ -134,8 +137,8 @@ def get_xc(part_type, model, **kwargs):
         try:
             material = kwargs['material']
 
-            ref = importlib.resources.files('nupyprop.datafiles') / 'lookup_tables.h5'
-            with importlib.resources.as_file(ref) as lookup_tables:
+            ref = importlib_resources.files('nupyprop.datafiles') / 'lookup_tables.h5'
+            with importlib_resources.as_file(ref) as lookup_tables:
                 dataset_xc = pd.read_hdf(lookup_tables,'Energy_Loss/%s/%s/xc/%s' % (part_type,material,model))
 
             out_arr = np.asarray(dataset_xc['sigma_%s' % model])
@@ -160,8 +163,8 @@ def add_ixc(part_type, ixc_dict, model, **kwargs):
     None.
 
     '''
-    ref = importlib.resources.files('nupyprop.datafiles') / 'lookup_tables.h5'
-    with importlib.resources.as_file(ref) as lookup_tables:
+    ref = importlib_resources.files('nupyprop.datafiles') / 'lookup_tables.h5'
+    with importlib_resources.as_file(ref) as lookup_tables:
         hdf = HDFStore(lookup_tables,'a')
         if part_type == 'nu':
             particle_current = ['anucc','anunc','nucc','nunc']
@@ -185,8 +188,8 @@ def get_ixc(part_type, model, **kwargs):
         particle = kwargs['particle']
         if particle=='anti-neutrino':particle='anti_neutrino'
         try:
-            ref = importlib.resources.files('nupyprop.datafiles') / 'lookup_tables.h5'
-            with importlib.resources.as_file(ref) as lookup_tables:
+            ref = importlib_resources.files('nupyprop.datafiles') / 'lookup_tables.h5'
+            with importlib_resources.as_file(ref) as lookup_tables:
                 dataset_ixc_cc = pd.read_hdf(lookup_tables,'Neutrino_Cross_Sections/%s/ixc/%s_cc' % (particle,model))
                 dataset_ixc_nc = pd.read_hdf(lookup_tables,'Neutrino_Cross_Sections/%s/ixc/%s_nc' % (particle,model))
 
@@ -208,8 +211,8 @@ def get_ixc(part_type, model, **kwargs):
     else: # energy loss; ixc_type == 'tau' or 'muon'
         try:
             material = kwargs['material']
-            ref = importlib.resources.files('nupyprop.datafiles') / 'lookup_tables.h5'
-            with importlib.resources.as_file(ref) as lookup_tables:
+            ref = importlib_resources.files('nupyprop.datafiles') / 'lookup_tables.h5'
+            with importlib_resources.as_file(ref) as lookup_tables:
                 dataset_ixc = pd.read_hdf(lookup_tables,'Energy_Loss/%s/%s/ixc/%s' % (part_type,material,model))
 
 
@@ -228,8 +231,8 @@ def get_ixc(part_type, model, **kwargs):
     return None
 
 def add_alpha(alpha, particle, material):
-    ref = importlib.resources.files('nupyprop.datafiles') / 'lookup_tables.h5'
-    with importlib.resources.as_file(ref) as lookup_tables:
+    ref = importlib_resources.files('nupyprop.datafiles') / 'lookup_tables.h5'
+    with importlib_resources.as_file(ref) as lookup_tables:
         hdf = HDFStore(lookup_tables,'a')
         alpha_df = pd.DataFrame({'energy':E_lep,'alpha':alpha})
         hdf.put('Energy_Loss/%s/%s/alpha' % (particle,material),alpha_df, format='t', data_columns=True)
@@ -237,16 +240,16 @@ def add_alpha(alpha, particle, material):
         return print("%s_alpha lookup table successfully created in %s" % (particle,material))
 
 def get_alpha(particle, material):
-    ref = importlib.resources.files('nupyprop.datafiles') / 'lookup_tables.h5'
-    with importlib.resources.as_file(ref) as lookup_tables:
+    ref = importlib_resources.files('nupyprop.datafiles') / 'lookup_tables.h5'
+    with importlib_resources.as_file(ref) as lookup_tables:
         alpha_df = pd.read_hdf(lookup_tables,'Energy_Loss/%s/%s/alpha' % (particle,material))
         alpha_arr = alpha_df.alpha
         out_arr = np.asarray(alpha_arr)
         return np.asfortranarray(out_arr.T)
 
 def add_beta(beta_arr, particle, material, model, beta_type):
-    ref = importlib.resources.files('nupyprop.datafiles') / 'lookup_tables.h5'
-    with importlib.resources.as_file(ref) as lookup_tables:
+    ref = importlib_resources.files('nupyprop.datafiles') / 'lookup_tables.h5'
+    with importlib_resources.as_file(ref) as lookup_tables:
         hdf = HDFStore(lookup_tables,'a')
         beta_df = pd.DataFrame({'energy':E_lep, 'beta_%s' % model:beta_arr})
         hdf.put('Energy_Loss/%s/%s/beta_%s/%s' % (particle,material,beta_type,model), beta_df, format='t', data_columns=True)
@@ -254,8 +257,8 @@ def add_beta(beta_arr, particle, material, model, beta_type):
         return print("%s_beta_%s lookup table successfully created in %s" % (particle,beta_type,material))
 
 def get_beta(particle, material, model, beta_type):
-    ref = importlib.resources.files('nupyprop.datafiles') / 'lookup_tables.h5'
-    with importlib.resources.as_file(ref) as lookup_tables:
+    ref = importlib_resources.files('nupyprop.datafiles') / 'lookup_tables.h5'
+    with importlib_resources.as_file(ref) as lookup_tables:
         beta_df = pd.read_hdf(lookup_tables,'Energy_Loss/%s/%s/beta_%s/%s' % (particle,material,beta_type,model))
         beta_arr = beta_df['beta_%s' % model]
         out_arr = np.asarray(beta_arr)
