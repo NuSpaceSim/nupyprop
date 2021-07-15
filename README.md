@@ -12,6 +12,10 @@ A python package and command line utility, including fortran for performance wit
 
 `nupyprop --help`
 
+## git clone the source code 
+
+`git clone git@github.com:NuSpaceSim/nupyprop.git`
+
 ## Developers editable install
 
 For developers, install the package as an editable package for ease of use when
