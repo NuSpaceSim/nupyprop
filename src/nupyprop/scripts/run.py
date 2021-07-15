@@ -7,11 +7,6 @@ Created on Mon Nov 30 21:02:17 2020
 """
 
 import argparse
-# import data as Data
-# import geometry as Geometry
-# import energy_loss as Energy_loss
-# import my_interpolation as Interpolation
-# import transport as Transport
 import nupyprop.main as Main
 import random
 import time
@@ -32,7 +27,7 @@ def main():
 
     # parser.add_argument('-a', '--angle', dest='angle_val', nargs='?', const=np.array([1,2,3,5,7,10,12,15,17,20,25,30,35]), default=np.array([1,2,3,5,7,10,12,15,17,20,25,30,35]), help='value of angle; defaults are 1,3,5,7,10,12,15,17,20,25,30,35 degrees')
 
-    parser.add_argument('-i', '--idepth', dest='idepth_val', nargs='?', type=float, const=4, default=4, help='value of idepth; default is 4')
+    parser.add_argument('-i', '--idepth', dest='idepth_val', nargs='?', type=float, const=4, default=4, help='value of water layer in km; default is 4')
 
     parser.add_argument('-l', '--lepton', dest='lepton_id', nargs='?', type=str, const='tau', default='tau', help='particle for energy loss and propagation - can be tau or muon; default is tau')
 
@@ -46,9 +41,11 @@ def main():
 
     parser.add_argument('-p', '--pn_model', dest='pn_model_id', nargs='?', type=str, const='allm', default='allm', help='lepton photonuclear energy loss model; default is allm')
 
-    parser.add_argument('-f', '--fac_nu', dest='fac_nu_val', nargs='?', type=float, const=1.0, default=1.0, help='rescaling for SM cross-sections; default is 1.0')
+    parser.add_argument('-f', '--fac_nu', dest='fac_nu_val', nargs='?', type=float, const=1.0, default=1.0, help='rescaling for BSM cross-sections; default is 1.0')
 
     parser.add_argument('-s', '--stat', dest='stat_val', nargs='?', type=float, const=1e7, default=1e7, help='statistics; default is 1e7')
+
+    parser.add_argument('-c', '--cdf_only', dest='cdf_id', nargs='?', type=str, const='no', default='no', help='CDF only; default is no. If set to yes, the output file will NOT contain outgoing lepton energies.')
 
 
     args = parser.parse_args()
@@ -73,16 +70,17 @@ def main():
     pn_model = str(args.pn_model_id)
     fac_nu = float(args.fac_nu_val)
     stat = int(args.stat_val)
+    cdf_only = str(args.cdf_id)
 
     start_time = time.time()
 
     # prob_dict = Main.main(energies, angles, cross_section_model, pn_model, idepth, lepton, fac_nu, stat, type_loss)
-    Main.main(energies, angles, nu_type, cross_section_model, pn_model, idepth, lepton, fac_nu, stat, type_loss)
+    Main.main(energies, angles, nu_type, cross_section_model, pn_model, idepth, lepton, fac_nu, stat, type_loss, cdf_only)
 
-    e_out_files = glob.glob("e_out_*") # cleanup of Fortran e_out files
+    # e_out_files = glob.glob("e_out_*") # cleanup of Fortran e_out files
 
-    for file in e_out_files:
-        os.remove(file)
+    # for file in e_out_files:
+    #     os.remove(file)
 
     end_time = time.time()
     print(f"It took {end_time-start_time:.2f} seconds to compute")
