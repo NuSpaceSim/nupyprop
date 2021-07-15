@@ -5,7 +5,7 @@ on:
     types: [published]
   workflow_dispatch:
 
-
+jobs:
   macos-build-n-publish:
     name: Build and publish MacOS Python 🐍 distributions 📦 to TestPyPI
     runs-on: macos-latest
