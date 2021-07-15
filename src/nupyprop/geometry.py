@@ -6,20 +6,19 @@ Created on Wed May 26 11:55:30 2021
 @author: sam
 """
 
-import nupyprop.data as Data
+import data as Data
 
 import numpy as np
-# cimport numpy as np
 from scipy import integrate
 import multiprocessing as mp
 from multiprocessing import Pool
-# from tables import *
 import pandas as pd
 import sympy as sp
 import warnings
 pd.set_option("display.max_rows", None, "display.max_columns", None)
 warnings.filterwarnings('ignore')
 
+# from propagate import geometry as Geometry
 from nupyprop.propagate import geometry as Geometry
 
 try:
@@ -27,6 +26,10 @@ try:
 except:
     import importlib_resources
 
+ref = importlib_resources.files('nupyprop.datafiles') / 'lookup_tables.h5'
+lookup_tables = importlib_resources.as_file(ref)
+
+# lookup_tables = '/src/nupyprop/datafiles/lookup_tables.h5'
 
 Re = 6371.0 # radius of the earth in km
 Rlay = np.array([1221.5, 3480.0, 5701.0, 5771.0, 5971.0, 6151.0, 6346.6, 6356.0, 6368.0, 6371.0]) # PREM layers based on R_earth. If you're using another Earth model, be sure to change it here as well as propagate.f90, in PREMdensity subroutine.
@@ -40,12 +43,12 @@ def sagitta_deg(beta_deg):
     Parameters
     ----------
     beta_deg : float
-        Beta in degrees
+        Earth emergence angle (beta), in degrees.
 
     Returns
     -------
     sagitta : float
-        The sagitta in km.
+        The sagitta (distance from the center of the arc to the center of its base), in km.
 
     '''
     tnadir = (90.0-beta_deg)*(np.pi/180.0)
@@ -59,12 +62,12 @@ def pathlength(tnadir):
     Parameters
     ----------
     tnadir : float
-        tnadir in rad.
+        Nadir angle, in radians.
 
     Returns
     -------
     pathlength : float
-        Path length in km.
+        Path length, in km.
 
     '''
     pathlength = 2*Re*np.cos(tnadir)
@@ -76,12 +79,12 @@ def trajlength(beta_deg):
     Parameters
     ----------
     beta_deg : float
-        Beta in degrees.
+        Earth emergence angle (beta), in degrees.
 
     Returns
     -------
     trajlength : float
-        Trajectory length in km.
+        Trajectory length, in km.
 
     '''
     tnadir = (90.0-beta_deg)*(np.pi/180.0)
@@ -93,13 +96,15 @@ def PREMgramVSang(z, idepth):
 
     Parameters
     ----------
-    z : float or integer
-        Angle in degrees of trajectory (relative to tangent to surface).
+    z : float
+        Angle of trajectory (relative to tangent to surface), in degrees.
+    idepth : int
+        Depth of water layer in km.
 
     Returns
     -------
     gramlen : float
-        The "grammage", column density in g/cm2.
+        The "grammage" or column density, in g/cm^2.
 
     '''
     Rlay_3 = np.copy(Rlay)
@@ -154,13 +159,15 @@ def columndepth(beta_deg, idepth):
 
     Parameters
     ----------
-    tnadir : float
-        tnadir in rad.
+    beta_deg : float
+        Earth emergence angle (beta), in degrees.
+    idepth : int
+        Depth of water layer in km.
 
     Returns
     -------
-    columndepth : float
-        Column density in g/cm^2.
+    columndepth_val : float
+        Column density, in g/cm^2.
 
     '''
     z = beta_deg
@@ -177,15 +184,17 @@ def cdtot(x_v, beta_deg, idepth):
 
     Parameters
     ----------
-    x_v : lambda function
-        Integration variable.
+    x_v : None
+        Lambda function (integration variable).
     beta_deg : float
-        beta in degrees.
+        Earth emergence angle (beta), in degrees.
+    idepth : int
+        Depth of water layer in km.
 
     Returns
     -------
-    cdtot : float
-        Integrated column density
+    cdtot_val : float
+        Integrated column density.
 
     '''
     r, rho = Geometry.densityatx(x_v, beta_deg, idepth)
@@ -213,7 +222,18 @@ def integrator(args):
     return integrate.quad(fun,low_lim,up_lim,args=(var))
 
 def gen_col_trajs():
+    '''
 
+    Returns
+    -------
+    betad_fix : ndarray
+        1D array containing 13500 entries, with repeating entries from 0.1 deg to 90 deg.
+    xalong : ndarray
+        1D array containing distance in water, in km.
+    cdalong : ndarray
+        1D array containing column depth at xalong, in g/cm^2.
+
+    '''
     p = Pool(mp.cpu_count()) # use all available cores
 
     betad_fix = np.asarray([np.ones(100)*i for i in beta_arr]).flatten() # used for storing in hdf5 and matching len of cdalong array which uses list comprehension for faster calcs.
@@ -225,6 +245,24 @@ def gen_col_trajs():
     return betad_fix, xalong, cdalong
 
 def gen_water_trajs(idepth):
+    '''
+
+
+    Parameters
+    ----------
+    idepth : int
+        Depth of water layer in km.
+
+    Returns
+    -------
+    beta_arr : ndarray
+        1D array containing Earth emergence angles from 0.1 deg to 90 deg.
+    chord : ndarray
+        1D array containing chord length, in km.
+    water : ndarray
+        1D array containing final water layer distance, in km.
+
+    '''
     dw = idepth
     Rrock = Re-dw
     chord = np.asarray([trajlength(i) for i in beta_arr])
@@ -232,17 +270,41 @@ def gen_water_trajs(idepth):
     return beta_arr, chord, water
 
 def find_interface(idepth):
+    '''
+
+
+    Parameters
+    ----------
+    idepth : int
+        Depth of water layer in km.
+
+    Returns
+    -------
+    float
+        The (Earth emergence) angle at which the transition from water to rock occurs, in degrees.
+
+    '''
     # global idepth
     y = sp.Symbol('y')
     eqn = sp.Eq(Re*(1-sp.sin((90-y)*(np.pi/180))), idepth)
     return sp.solve(eqn)
 
 def create_traj_table(idepth):
+    '''
 
+    Parameters
+    ----------
+    idepth : int
+        Depth of water layer in km.
+
+    Returns
+    -------
+    None
+        Adds trajectory table lookup entries in lookup_table.h5.
+
+    '''
     try:
-        ref = importlib_resources.files('nupyprop.data') / 'lookup_tables.h5'
-        with importlib_resources.as_file(ref) as path:
-            pd.read_hdf(path,'Earth/traj_%s/Column_Trajectories' % str(int(idepth)))[0:2]
+        pd.read_hdf(lookup_tables,'Earth/traj_%s/Column_Trajectories' % str(int(idepth)))[0:2]
         return print("idepth = %s already exists in the lookup table. Will initialize that data." % (int(idepth)))
     except (KeyError, FileNotFoundError) as e:
         beta_col, xalong, cdalong = gen_col_trajs()

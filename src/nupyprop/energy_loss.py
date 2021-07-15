@@ -35,6 +35,19 @@ m_p = Cross_section.m_p
 N_A = Cross_section.N_A
 
 def integrator(args):
+    '''
+
+    Parameters
+    ----------
+    args : list of lists
+        Function arguments.
+
+    Returns
+    -------
+    function
+        Integrator function.
+
+    '''
     fun = args[0]
     low_lim = args[1]
     up_lim = args[2]
@@ -42,6 +55,19 @@ def integrator(args):
     return integrate.quad(fun,low_lim,up_lim,args=(arg,))
 
 def nquad_integrator(args):
+    '''
+
+    Parameters
+    ----------
+    args : list of lists
+        Function arguments.
+
+    Returns
+    -------
+    function
+        Integrator function.
+
+    '''
     fun = args[0]
     lim_1 = args[1] # dep limit
     lim_2 = args[2] # indep limit
@@ -49,6 +75,19 @@ def nquad_integrator(args):
     return integrate.nquad(fun, [lim_1,lim_2], args=(arg,))
 
 def dbl_integrator(args):
+    '''
+
+    Parameters
+    ----------
+    args : list of lists
+        Function arguments.
+
+    Returns
+    -------
+    function
+        Integrator function.
+
+    '''
     fun = args[0]
     indep_lim_low = args[1] # has to be a value and not a function, but in the form of a function! See pair and PN limits
     indep_lim_high = args[2] # has to be a value and not a function, but in the form of a function!
@@ -58,6 +97,19 @@ def dbl_integrator(args):
     return integrate.dblquad(fun, indep_lim_low(var), indep_lim_high(var), dep_lim_low, dep_lim_high, args=(var,), epsabs=1e-12)[0]
 
 def rep(val): # Remove non-physical values
+    '''
+
+    Parameters
+    ----------
+    val : float
+        Usually negative or np.nan values, to set to 0.
+
+    Returns
+    -------
+    float
+        Returns 0 in case of non-physical entries or returns val.
+
+    '''
     if (val<0) or (np.isnan(val)==True):
         return 0
     else:
@@ -65,6 +117,27 @@ def rep(val): # Remove non-physical values
     return 'Problem in rep function'
 
 def short_int_nquad(fn, indep_fn_lim_high, dep_fn_lim, arr, arg):
+    '''
+
+    Parameters
+    ----------
+    fn : NONE
+        Lamba function (integrating function).
+    indep_fn_lim_high : NONE
+        Lambda function (independent function, upper limit).
+    dep_fn_lim : NONE
+        Lambda function (dependent function limit).
+    arr : ndarray
+        1D array containing y-values you want to integrate over.
+    arg : Float
+        Integrating variable (usually energy).
+
+    Returns
+    -------
+    ndarray
+        1D array containing integrated results.
+
+    '''
     ans = []
     result = integrate.nquad(fn, [dep_fn_lim,[arr[0],indep_fn_lim_high(arg)]],args=(arg,))[0]
     ans.append(result)
@@ -74,6 +147,29 @@ def short_int_nquad(fn, indep_fn_lim_high, dep_fn_lim, arr, arg):
     return np.asarray(ans)
 
 def short_int_dblquad(fn, indep_fn_lim_high, dep_fn_lim_low, dep_fn_lim_high, arr, arg): #indep_fn_lim_high has to return a value and not a function!
+    '''
+
+    Parameters
+    ----------
+    fn : NONE
+        Lamba function (integrating function).
+    indep_fn_lim_high : float
+        Independent function, upper limit value.
+    dep_fn_lim_low : NONE
+        Lambda function (dependent function, lower limit).
+    dep_fn_lim_high : NONE
+        Lambda function (dependent function, upper limit).
+    arr : ndarray
+        1D array containing y-values you want to integrate over.
+    arg : Float
+        Integrating variable (usually energy).
+
+    Returns
+    -------
+    ndarray
+        1D array containing integrated results.
+
+    '''
     ans = []
     result = integrate.dblquad(fn, arr[0],indep_fn_lim_high(arg), dep_fn_lim_low, dep_fn_lim_high, args=(arg,), epsabs=1e-12)[0]
     ans.append(result)
@@ -86,6 +182,19 @@ def short_int_dblquad(fn, indep_fn_lim_high, dep_fn_lim_low, dep_fn_lim_high, ar
 # Ionization Energy Loss
 # =============================================================================
 def alpha_i(E):
+    '''
+
+    Parameters
+    ----------
+    E : float
+        Energy of the lepton, in GeV.
+
+    Returns
+    -------
+    dEdX : float
+        Rate of change of energy with column depth, in (GeV*cm^2)/g.
+
+    '''
     param = {'water':{'I':7.5e-8, 'C':-3.502, 'X_0':0.240, 'X_1':2.8, 'a':0.091, 'm':3.477}} # Note: I has to be in GeV
     param.update({'rock':{'I':1.364e-7, 'C':-3.774, 'X_0':0.049, 'X_1':3.055, 'a':0.083, 'm':3.412}})
     param.update({'iron':{'I':2.86e-7, 'C':-4.291, 'X_0':-0.0012, 'X_1':3.153, 'a':0.147, 'm':2.963}})
@@ -122,6 +231,21 @@ def alpha_i(E):
 #      Bremmstrahlung Energy Loss
 # =============================================================================
 def brem(y, E): # eq. A5
+    '''
+
+    Parameters
+    ----------
+    y : float
+        y-value.
+    E : float
+        Energy of the lepton, in GeV.
+
+    Returns
+    -------
+    float
+        Bremmstrahlung energy loss value.
+
+    '''
     y_max = 1 - (3*m_le/(4*E)) * np.sqrt(np.e) * z**(1/3)
     if y>y_max:
         y_dsig_dy = 0
@@ -139,15 +263,60 @@ def brem(y, E): # eq. A5
     return (N_A/A) * y_dsig_dy
 
 def cs_brem(y, E):
+    '''
+
+    Parameters
+    ----------
+    y : float
+        Integration variable.
+    E : float
+        Energy, in GeV.
+
+    Returns
+    -------
+    float
+        Pair production cross-section value.
+
+    '''
     return brem(y,E)/y
 
 def brem_bb_high(E):
+    '''
+
+    Parameters
+    ----------
+    E : float
+        Energy, in GeV.
+
+    Returns
+    -------
+    float
+        Bremsstrahlung integration upper limit.
+
+    '''
     return 1 - (3*m_le/(4*E)) * np.sqrt(np.e) * z**(1/3)
 # =============================================================================
 #     Pair Production Energy Loss
 # =============================================================================
 
 def pair(rho, y, E): # eq. A9
+    '''
+
+    Parameters
+    ----------
+    rho : float
+        Integration variable.
+    y : float
+        Integration variable.
+    E : float
+        Energy, in GeV.
+
+    Returns
+    -------
+    float
+        Pair production energy loss value.
+
+    '''
     R = 189
     beta = y**2/(2*(1-y))
     xi = ((m_le * y)/(2*m_e))**2 * (1 - rho**2)/(1 - y)
@@ -169,30 +338,114 @@ def pair(rho, y, E): # eq. A9
     return (N_A/A) * y_d2sigma_dydrho
 
 def cs_pair(rho, y, E):
+    '''
+
+    Parameters
+    ----------
+    rho : float
+        Integration variable.
+    y : float
+        Integration variable.
+    E : float
+        Energy, in GeV.
+
+    Returns
+    -------
+    float
+        Pair production cross-section value.
+
+    '''
     return pair(rho, y, E)/y
 
 def pair_rho_cut(y, E):
+    '''
+
+    Parameters
+    ----------
+    y : float
+        Integration variable.
+    E : float
+        Energy, in GeV.
+
+    Returns
+    -------
+    float
+        Pair production rho limit, for beta_cut.
+
+    '''
     return [-(1 - (6*m_le**2)/(E**2 * (1-y))) * np.sqrt(1 - (4 * m_e)/(E * y)), (1 - (6*m_le**2)/(E**2 * (1-y))) * np.sqrt(1 - (4 * m_e)/(E * y))] # [low, high]
 
 def pair_rho_tot(y, E):
+    '''
+
+    Parameters
+    ----------
+    y : float
+        Integration variable.
+    E : float
+        Energy, in GeV.
+
+    Returns
+    -------
+    float
+        Pair production rho limit, for beta_total.
+
+    '''
     return [-(1 - (6*m_le**2)/(E**2 * (1-y))) * np.sqrt(1 - (4 * m_e)/(E * y)), (1 - (6*m_le**2)/(E**2 * (1-y))) * np.sqrt(1 - (4 * m_e)/(E * y))] # [low, high]
 
-def pair_rho_xc(y, E):
-    return [-(1 - (6*m_le**2)/(E**2 * (1-y))) * np.sqrt(1 - (4 * m_e)/(E * y)), (1 - (6*m_le**2)/(E**2 * (1-y))) * np.sqrt(1 - (4 * m_e)/(E * y))] # [low, high]
 
 def pair_y_cut(E):
+    '''
+
+    Parameters
+    ----------
+    E : float
+        Energy, in GeV.
+
+    Returns
+    -------
+    float
+        Pair production y limit, for beta_cut.
+
+    '''
     return [(4*m_e)/E, 1e-3] # [low, high]
 
 def pair_y_tot(E):
+    '''
+
+    Parameters
+    ----------
+    E : float
+        Energy, in GeV.
+
+    Returns
+    -------
+    float
+        Pair production y limit, for beta_total.
+
+    '''
     return [(4*m_e)/E, 1 - (3*m_le/(4*E)) * np.sqrt(np.e) * z**(1/3)] # [low, high]
 
-def pair_y_xc(E):
-    return [1e-3, 1 - (3*m_le/(4*E)) * np.sqrt(np.e) * z**(1/3)] # [low, high]
 
 # =============================================================================
 #     Photonuclear Energy Loss (Bezrukov-Bugaev)
 # =============================================================================
 def pn_bb(y, E): # eq. A12
+    '''
+
+    Parameters
+    ----------
+    y : float
+        Integration variable.
+    E : float
+        Energy, in GeV.
+
+    Returns
+    -------
+    float
+        Photonuclear energy loss (Bezrukov-Bugaev) energy loss value.
+
+    '''
     m1_sq = 0.54 # Gev^2
     m1 = np.sqrt(m1_sq)
     m2_sq = 1.8 # Gev^2
@@ -209,17 +462,66 @@ def pn_bb(y, E): # eq. A12
     return (N_A/A) * y_dsig_dy
 
 def cs_pn_bb(y, E):
+    '''
+
+    Parameters
+    ----------
+    y : float
+        Integration variable.
+    E : float
+        Energy, in GeV.
+
+    Returns
+    -------
+    float
+        Photonuclear energy loss (Bezrukov-Bugaev) cross-section value.
+
+    '''
     return pn_bb(y, E)/y
 
 # =============================================================================
 #     Photonuclear Energy Loss (ALLM/BDHM/CKMT/Custom)
 # =============================================================================
 def pn(lnq2, y, E):
+    '''
+
+    Parameters
+    ----------
+    lnq2 : float
+        Natural log of Q^2 value, in GeV^2.
+    y : float
+        Integration variable.
+    E : float
+        Energy, in GeV.
+
+    Returns
+    -------
+    float
+        Photonuclear energy loss value.
+
+    '''
     q2 = np.exp(lnq2)
 
     x = q2/(2*m_p*E*y) # x*y*S = Q^2; where S = 2*m_p*E
 
     def f2_allm(q2,y,E): # ALLM parameterization for f2.
+        '''
+
+        Parameters
+        ----------
+        q2 : float
+            Q^2 value, in GeV^2.
+        y : float
+            Integration variable.
+        E : float
+            Energy, in GeV.
+
+        Returns
+        -------
+        f2 : float
+            F2 (EM) structure function for ALLM model.
+
+        '''
         cp1, cp2, cp3 = 0.28067, 0.22291, 2.1979
         ap1, ap2, ap3 = -0.0808, -0.44812, 1.1709
         bp1, bp2, bp3 = 0.60243, 1.3754, 1.8439
@@ -266,6 +568,23 @@ def pn(lnq2, y, E):
         return f2
 
     def f2_bdhm(q2,y,E): # BDHM parameterization for f2.
+        '''
+
+        Parameters
+        ----------
+        q2 : float
+            Q^2 value, in GeV^2.
+        y : float
+            Integration variable.
+        E : float
+            Energy, in GeV.
+
+        Returns
+        -------
+        f2 : float
+            F2 (EM) structure function for BDHM model.
+
+        '''
         a_0 = 8.205e-4
         a_1 = -5.148e-2
         a_2 = -4.725e-3
@@ -310,6 +629,23 @@ def pn(lnq2, y, E):
         return f2
 
     def f2_ckmt(q2,y,E): # CKMT parameterization for f2.
+        '''
+
+        Parameters
+        ----------
+        q2 : float
+            Q^2 value, in GeV^2.
+        y : float
+            Integration variable.
+        E : float
+            Energy, in GeV.
+
+        Returns
+        -------
+        f2 : float
+            F2 (EM) structure function for CKMT model.
+
+        '''
         A_A = 0.1502 # A is reserved for atomic mass number
         delta_0 = 0.07684
         B = 1.2064
@@ -359,182 +695,119 @@ def pn(lnq2, y, E):
     return (N_A/A) * y_dsigmadq2dy
 
 def cs_pn(lnq2, y, E):
+    '''
+
+    Parameters
+    ----------
+    lnq2 : float
+        Natural log of Q^2 value, in GeV^2.
+    y : float
+        Integration variable.
+    E : float
+        Energy, in GeV.
+
+    Returns
+    -------
+    float
+        Photonuclear cross-section value.
+
+    '''
     return pn(lnq2, y, E)/y
 
 def pn_q2_cut(y, E):
+    '''
+
+    Parameters
+    ----------
+    y : float
+        Integration variable.
+    E : float
+        Energy, in GeV.
+
+    Returns
+    -------
+    float
+        Photonuclear Q^2 integration limit, for beta_cut.
+
+    '''
     return [np.log((m_le**2 * y**2)/(1 - y)), np.log(2*m_p*E*y - ((m_p+m_pi)**2-m_p**2))] # [low, high]
 
 def pn_q2_tot(y, E):
+    '''
+
+    Parameters
+    ----------
+    y : float
+        Integration variable.
+    E : float
+        Energy, in GeV.
+
+    Returns
+    -------
+    float
+        Photonuclear Q^2 integration limit, for beta_total.
+
+    '''
     return [np.log((m_le**2 * y**2)/(1 - y)), np.log(2*m_p*E*y - ((m_p+m_pi)**2-m_p**2))] # [low, high]
 
-def pn_q2_xc(y, E):
-    return [np.log((m_le**2 * y**2)/(1 - y)), np.log(2*m_p*E*y - ((m_p+m_pi)**2-m_p**2))] # [low, high]
 
 def pn_y_cut(E):
+    '''
+
+    Parameters
+    ----------
+    y : float
+        Integration variable.
+    E : float
+        Energy, in GeV.
+
+    Returns
+    -------
+    float
+        Photonuclear y integration limit, for beta_cut.
+
+    '''
     return [((m_p+m_pi)**2-m_p**2)/(2*m_p*E), 1e-3] # [low, high]
 
 def pn_y_tot(E):
+    '''
+
+    Parameters
+    ----------
+    y : float
+        Integration variable.
+    E : float
+        Energy, in GeV.
+
+    Returns
+    -------
+    float
+        Photonuclear y integration limit, for beta_total.
+
+    '''
     return [((m_p + m_pi)**2 - m_p**2)/(2*m_p*E), (1 - m_le/E)] # [low, high]
 
-def pn_y_xc(E):
-    return [1e-3, (1-m_le/E)] # [low, high]
-
-# =============================================================================
-# Structure Functions
-# =============================================================================
-
-def f2_bdhm_0(q2,x): # BDHM parameterization for f2.
-        # x = q2/(2*m_p*E*y) # x*y*S = Q^2; where S = 2*m_p*E
-        a_0 = 8.205e-4
-        a_1 = -5.148e-2
-        a_2 = -4.725e-3
-        b_0 = 2.217e-3
-        b_1= 1.244e-2
-        b_2 = 5.958e-4
-        c_0 = 0.255
-        c_1 = 1.475e-1
-        n = 11.49
-        lambda2 = 2.430 # not lambda^2! Python has a reserved keyword for lambda
-        mu2 = 2.82 # GeV^2
-        M2 = 0.753 # GeV^2
-        # two_m_nu = q2/x
-
-        if x > 0.1: # x<0.1 constraint; see in paper
-            f2 = 0
-        else:
-
-            A_A = a_0 + a_1*np.log(1 + q2/mu2) + a_2*np.log(1+q2/mu2)**2
-            B = b_0 + b_1*np.log(1+q2/mu2) + b_2*np.log(1+q2/mu2)**2
-            C = c_0 + c_1*np.log(1+q2/mu2)
-            D = (q2*(q2 + lambda2*M2))/(q2 + M2)**2
-
-            # f2 = D*(1 - q2/two_m_nu)**n * (C + A*np.log(two_m_nu/(q2+mu2)) + B*np.log(two_m_nu/(q2+mu2))**2)
-
-            f2p = D*(1 - x)**n * (C + A_A*np.log(1/x * q2/(q2 + mu2)) + B*np.log(1/x * q2/(q2 + mu2))**2)
-
-        p = 1 - 1.85*x + 2.45*x**2 - 2.35*x**3 + x**4
-
-        if (x>0 and x<0.0014):
-            f2 = A**(-0.1)*(z + (A-z)*p)*f2p # changed 17/12/2020
-        elif (x>0.014 and x<0.04):
-            f2 = A**(-0.1) * A**(0.069 * np.log10(x) + 0.097)*(z + (A-z)*p)*f2p  # changed 17/12/2020
-        else:
-            f2 = (z + (A-z)*p)*f2p  # changed 17/12/2020
-
-        return f2
-
-def f2_allm_0(q2,x): # ALLM parameterization for f2.
-    # z = A = 1
-    cp1, cp2, cp3 = 0.28067, 0.22291, 2.1979
-    ap1, ap2, ap3 = -0.0808, -0.44812, 1.1709
-    bp1, bp2, bp3 = 0.60243, 1.3754, 1.8439
-    cr1, cr2, cr3 = 0.80107, 0.97307, 3.4942
-    ar1, ar2, ar3 = 0.58400, 0.37888, 2.6063
-    br1, br2, br3 = 0.10711, 1.9386, 0.49338
-    m02, mr2, mp2 = 0.31985, 0.15052, 49.457 #GeV^2
-    lambda2 = 0.06527 #GeV^2
-    q02 = 0.46017 #GeV^2
-
-    argt = np.log((q2+q02)/lambda2)/np.log(q02/lambda2)
-    t = np.log(argt)
-    cr = cr1 + cr2*(t**cr3)
-    ar = ar1 + ar2*(t**ar3)
-    cp = cp1 + (cp1-cp2)*((1/(1 + t**cp3)) - 1)
-    ap = ap1 + (ap1-ap2)*((1/(1 + t**ap3)) - 1)
-    br = br1**2 + (br2**2)*(t**br3)
-    bp = bp1**2 + (bp2**2)*(t**bp3)
-
-    p = 1 - 1.85*x + 2.45*x**2 - 2.35*x**3 + x**4
-    W2 = q2*(1/x - 1) + m_p**2
-
-    xp = (q2 + mp2)/(q2 + mp2 + W2 - m_p**2)
-    xr = (q2 + mr2)/(q2 + mr2 + W2 - m_p**2)
-
-    if xr<0:
-        xr = 0.0
-
-    f_2p = cp*(xp**ap)*(1 - x)**bp
-    f_2r = cr*(xr**ar)*(1 - x)**br
-
-    f2p = q2/(q2 + m02) * (f_2p + f_2r)
-
-    if (x>0 and x<0.0014):
-        # f2 = A/2 * A**(-0.1)*(1 + p)*f2p
-        f2 = A**(-0.1)*(z + (A-z)*p)*f2p # changed 17/12/2020
-    elif (x>0.0014 and x<0.04):
-        # f2 = A/2 * A**(0.069 * np.log10(x) + 0.097)*(1 + p)*f2p
-        # f2 = A**(-0.1) * A**(0.069 * np.log10(x) + 0.097)*(z + (A-z)*p)*f2p  # changed 17/12/2020
-        f2 = A**(0.069 * np.log10(x) + 0.097)*(z + (A-z)*p)*f2p  # changed 25/3/2021
-    else:
-        # f2 = A/2*(1 + p)*f2p
-        f2 = (z + (A-z)*p)*f2p  # changed 17/12/2020
-
-    return f2
-
-def f2_ckmt_0(q2,x): # CKMT parameterization for f2.
-        A_A = 0.1502 # A is reserved for atomic mass number
-        delta_0 = 0.07684
-        B = 1.2064
-        alpha_R = 0.4150
-        # f = 0.15
-        a = 0.2631 # GeV^2
-        d = 1.1170 # GeV^2
-        b = 0.6452 # GeV^2
-        c = 3.5489 # GeV^2
-
-        n_q2 = 3/2 * (1 + q2/(q2+c))
-        delta_q2 = delta_0 * (1 + (2*q2)/(q2+d))
-
-        f2_sea = A_A*x**(-delta_q2) * (1-x)**(n_q2+4) * (q2/(q2+a))**(1+delta_q2)
-        # f2_val = B*x**(1-alpha_R) * (1-x)**n_q2 * (q2/(q2+b))**alpha_R * (1+f*(1-x))
-        f2_val = B*x**(1-alpha_R) * (1-x)**n_q2 * (q2/(q2+b))**alpha_R
-
-        f2p = f2_sea + f2_val
-
-        p = 1 - 1.85*x + 2.45*x**2 - 2.35*x**3 + x**4 # correction since neutrons != protons
-
-        if (x>0 and x<0.0014):
-            # f2 = A/2 * A**(-0.1)*(1 + p)*f2p
-            f2 = A**(-0.1)*(z + (A-z)*p)*f2p # changed 17/12/2020
-        elif (x>0.0014 and x<0.04):
-            # f2 = A/2 * A**(0.069 * np.log10(x) + 0.097)*(1 + p)*f2p
-            # f2 = A**(-0.1) * A**(0.069 * np.log10(x) + 0.097)*(z + (A-z)*p)*f2p  # changed 17/12/2020
-            f2 = A**(0.069 * np.log10(x) + 0.097)*(z + (A-z)*p)*f2p  # changed 25/3/2021
-        else:
-            # f2 = A/2*(1 + p)*f2p
-            f2 = (z + (A-z)*p)*f2p  # changed 17/12/2020
-
-        return f2
-
-def plt_struc():
-
-    fig, ax = plt.subplots()
-    # x = np.linspace(1e-4,1e-1)
-    x = np.logspace(-4,-1)
-    allm_arr = [f2_allm_0(0.5,i) for i in x]
-    bdhm_arr = [f2_bdhm_0(0.5,i) for i in x]
-    ckmt_arr = [f2_ckmt_0(0.5,i) for i in x]
-
-    # ax.semilogx(x, allm_arr, color='k', label = "Photonuclear - ALLM")
-    # ax.semilogx(x, bdhm_arr, color='y', label = "Photonuclear - BDHM")
-    ax.semilogx(x, ckmt_arr, color='m', label = "Photonuclear - CKMT")
-
-    ax.legend(loc='best')
-    ax.set_ylabel("F2")
-    ax.set_xlabel("x")
-    # ax.set_ylim(0,0.5)
-    ax.xaxis.set_ticks_position('both')
-    ax.yaxis.set_ticks_position('both')
-    ax.grid(which='minor', linestyle=':', linewidth='0.2', color='black')
-    ax.tick_params(axis='x', which='both', labelbottom = True, labeltop = True)
-    ax.tick_params(axis='y', which='both', left = True, labelleft = True, labelright= True)
-    return None
 
 #==================================================
 #     Add Lookup Table Entries For Alpha
 # =============================================================================
 
 def calc_alpha(lepton, material):
+    '''
+
+    Parameters
+    ----------
+    lepton : str
+        Type of lepton. Can be tau or muon.
+    material : str
+        Material for lepton propagation.
+
+    Returns
+    -------
+    NONE
+        Calculates & adds lepton ionization energy loss lookup entries in lookup_tables.h5.
+
+    '''
     alpha_arr = np.asarray([alpha_i(i) if i>m_le else 0 for i in E_lep])
     Data.add_alpha(alpha_arr, lepton, material)
     return 'Problem in calc_alpha function'
@@ -543,36 +816,55 @@ def calc_alpha(lepton, material):
 #     Add Lookup Table Entries For Beta Cut/Total
 # =============================================================================
 
-def calc_beta(lepton, material, model, beta_type): # energy_loss_type can be 'brem', 'pair', 'pn_bb' or 'pn_*'
+def calc_beta(lepton, material, process, beta_type): # energy_loss_type can be 'brem', 'pair', 'pn_bb' or 'pn_*'
+    '''
+
+    Parameters
+    ----------
+    lepton : str
+        Type of lepton. Can be tau or muon.
+    material : str
+        Material for lepton propagation.
+    process : str
+        Lepton energy loss (non-ionization) process/model. Can be brem, pair, pn_bb or pn_*
+    beta_type : str
+        Type of beta to be used for calculation. Can be cut or total.
+
+    Returns
+    -------
+    None
+        Calculates & adds lepton (non-ionization) energy loss lookup entries in lookup_tables.h5.
+
+    '''
 
     p = Pool(mp.cpu_count()) # use all available cores
 
-    if model == 'brem' and beta_type == 'cut':
+    if process == 'brem' and beta_type == 'cut':
         brem_arr = np.asarray([p.map(integrator,[[brem, 0, 1e-3, i]])[0][0] for i in E_lep])
         brem_arr = np.asarray([rep(i) for i in brem_arr])
         Data.add_beta(brem_arr, lepton, material, 'brem', beta_type)
 
-    elif model == 'brem' and beta_type == 'total':
+    elif process == 'brem' and beta_type == 'total':
         brem_arr = np.asarray([p.map(integrator,[[brem, 1e-7, 1, i]])[0][0] for i in E_lep])
         brem_arr = np.asarray([rep(i) for i in brem_arr])
         Data.add_beta(brem_arr, lepton, material, 'brem', beta_type)
 
-    elif model == 'pair' and beta_type == 'cut':
+    elif process == 'pair' and beta_type == 'cut':
         pair_arr = np.asarray([p.map(nquad_integrator,[[pair, pair_rho_cut, pair_y_cut, i]])[0][0] for i in E_lep])
         pair_arr = np.asarray([rep(i) for i in pair_arr])
         Data.add_beta(pair_arr, lepton, material, 'pair', beta_type)
 
-    elif model == 'pair' and beta_type == 'total':
+    elif process == 'pair' and beta_type == 'total':
         pair_arr = np.asarray([p.map(nquad_integrator,[[pair, pair_rho_tot, pair_y_tot, i]])[0][0] for i in E_lep])
         pair_arr = np.asarray([rep(i) for i in pair_arr])
         Data.add_beta(pair_arr, lepton, material, 'pair', beta_type)
 
-    elif model == 'pn_bb' and beta_type == 'cut':
+    elif process == 'pn_bb' and beta_type == 'cut':
         pn_bb_arr = np.asarray([p.map(integrator,[[pn_bb, 1e-5, 1e-3, i]])[0][0] for i in E_lep])
         pn_bb_arr = np.asarray([rep(i) for i in pn_bb_arr])
         Data.add_beta(pn_bb_arr, lepton, material, 'pn_bb', beta_type)
 
-    elif model == 'pn_bb' and beta_type == 'total':
+    elif process == 'pn_bb' and beta_type == 'total':
         pn_bb_arr = np.asarray([p.map(integrator,[[pn_bb, 1e-5, 1, i]])[0][0] for i in E_lep])
         pn_bb_arr = np.asarray([rep(i) for i in pn_bb_arr])
         Data.add_beta(pn_bb_arr, lepton, material, 'pn_bb', beta_type)
@@ -580,12 +872,12 @@ def calc_beta(lepton, material, model, beta_type): # energy_loss_type can be 'br
     elif beta_type == 'cut': # pn_*
         pn_arr = np.asarray([p.map(nquad_integrator,[[pn, pn_q2_cut, pn_y_cut, i]])[0][0] for i in E_lep])
         pn_arr = np.asarray([rep(i) for i in pn_arr])
-        Data.add_beta(pn_arr, lepton, material, model, beta_type)
+        Data.add_beta(pn_arr, lepton, material, process, beta_type)
 
     elif beta_type == 'total': # pn_*
         pn_arr = np.asarray([p.map(nquad_integrator,[[pn, pn_q2_tot, pn_y_tot, i]])[0][0] for i in E_lep])
         pn_arr = np.asarray([rep(i) for i in pn_arr])
-        Data.add_beta(pn_arr, lepton, material, model, beta_type)
+        Data.add_beta(pn_arr, lepton, material, process, beta_type)
 
     p.close()
 
@@ -595,7 +887,24 @@ def calc_beta(lepton, material, model, beta_type): # energy_loss_type can be 'br
 # Calculate Integrated & Absolute Lepton Cross-Sections
 # =============================================================================
 
-def calc_ixc(lepton, material, model):
+def calc_ixc(lepton, material, process):
+    '''
+
+    Parameters
+    ----------
+    lepton : str
+        Type of lepton. Can be tau or muon.
+    material : str
+        Material for lepton propagation.
+    process : str
+        Lepton energy loss (non-ionization) process/model. Can be brem, pair, pn_bb or pn_*
+
+    Returns
+    -------
+    NONE
+        Calculates & adds lepton (non-ionization) energy loss integrated (CDFs) & absolute cross-section lookup entries in lookup_tables.h5.
+
+    '''
 
     yvals = 10**(-np.linspace(0.1,3,num=30)) # The integrated cross-section values should go from y = 10^(-0.1) to y = 10^(-3). This is a convention we chose to adopt.
 
@@ -606,7 +915,7 @@ def calc_ixc(lepton, material, model):
 
         ixc_dict.update({E:{0:0}}) # pad with 0 at the beginning because it is the CDF after all
 
-        if model == 'brem':
+        if process == 'brem':
             for i in range(1,31):
                 brem_val = integrator([cs_brem,yvals[i-1],brem_bb_high(E),E])[0]
                 ixc_dict[E].update({i:rep(brem_val)})
@@ -614,7 +923,7 @@ def calc_ixc(lepton, material, model):
                 if i==30: # update absolute cross-section values
                     xc_arr.append(rep(brem_val))
 
-        elif model == 'pair':
+        elif process == 'pair':
             def pair_y_high_ics(E):
                 return 1 - (3*m_le/(4*E)) * np.sqrt(np.e) * z**(1/3)
 
@@ -629,7 +938,7 @@ def calc_ixc(lepton, material, model):
                 if i==30: # update absolute cross-section values
                     xc_arr.append(rep(pair_int[-1]))
 
-        elif model == 'pn_bb':
+        elif process == 'pn_bb':
             for i in range(1,31):
                 pn_bb_val = integrator([cs_pn_bb,yvals[i-1],1,E])[0]
                 ixc_dict[E].update({i:rep(pn_bb_val)})
@@ -659,8 +968,8 @@ def calc_ixc(lepton, material, model):
 
     ixc_dframe = pd.DataFrame.from_dict(ixc_dict,orient='index').transpose()
 
-    Data.add_ixc(lepton, ixc_dframe, model, material=material)
-    Data.add_xc(lepton, xc_arr, model, material=material)
+    Data.add_ixc(lepton, ixc_dframe, process, material=material)
+    Data.add_xc(lepton, xc_arr, process, material=material)
     return None
 
 # =============================================================================

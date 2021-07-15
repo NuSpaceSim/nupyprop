@@ -16,7 +16,20 @@ m_p = scc.physical_constants["proton mass energy equivalent in MeV"][0]*1e-3 # G
 G_F = scc.physical_constants["Fermi coupling constant"][0] # GeV^-2
 N_A = scc.Avogadro
 
-def user_xc(model): # Hallsie data files
+def user_xc(model): # Directly from data files
+    '''
+
+    Parameters
+    ----------
+    model : str
+        Neutrino-nucleon cross-section model name.
+
+    Returns
+    -------
+    None
+        Adds user-defined neutrino-nucleon cross-section model lookup entries to lookup_table.h5
+
+    '''
     sigma_n_cc = np.asarray(np.genfromtxt('./nutables/%s/nucc-xc.dat' % str(model),usecols=1)*1e-38) # neutrino; CC
 
     sigma_n_nc = np.asarray(np.genfromtxt('./nutables/%s/nunc-xc.dat' % str(model),usecols=1)*1e-38) # neutrino; NC
@@ -31,7 +44,21 @@ def user_xc(model): # Hallsie data files
     return None
 
 
-def user_ixc(model): # Hallsie data files
+def user_ixc(model): # Directly from data files
+    '''
+
+    Parameters
+    ----------
+    model : str
+        Neutrino-nucleon integrated cross-sections model name.
+
+    Returns
+    -------
+    None
+        Adds user-defined neutrino-nucleon integrated cross-sections model lookup entries to lookup_table.h5
+        NB: The integrated cross-section values should go from y = 10^(-0.1) to y = 10^(-3).
+
+    '''
     particle_current = ['anucc','anunc','nucc','nunc']
     ixc_dict={}
     for particle in particle_current:
@@ -52,7 +79,13 @@ def user_ixc(model): # Hallsie data files
 
 
 def ctw_xc(): # CTW parameterization (eq. 7)
+    '''
 
+    Returns
+    -------
+    Adds neutrino-nucleon CTW cross-section lookup entries to lookup_table.h5 .
+
+    '''
     C_n_cc = np.array([-1.826,-17.31,-6.406,1.431,-17.91]) # neutrino; CC
     C_n_nc = np.array([-1.826,-17.31,-6.448,1.431,-18.61]) # neutrino; NC
     C_an_cc = np.array([-1.033,-15.95,-7.247,1.569,-17.72]) # anti-neutrino; CC
@@ -75,7 +108,13 @@ def ctw_xc(): # CTW parameterization (eq. 7)
     return None
 
 def ctw_ixc(): # CTW parameterization (eqs. 12, 13)
+    '''
 
+    Returns
+    -------
+    Adds neutrino-nucleon CTW integrated cross-section lookup entries to lookup_table.h5 .
+
+    '''
     A_high_n_cc = np.array([-0.008,0.26,3.0,1.7])
     A_high_n_nc = np.array([0.005,0.23,3.0,1.7])
     A_high_an_cc = np.array([-0.0026,0.085,4.1,1.7])
@@ -159,6 +198,14 @@ def ctw_ixc(): # CTW parameterization (eqs. 12, 13)
 #     return None
 
 def nct15_xc(): # Directly from data files
+    '''
+
+    Returns
+    -------
+    None
+        Adds neutrino-nucleon NCTEQ15 cross-section entries to lookup_table.h5
+
+    '''
     sigma_n_cc = np.genfromtxt('./nutables/nutables-nCTEQ15-LHAPDF/nct15-nu-cc-xc.dat',usecols=1) # neutrino; CC
     sigma_n_nc = np.genfromtxt('./nutables/nutables-nCTEQ15-LHAPDF/nct15-nu-nc-xc.dat',usecols=1) # neutrino; NC
     sigma_an_cc = np.genfromtxt('./nutables/nutables-nCTEQ15-LHAPDF/nct15-anu-cc-xc.dat',usecols=1) # anti-neutrino; CC
@@ -171,6 +218,14 @@ def nct15_xc(): # Directly from data files
     return None
 
 def nct15_ixc(): # Directly from data files
+    '''
+
+    Returns
+    -------
+    None
+        Adds neutrino-nucleon NCTEQ15 integrated cross-section entries to lookup_table.h5
+
+    '''
     particle_current = ['anucc','anunc','nucc','nunc']
     ixc_dict={}
     for particle in particle_current:
