@@ -12,19 +12,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - name: Get history and tags for SCM versioning to work
+      run: |
+        git fetch --prune --unshallow
+        git fetch --depth=1 origin +refs/tags/*:refs/tags/*
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
         python-versions: '3.x'
     - name: Install build requirements
       run: |
-        python3 -m pip install --upgrade pip
-        python3 -m pip install setuptools wheel twine numpy setuptools_scm
+        python3 -m pip install --upgrade pip build numpy setuptools setuptools_scm twine wheel
     - name: Python wheels manylinux build
       uses: RalfG/python-wheels-manylinux-build@v0.3.3
       with:
         python-versions: 'cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39'
-        build-requirements: 'numpy'
+        build-requirements: 'numpy setuptools_scm'
     - name: Publish to test-pypi
       env:
         TWINE_USERNAME: __token__
