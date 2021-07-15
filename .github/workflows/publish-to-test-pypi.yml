@@ -54,7 +54,7 @@ jobs:
         which gfortran-11
     - name: Python wheels MacOS build
       run: |
-        F90=gfortran-11 python3 -m pip wheel -w dist --no-deps .
+        F90=gfortran-11 python3 -m build -w -o dist .
     - name: Publish to test-pypi
       env:
         TWINE_USERNAME: __token__
