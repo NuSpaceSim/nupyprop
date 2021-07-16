@@ -6,26 +6,59 @@ A python package and command line utility, including fortran for performance wit
 
 ## Installation
 
-`python3 -m pip install nupyprop`
+### with conda
+
+`conda install -c conda-forge nupyprop`
+
+### with pip
+
+This tool requires python3, hdf5, and c-blosc be previously installed by the
+user in a standard location. We recommend using an os package manager or conda.
+
+#### Ubuntu
+
+```
+sudo apt-get install python3 hdf5 c-blosc
+python3 -m pip install nupyprop
+```
+
+#### MacOS (x86_64) 10.14 or greater
+
+To install required dependencies use [homebrew](https://brew.sh/).
+
+```
+brew install python3 hdf5 c-blosc
+python3 -m pip install nupyprop
+```
 
 ## Usage
 
 `nupyprop --help`
 
-## git clone the source code 
+## Developing the code on Ubuntu
 
-`git clone git@github.com:NuSpaceSim/nupyprop.git`
+These notes should help developers of this code build and install the package
+locally using a pep518 compliant build system (pip).
 
-## Developers install
+  1. Install the non-pypi required dependencies as described for users above.
+  2. Install a fortran compiler. ex: `sudo apt-get install gfortran`
+  3. git clone the source code: `git clone git@github.com:NuSpaceSim/nupyprop.git`
+  4. `cd nupyprop`
+  5. build and install the package in 'editable' mode `python3 -m pip install -e .`
 
-For developers, install the package as an editable package for ease of use when
-implementing improvements.
+## Developing the code on MacOS
 
-`python3 -m pip install --user .`
+These notes should help developers of this code build and install the package
+locally using a pep518 compliant build system (pip). *Currently we do not
+support the default system python3 on MacOS* which is out of date and missing
+critical functionality. Use the homebrew python instead, or a `virtualenv`, or
+a conda environment.
 
-## Developers build
-
-`python3 -m pip wheel -w dist .`
+  1. Install the non-pypi required dependencies as described for users above.
+  2. Install a fortran compiler. ex: `brew install gcc`
+  3. git clone the source code: `git clone git@github.com:NuSpaceSim/nupyprop.git`
+  4. `cd nupyprop`
+  5. build and install the package in 'editable' mode `python3 -m pip install -e .`
 
 ### **Dependencies:**
 
@@ -91,18 +124,18 @@ Charged Lepton | Energy Loss Type | E<sub>&nu;</sub> [GeV] | Angles | N<sub>&nu;
 **Code Execution Timing Table for Muons**:
 Charged Lepton | Energy Loss Type | E<sub>&nu;</sub> [GeV] | Angles | N<sub>&nu;;in</sub> | Time (hrs) |
 |------|------------|-----------------|-----------------------------------|----------------|----------|
-| &mu; | Stochastic | 10<sup>6</sup>  | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> |          |
+| &mu; | Stochastic | 10<sup>6</sup>  | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | -        |
 | &mu; | Continuous | 10<sup>6</sup>  | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 0.95*    |
-| &mu; | Stochastic | 10<sup>7</sup>  | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> |          |
+| &mu; | Stochastic | 10<sup>7</sup>  | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | -        |
 | &mu; | Continuous | 10<sup>7</sup>  | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 3.19*    |
-| &mu; | Stochastic | 10<sup>8</sup>  | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> |          |
+| &mu; | Stochastic | 10<sup>8</sup>  | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | -        |
 | &mu; | Continuous | 10<sup>8</sup>  | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 5.17*    |
 | &mu; | Stochastic | 10<sup>9</sup>  | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 111.77** |
 | &mu; | Continuous | 10<sup>9</sup>  | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 7.42*    |
 | &mu; | Stochastic | 10<sup>10</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 98.17*   |
 | &mu; | Continuous | 10<sup>10</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | 9.76*    |
-| &mu; | Stochastic | 10<sup>11</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> |          |
-| &mu; | Continuous | 10<sup>11</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> |          |
+| &mu; | Stochastic | 10<sup>11</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | -        |
+| &mu; | Continuous | 10<sup>11</sup> | 1,2,3,5,7,10,12,15,17,20,25,30,35 | 10<sup>8</sup> | -        |
 
 \* - Intel Core i7-8750H; 6 cores & 12 threads.</br>
 \** - Intel Core i5-10210; 4 cores & 8 threads.</br>
