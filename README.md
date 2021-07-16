@@ -8,7 +8,12 @@ A python package and command line utility, including fortran for performance wit
 
 ### with conda
 
-`conda install -c conda-forge nupyprop`
+We recommend installing nupyprop into a conda environment like so. In this
+example the name of the environment is "nupypropdev"
+
+`conda create -n nupypropdev -c conda-forge -c nuspacesim nupyprop`
+`conda activate nupypropdev`
+%% `conda install -c conda-forge -c nuSpaceSim nupyprop`
 
 ### with pip
 
@@ -35,32 +40,9 @@ python3 -m pip install nupyprop
 
 `nupyprop --help`
 
-## Developing the code on Ubuntu
+**Example** for running tau propagation for 10<sup>7</sup> GeV neutrinos at 10 degrees with a statistics of 10<sup>7</sup> particles with stochastic energy loss & with all other parameters as defaults:
 
-These notes should help developers of this code build and install the package
-locally using a pep518 compliant build system (pip).
-
-  1. Install the non-pypi required dependencies as described for users above.
-  2. Install a fortran compiler. ex: `sudo apt-get install gfortran`
-  3. git clone the source code: `git clone git@github.com:NuSpaceSim/nupyprop.git`
-  4. `cd nupyprop`
-  5. build and install the package in 'editable' mode `python3 -m pip install -e .`
-
-## Developing the code on MacOS
-
-These notes should help developers of this code build and install the package
-locally using a pep518 compliant build system (pip). *Currently we do not
-support the default system python3 on MacOS* which is out of date and missing
-critical functionality. Use the homebrew python instead, or a `virtualenv`, or
-a conda environment.
-
-  1. Install the non-pypi required dependencies as described for users above.
-  2. Install a fortran compiler. ex: `brew install gcc`
-  3. git clone the source code: `git clone git@github.com:NuSpaceSim/nupyprop.git`
-  4. `cd nupyprop`
-  5. build and install the package in 'editable' mode `python3 -m pip install -e .`
-
-### **Dependencies:**
+`nupyprop -e 1e7 -a 10 -t stochastic -s 1e7`
 
 **Run parameters** are defined in run.py. Different switches are described as follows:
 
@@ -86,10 +68,10 @@ a conda environment.
 
 11. -s or --stat: statistics. Default is 1e7 particles.
 
-**Example** for running tau propagation for 10<sup>7</sup> GeV neutrinos at 10 degrees with a statistics of 10<sup>7</sup> particles with stochastic energy loss & with all other parameters as defaults:
+%% **Example** for running tau propagation for 10<sup>7</sup> GeV neutrinos at 10 degrees with a statistics of 10<sup>7</sup> particles with stochastic energy loss & with all other parameters as defaults:
 
-1. `make`
-2. `python run.py -e 1e7 -a 10 -t stochastic -s 1e7`
+%% 1. `make`
+%% 2. `python run.py -e 1e7 -a 10 -t stochastic -s 1e7`
 
 ~~**WARNING**: Running the code will replace the results of the output.h5 file. Backing up previous output files is recommended (or just ask me for a pre-populated output file if need be, for now, since the pre-populated output file is >25 MB). Future fixes include overwrite warnings for the user.~~ Fixed!
 
@@ -153,3 +135,30 @@ The correct order to look at the code is in the following order:
 7. _run.py_: contains all the run parameters and variables needed for all the other .py files.
 
 ![UML Diagram](/figures/nupyprop_uml_full.png)
+
+
+## Developing the code on Ubuntu
+
+These notes should help developers of this code build and install the package
+locally using a pep518 compliant build system (pip).
+
+  1. Install the non-pypi required dependencies as described for users above.
+  2. Install a fortran compiler. ex: `sudo apt-get install gfortran`
+  3. git clone the source code: `git clone git@github.com:NuSpaceSim/nupyprop.git`
+  4. `cd nupyprop`
+  5. build and install the package in 'editable' mode `python3 -m pip install -e .`
+
+## Developing the code on MacOS
+
+These notes should help developers of this code build and install the package
+locally using a pep518 compliant build system (pip). *Currently we do not
+support the default system python3 on MacOS* which is out of date and missing
+critical functionality. Use the homebrew python instead, or a `virtualenv`, or
+a conda environment.
+
+  1. Install the non-pypi required dependencies as described for users above.
+  2. Install a fortran compiler. ex: `brew install gcc`
+  3. git clone the source code: `git clone git@github.com:NuSpaceSim/nupyprop.git`
+  4. `cd nupyprop`
+  5. build and install the package in 'editable' mode `python3 -m pip install -e .`
+

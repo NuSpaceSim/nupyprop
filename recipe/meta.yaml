@@ -22,7 +22,7 @@ requirements:
   build:
     - {{ compiler('fortran') }}
   host:
-    - python {{ python }}
+    - python >=3.6
     - pip
     - setuptools >=46
     - setuptools_scm[toml] >=3.4
@@ -33,7 +33,7 @@ requirements:
     - matplotlib
     - numpy >=1.17
     - pandas
-    - python {{ python }}
+    - python >=3.6
     - scipy
     - sympy
     - pytables
