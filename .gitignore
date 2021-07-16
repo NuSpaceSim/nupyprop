@@ -8,3 +8,6 @@ _version.py
 *.dylib
 build/
 dist/
+*.pyc
+
+build_artifacts

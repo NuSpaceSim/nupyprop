@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from pandas import HDFStore
 from decimal import Decimal
-# import collections
+from collections.abc import Iterable
 import time
 import os
 # import h5py
@@ -546,9 +546,11 @@ def add_pexit(nu_type, lepton, energy, prob_dict, idepth, cross_section_model, p
     log_energy = np.log10(energy)
     energy_str = str(log_energy)
 
-    angle = prob_dict['angle']
-    no_regen = prob_dict['no_regen']
-    regen = prob_dict['regen']
+    make_array = lambda x : x if isinstance(x, Iterable) else np.array([x])
+
+    angle = make_array(prob_dict['angle'])
+    no_regen = make_array(prob_dict['no_regen'])
+    regen = make_array(prob_dict['regen'])
 
     hdf = HDFStore(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats),'a')
     prob_df = pd.DataFrame({'angle':angle, 'no_regen':no_regen,'regen':regen})
