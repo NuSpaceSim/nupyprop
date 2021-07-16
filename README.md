@@ -11,9 +11,10 @@ A python package and command line utility, including fortran for performance wit
 We recommend installing nupyprop into a conda environment like so. In this
 example the name of the environment is "nupypropdev"
 
-`conda create -n nupypropdev -c conda-forge -c nuspacesim nupyprop`
-`conda activate nupypropdev`
-%% `conda install -c conda-forge -c nuSpaceSim nupyprop`
+``` 
+conda create -n nupypropdev -c conda-forge -c nuspacesim nupyprop
+conda activate nupypropdev
+```
 
 ### with pip
 
