@@ -20,10 +20,9 @@ build:
 
 requirements:
   build:
-    - {{ compiler('c') }}
     - {{ compiler('fortran') }}
   host:
-    - python
+    - python {{ python }}
     - pip
     - setuptools >=46
     - setuptools_scm[toml] >=3.4
@@ -34,11 +33,10 @@ requirements:
     - matplotlib
     - numpy >=1.17
     - pandas
-    - python
+    - python {{ python }}
     - scipy
     - sympy
     - pytables
-    - vitables
 
 # Woe is us. We lack tests.
 # test:
