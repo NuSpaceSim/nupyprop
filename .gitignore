@@ -1,13 +1,14 @@
 __pycache__/
-*.ipynb
 .ipynb_checkpoints/
+.tox/
+build/
+dist/
+*.ipynb
 *.lprof
 *.egg-info/
 *.so
-_version.py
 *.dylib
-build/
-dist/
 *.pyc
+_version.py
 
 build_artifacts

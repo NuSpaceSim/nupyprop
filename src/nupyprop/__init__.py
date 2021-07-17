@@ -1,5 +1,4 @@
 """nupyprop
 
-neutrino propagation through the earth!
+Monte Carlo neutrino propagation through the earth!
 """
-
