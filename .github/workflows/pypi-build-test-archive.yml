@@ -28,7 +28,7 @@ jobs:
       env:
         CIBW_ENVIRONMENT_MACOS: F90=gfortran-11
         CIBW_BEFORE_TEST_LINUX: >
-          sudo apt-get -y install tree &&
+          yum install tree --yes &&
           tree {project} &&
           tree {package}
         CIBW_BEFORE_TEST_MACOS: >
