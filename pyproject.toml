@@ -11,6 +11,10 @@ write_to = '_version.py'
 version_scheme = 'no-guess-dev'
 local_scheme = 'no-local-version'
 
+[tool.cibuildwheel]
+test-requires = "pytest"
+test-command = "pytest src/{project}/tests"
+
 [tool.cibuildwheel.macos]
 archs = ["x86_64"] #, "universal2", "arm64"]
 
