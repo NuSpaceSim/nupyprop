@@ -9,12 +9,19 @@ on:
 
 jobs:
   build_wheels:
-    name: Build wheels on ${{ matrix.os }}
+    name: Build wheel for cp${{ matrix.python }}-${{ matrix.platform_id }}
     runs-on: ${{ matrix.os }}
+
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
+        python: [37, 38, 39]
+        include:
+          - os: ubuntu-latest
+            platform_id: manylinux_x86_64
+          - os: macos-latest
+            platform_id: macos_x86_64
 
     steps:
     - uses: actions/checkout@v2
@@ -27,10 +34,10 @@ jobs:
       uses: pypa/cibuildwheel@v2.0.0
       env:
         CIBW_ENVIRONMENT_MACOS: F90=gfortran-11
+        CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
+        CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v2.2.4
       with:
-        name: nupyprop-pypi-artifacts
-        path: ./wheelhouse/*.whl
-        if-no-files-found: error
+        path: wheelhouse/*.whl
