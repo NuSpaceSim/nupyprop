@@ -1,10 +1,10 @@
 name: PyPI Build Python 🐍 package, Test 📝, and Archive 🗃.
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  # push:
+    # branches: [ main ]
+  # pull_request:
+    # branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -36,8 +36,14 @@ jobs:
         CIBW_ENVIRONMENT_MACOS: F90=gfortran-11
         CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
         CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
-        CIBW_TEST_REQUIRES: pytest tox tox-gh-actions
-        CIBW_TEST_COMMAND: tox -c {project}/setup.cfg
+
+    - name: Setup tox tests
+      run: |
+        python -m pip install --upgrade pip
+        pip install tox tox-gh-actions
+
+    - name: Test wheels with tox
+      run: tox --installpkg wheelhouse/*cp${{ matrix.python }}*.whl
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v2.2.4
