@@ -27,14 +27,6 @@ jobs:
       uses: pypa/cibuildwheel@v2.0.0
       env:
         CIBW_ENVIRONMENT_MACOS: F90=gfortran-11
-        CIBW_BEFORE_TEST_LINUX: >
-          yum install tree --yes &&
-          tree {project} &&
-          tree {package}
-        CIBW_BEFORE_TEST_MACOS: >
-          brew install tree &&
-          tree {project} &&
-          tree {package}
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v2.2.4
