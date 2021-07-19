@@ -1,12 +1,10 @@
-name: Linux Build Python 🐍 package, Test 📝, and Archive 🗃.
+name: PyPI Build Python 🐍 package, Test 📝, and Archive 🗃.
 
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  release:
-    types: [published]
   workflow_dispatch:
 
 jobs:
@@ -19,16 +17,14 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Get history and tags for SCM versioning to work
+    - name: Get history and tags for SCM versioning
       run: |
         git fetch --prune --unshallow
         git fetch --depth=1 origin +refs/tags/*:refs/tags/*
-    - name: Set up Python
-      uses: actions/setup-python@v2
+
     - name: Build wheels
       uses: pypa/cibuildwheel@v2.0.0
       env:
-        CIBW_BEFORE_ALL_MACOS: which gfortran-11
         CIBW_ENVIRONMENT_MACOS: F90=gfortran-11
 
     - name: Upload Build Artifact
@@ -37,4 +33,3 @@ jobs:
         name: nupyprop-pypi-artifacts
         path: ./wheelhouse/*.whl
         if-no-files-found: error
-        retention-days: 7
