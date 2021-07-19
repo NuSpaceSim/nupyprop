@@ -27,7 +27,10 @@ jobs:
       uses: pypa/cibuildwheel@v2.0.0
       env:
         CIBW_ENVIRONMENT_MACOS: F90=gfortran-11
-        CIBW_BEFORE_TEST: >
+        CIBW_BEFORE_TEST_LINUX: >
+          apt-get install tree &&
+          tree {project}
+        CIBW_BEFORE_TEST_MACOS: >
           brew install tree &&
           tree {project}
 
