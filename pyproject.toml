@@ -11,6 +11,12 @@ write_to = '_version.py'
 version_scheme = 'no-guess-dev'
 local_scheme = 'no-local-version'
 
+[tool.cibuildwheel.macos]
+archs = ["x86_64"] #, "universal2", "arm64"]
+
+[tool.cibuildwheel.linux]
+archs = ["x86_64"]
+
 [tool.black]
 line-length = 80
 skip-string-normalization = false
