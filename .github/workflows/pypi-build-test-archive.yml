@@ -1,10 +1,12 @@
 name: PyPI Build Python 🐍 package, Test 📝, and Archive 🗃.
 
 on:
-  # push:
-    # branches: [ main ]
-  # pull_request:
-    # branches: [ main ]
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [published]
   workflow_dispatch:
 
 jobs:
