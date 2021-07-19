@@ -222,10 +222,14 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton,
     elif nu_type == 'anti-neutrino':
         nu_type = 'anu'
 
-    chk_flag = Data.chk_file(nu_type, lepton, idepth, cross_section_model, pn_model, prop_type, stats) # checks if output file exists
+    for energy in E_prop:
+        for angle in angles:
+            chk_flag = Data.chk_file(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats) # checks if output file exists for any run list of energies & angles
+            if chk_flag == 0: break
 
     if chk_flag == 0: # user chooses not to overwrite existing output file
         return print("No changes made")
+    # end of check loop
 
     print("The water -> rock transition occurs at %.2f degrees" % Geometry.find_interface(idepth)[0])
 
@@ -243,7 +247,7 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton,
 
             chord, water = Data.get_trajs('water', angle, idepth)
             dwater = water*rho_water # depth in water [kmwe] in last or only section
-            depthE = Geometry.columndepth(angle, idepth)*1e-5 # column depth in kmwe?
+            depthE = Geometry.columndepth(angle, idepth)*1e-5 # column depth in kmwe
 
             no_regen, regen = Run.run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton_int, fac_nu, stats, prop_type_int)
 
