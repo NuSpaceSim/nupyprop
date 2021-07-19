@@ -27,6 +27,9 @@ jobs:
       uses: actions/setup-python@v2
     - name: Build wheels
       uses: pypa/cibuildwheel@v2.0.0
+      env:
+        CIBW_ENVIRONMENT_MACOS: "FC=gfortran-11"
+
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v2.2.4
       with:
