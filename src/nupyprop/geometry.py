@@ -19,7 +19,7 @@ pd.set_option("display.max_rows", None, "display.max_columns", None)
 warnings.filterwarnings('ignore')
 
 # from propagate import geometry as Geometry
-from nupyprop.propagate import geometry as Geometry
+from .propagate import geometry as Geometry
 
 import importlib_resources
 
