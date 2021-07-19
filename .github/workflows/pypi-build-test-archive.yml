@@ -28,11 +28,13 @@ jobs:
       env:
         CIBW_ENVIRONMENT_MACOS: F90=gfortran-11
         CIBW_BEFORE_TEST_LINUX: >
-          apt-get install tree &&
-          tree {project}
+          sudo apt-get -y install tree &&
+          tree {project} &&
+          tree {package}
         CIBW_BEFORE_TEST_MACOS: >
           brew install tree &&
-          tree {project}
+          tree {project} &&
+          tree {package}
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v2.2.4
