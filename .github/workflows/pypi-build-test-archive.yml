@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python: [37, 38, 39]
+        python: [36, 37, 38, 39]
         include:
           - os: ubuntu-latest
             platform_id: manylinux_x86_64
