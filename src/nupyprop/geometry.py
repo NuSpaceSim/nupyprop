@@ -221,7 +221,7 @@ def gen_col_trajs():
     Returns
     -------
     betad_fix : ndarray
-        1D array containing 13500 entries, with repeating entries from 0.1 deg to 90 deg.
+        1D array containing 13500 entries, with repeating (x100) entries from 0.1 deg to 90 deg.
     xalong : ndarray
         1D array containing distance in water, in km.
     cdalong : ndarray
@@ -230,7 +230,8 @@ def gen_col_trajs():
     '''
     p = Pool(mp.cpu_count()) # use all available cores
 
-    betad_fix = np.asarray([np.ones(100)*i for i in beta_arr]).flatten() # used for storing in hdf5 and matching len of cdalong array which uses list comprehension for faster calcs.
+    betad_fix = np.repeat(beta_arr,100) # used for storing in hdf5 and matching len of cdalong array which uses list comprehension for faster calcs.
+
     chord = np.asarray([trajlength(float(i)) for i in beta_arr])
     dx = np.asarray([i/100.0 for i in chord])
     xalong = np.asarray([i*float(j) for i in dx for j in range(1,101)])
