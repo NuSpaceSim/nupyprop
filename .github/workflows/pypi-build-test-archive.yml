@@ -29,7 +29,7 @@ jobs:
         CIBW_ENVIRONMENT_MACOS: F90=gfortran-11
         CIBW_BEFORE_TEST: >
           brew install tree &&
-          tree {pjorect}
+          tree {project}
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v2.2.4
