@@ -11,9 +11,9 @@ write_to = '_version.py'
 version_scheme = 'post-release'
 local_scheme = 'no-local-version'
 
-# [tool.cibuildwheel]
-# test-requires = "pytest"
-# test-command = "pytest {project}"
+[tool.cibuildwheel]
+test-requires = "pytest"
+test-command = "pytest {project}/tests"
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64"] #, "universal2", "arm64"]

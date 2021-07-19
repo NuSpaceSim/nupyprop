@@ -37,14 +37,6 @@ jobs:
         CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
         CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
 
-    - name: Setup tox tests
-      run: |
-        python -m pip install --upgrade pip
-        pip install tox tox-gh-actions
-
-    - name: Test wheels with tox
-      run: tox --installpkg wheelhouse/*cp${{ matrix.python }}*.whl
-
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v2.2.4
       with:
