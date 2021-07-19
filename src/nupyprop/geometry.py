@@ -320,9 +320,11 @@ def create_traj_table(idepth):
 if __name__ == "__main__":
     # import data as Data
 
-    idepth = 6
+    pass
+
+    # idepth = 6
     # print(find_interface(idepth)[0])
-    print(Geometry.premdensity(1203, idepth))
+    # print(Geometry.premdensity(1203, idepth))
     # print(premdensity_2(1203))
 
     # premdensity(1203, idepth)
