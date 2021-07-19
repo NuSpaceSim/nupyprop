@@ -1,0 +1,50 @@
+name: Linux Build Python 🐍 package, Test 📝, and Archive 🗃.
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Get history and tags for SCM versioning to work
+      run: |
+        git fetch --prune --unshallow
+        git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Python wheels manylinux build
+      uses: RalfG/python-wheels-manylinux-build@v0.3.3
+      with:
+        python-versions: 'cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39'
+        build-requirements: 'numpy setuptools_scm'
+    - name: Install test dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install flake8 pytest tox tox-gh-actions
+    - name: Lint with flake8
+      run: |
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        # flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    - name: Test with tox
+      run: tox --installpkg dist/*manylinux*
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v2.2.4
+      with:
+        name: nupyprop-pypi-linux-artifacts
+        path: dist/*manylinux*
+        if-no-files-found: error
+        retention-days: 7
