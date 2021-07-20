@@ -7,23 +7,17 @@ Created on Wed May 26 11:55:30 2021
 """
 
 import nupyprop.data as Data
-
-import numpy as np
-from scipy import integrate
-import multiprocessing as mp
-from multiprocessing import Pool
-import pandas as pd
-import sympy as sp
-import warnings
-pd.set_option("display.max_rows", None, "display.max_columns", None)
-warnings.filterwarnings('ignore')
-
-# from propagate import geometry as Geometry
 from nupyprop.propagate import geometry as Geometry
 
-import importlib_resources
+from collections import OrderedDict
+import numpy as np
+from scipy import integrate
+import sympy as sp
+from astropy.table import Table
+import warnings
+warnings.filterwarnings('ignore')
 
-ref = importlib_resources.files('nupyprop.datafiles') / 'lookup_tables.h5'
+
 
 Re = 6371.0 # radius of the earth in km
 Rlay = np.array([1221.5, 3480.0, 5701.0, 5771.0, 5971.0, 6151.0, 6346.6, 6356.0, 6368.0, 6371.0]) # PREM layers based on R_earth. If you're using another Earth model, be sure to change it here as well as propagate.f90, in PREMdensity subroutine.
@@ -195,30 +189,36 @@ def cdtot(x_v, beta_deg, idepth):
     cdtot_val = rho*1e5
     return cdtot_val
 
-def integrator(args):
-    '''
+# def integrator(args): # no longer required
+#     '''
 
+#     Parameters
+#     ----------
+#     args : list of lists
+#         Function arguments (used for multithreading later).
+
+#     Returns
+#     -------
+#     function
+#         Integrator function.
+
+#     '''
+#     fun = args[0]
+#     var = args[1]
+#     low_lim = args[2]
+#     up_lim = args[3]
+#     return integrate.quad(fun,low_lim,up_lim,args=(var))
+
+def gen_col_trajs(idepth):
+    '''
     Parameters
     ----------
-    args : list of lists
-        Function arguments (used for multithreading later).
+    idepth : int
+        Depth of water layer in km.
 
-    Returns
-    -------
-    function
-        Integrator function.
-
-    '''
-    fun = args[0]
-    var = args[1]
-    low_lim = args[2]
-    up_lim = args[3]
-    return integrate.quad(fun,low_lim,up_lim,args=(var))
-
-def gen_col_trajs():
-    '''
-
-    Returns
+    Returns'beta':'Earth emergence angle, in degrees',
+            'xalong':'Distance in water, in km',
+            'cdalong':'Column depth at xalong, in g/cm^2'})
     -------
     betad_fix : ndarray
         1D array containing 13500 entries, with repeating (x100) entries from 0.1 deg to 90 deg.
@@ -227,21 +227,19 @@ def gen_col_trajs():
     cdalong : ndarray
         1D array containing column depth at xalong, in g/cm^2.
 
+    Essentially, cdalong = integral(cdtot(x_v, beta, idepth)), where x_v limits go from 0 to cdalong, for each beta value.
+
     '''
-    p = Pool(mp.cpu_count()) # use all available cores
 
     betad_fix = np.repeat(beta_arr,100) # used for storing in hdf5 and matching len of cdalong array which uses list comprehension for faster calcs.
-
     chord = np.asarray([trajlength(float(i)) for i in beta_arr])
-    dx = np.asarray([i/100.0 for i in chord])
+    dx = chord/100.0 # step size
     xalong = np.asarray([i*float(j) for i in dx for j in range(1,101)])
-    cdalong = np.asarray([p.map(integrator,[[cdtot, i, 0, j]])[0][0] for i,j in zip(betad_fix,xalong)])
-    p.close()
+    cdalong = np.asarray([integrate.quad(cdtot,0,j,args=(i,idepth))[0] for i,j in zip(betad_fix,xalong)])
     return betad_fix, xalong, cdalong
 
 def gen_water_trajs(idepth):
     '''
-
 
     Parameters
     ----------
@@ -279,7 +277,6 @@ def find_interface(idepth):
         The (Earth emergence) angle at which the transition from water to rock occurs, in degrees.
 
     '''
-    # global idepth
     y = sp.Symbol('y')
     eqn = sp.Eq(Re*(1-sp.sin((90-y)*(np.pi/180))), idepth)
     return sp.solve(eqn)
@@ -298,20 +295,24 @@ def create_traj_table(idepth):
         Adds trajectory table lookup entries in lookup_table.h5.
 
     '''
-    try:
-        with importlib_resources.as_file(ref) as lookup_tables:
-            pd.read_hdf(lookup_tables,'Earth/traj_%s/Column_Trajectories' % str(int(idepth)))[0:2]
-            return print("idepth = %s already exists in the lookup table. Will initialize that data." % (int(idepth)))
-    except (KeyError, FileNotFoundError) as e:
-        beta_col, xalong, cdalong = gen_col_trajs()
-        dataset_col = pd.DataFrame({'beta':beta_col, 'xalong':xalong, 'cdalong':cdalong}).sort_values(by=['beta','xalong','cdalong'])
 
-        beta_water, chord, water = gen_water_trajs(idepth)
-        dataset_water = pd.DataFrame({'beta':beta_water, 'chord':chord, 'water':water})
+    beta_col, xalong, cdalong = gen_col_trajs(idepth)
+    col_meta = OrderedDict({'Description':'Column trajectories for water layer = %s km' % str(idepth),
+                'beta':'Earth emergence angle, in degrees',
+                'xalong':'Distance in water, in km',
+                'cdalong':'Column depth at xalong, in g/cm^2'})
+    col_table = Table([beta_col, xalong, cdalong], names=('beta','xalong','cdalong'), meta=col_meta)
 
-        Data.add_trajs('col', int(idepth), dataset_col)
-        Data.add_trajs('water', int(idepth), dataset_water) # yikes! fixed!
-        return None
+    beta_water, chord, water = gen_water_trajs(idepth)
+    water_meta = OrderedDict({'Description':'Water trajectories for water layer = %s km' % str(idepth),
+                'beta':'Earth emergence angle, in degrees',
+                'chord':'Chord length, in km',
+                'water':'Final water layer distance, in km'})
+    water_table = Table([beta_water, chord, water], names=('beta','chord','water'), meta=water_meta)
+
+    Data.add_trajs('col', int(idepth), col_table)
+    Data.add_trajs('water', int(idepth), water_table) # yikes! fixed!
+    return None
 
 
 # =============================================================================
@@ -336,3 +337,7 @@ if __name__ == "__main__":
     # thn = 1.3962622222222221
     # print(columndepth(thn, idepth))
     # print(PREMgramVSang(10, idepth))
+
+    # create_traj_table(0)
+    # for idepth in range(0,11):
+    #     create_traj_table(idepth)
