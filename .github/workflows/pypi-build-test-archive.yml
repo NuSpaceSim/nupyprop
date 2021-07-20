@@ -15,10 +15,10 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        python: [36, 37, 38, 39]
+        os: [ubuntu-latest] #, macos-latest]
+        python: [37, 38, 39]
         include:
           - os: ubuntu-latest
             platform_id: manylinux_x86_64
