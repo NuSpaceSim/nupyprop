@@ -10,5 +10,7 @@ dist/
 *.dylib
 *.pyc
 _version.py
+.python-version
+docs/build/
 
 build_artifacts
