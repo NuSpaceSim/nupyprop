@@ -3,6 +3,9 @@ name: PyPI Build Python 🐍 package, Test 📝, and Archive 🗃.
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'src'
+      - 'tests'
   pull_request:
     branches: [ main ]
   release:
