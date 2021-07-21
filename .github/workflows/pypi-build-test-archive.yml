@@ -18,12 +18,12 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-latest] #, macos-latest]
-        python: [37, 38, 39]
+        python: [39] # [37, 38, 39]
         include:
           - os: ubuntu-latest
             platform_id: manylinux_x86_64
-          - os: macos-latest
-            platform_id: macosx_x86_64
+#           - os: macos-latest
+#             platform_id: macosx_x86_64
 
     steps:
     - uses: actions/checkout@v2
@@ -35,7 +35,7 @@ jobs:
     - name: Build wheels
       uses: pypa/cibuildwheel@v2.0.0
       env:
-        CIBW_ENVIRONMENT_MACOS: F90=gfortran-11
+#         CIBW_ENVIRONMENT_MACOS: F90=gfortran-11
         CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
         CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
 
