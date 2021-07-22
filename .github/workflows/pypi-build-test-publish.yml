@@ -22,9 +22,9 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest#, macos-latest]
+        os: [ubuntu-latest, macos-latest]
         python: [37, 38, 39]
         include:
           - os: ubuntu-latest
@@ -51,7 +51,7 @@ jobs:
       with:
         name: nupyprop-gh-pypi-artifact
         path: wheelhouse/*.whl
-        retention-days: 5
+        retention-days: 1
 
 
   publish:
