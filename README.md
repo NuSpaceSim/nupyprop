@@ -47,7 +47,7 @@ python3 -m pip install nupyprop
 
 **Run parameters** are defined in run.py. Different switches are described as follows:
 
-1. -e or --energy: incoming neutrino energy in GeV. Works for single energy or multiple energies. For multiple energies, separate energies with commas eg. 1e7,1e8,1e9. Default energies are 10<sup>7</sup>,10<sup>7.25</sup>,10<sup>7.5</sup>,...10<sup>11</sup> GeV. For running single, non standard energies like 10<sup>7.5</sup> GeV, you'll have to change it in the run.py file.
+1. -e or --energy: incoming neutrino energy in log_10(GeV). Works for single energy or multiple energies. For multiple energies, separate energies with commas eg. 7,8,9,10,11. Default energies are 10<sup>7</sup>,10<sup>7.25</sup>,10<sup>7.5</sup>,...10<sup>11</sup> GeV.
 
 2. -a or --angle: slant Earth angles in degrees. Works for single angle or multiple angles. For multiple angles, separate angles with commas eg. 1,3,5,7,10. Default angles are 1->35 degrees, in steps of 1 degree.
 
@@ -55,24 +55,24 @@ python3 -m pip install nupyprop
 
 4. -l or --lepton: flavor of lepton used to propagate. Can be either muon or tau. Default is tau.
 
-5. -n or --matter: type of neutrino matter. Can be either neutrino or anti-neutrino. Default is Neutrino.
+5. -n or --nu_type: type of neutrino matter. Can be either neutrino or anti-neutrino. Default is Neutrino.
 
 6. -t or --energy_loss: energy loss type for lepton - can be stochastic or continuous. Default is stochastic.
 
-7. -m or --material: material used in electromagnetic energy loss; not used in main program, only used for running energy_loss.py individually. Default is rock.
+~~7. -m or --material: material used in electromagnetic energy loss; not used in main program, only used for running energy_loss.py individually. Default is rock.~~
 
-8. -x or --xc_model: neutrino/anti-neutrino cross-section model used. For a list of model names, see lookup_tables.h5/Neutrino_Cross_Sections. Default is ct18nlo. 
+7. -x or --xc_model: neutrino/anti-neutrino cross-section model used. For a list of model names, see lookup_tables.h5/Neutrino_Cross_Sections. Default is ct18nlo. 
 
-9. -p or --pn_model: photonuclear interaction energy loss model used. For now, can be either bb (Bezrukov-Bugaev), allm (Abramowicz, Levin, Levy, Maor), bdhm (Block, Durand, Ha, McKay) or ckmt (Capella, Kaidalov, Merino, Tran). Default is allm.
+8. -p or --pn_model: photonuclear interaction energy loss model used. For now, can be either bb (Bezrukov-Bugaev), allm (Abramowicz, Levin, Levy, Maor), bdhm (Block, Durand, Ha, McKay) or ckmt (Capella, Kaidalov, Merino, Tran). Default is allm.
 
-10. -f or --fac_nu: rescaling factor for SM cross-sections. Default is 1.
+9. -f or --fac_nu: rescaling factor for SM cross-sections. Default is 1.
 
-11. -s or --stat: statistics. Default is 1e7 particles.
+10. -s or --stat: statistics. Default is 1e7 particles.
 
 %% **Example** for running tau propagation for 10<sup>7</sup> GeV neutrinos at 10 degrees with a statistics of 10<sup>7</sup> particles with stochastic energy loss & with all other parameters as defaults:
 
 %% 1. `make`
-%% 2. `python run.py -e 1e7 -a 10 -t stochastic -s 1e7`
+%% 2. `python run.py -e 7 -a 10 -t stochastic -s 1e7`
 
 ~~**WARNING**: Running the code will replace the results of the output.h5 file. Backing up previous output files is recommended (or just ask me for a pre-populated output file if need be, for now, since the pre-populated output file is >25 MB). Future fixes include overwrite warnings for the user.~~ Fixed!
 
