@@ -3,6 +3,7 @@ __pycache__/
 .tox/
 build/
 dist/
+fixed_wheels/
 *.ipynb
 *.lprof
 *.egg-info/
