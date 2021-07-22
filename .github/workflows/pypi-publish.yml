@@ -1,0 +1,27 @@
+name: Publish Python 🐍 distributions 📦 to PyPI
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+
+jobs:
+  publish:
+
+    name: Publish Python 🐍 distributions 📦 to PyPI
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - uses: actions/download-artifact@v2
+      with:
+        name: nupyprop-gh-pypi-artifact
+
+    - name: Publish a Python distribution to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        user: __token__
+        password: ${{ secrets.PYPI_SECRET }}
+        packages_dir: nupyprop-gh-pypi-artifact/

@@ -8,8 +8,4 @@ EXT1 = Extension(
     extra_link_args=["-fopenmp"],
 )
 
-setup(
-    ext_modules=[EXT1],
-    long_description_content_type="text/markdown",
-    long_description="file: README.md",
-)
+setup(ext_modules=[EXT1])

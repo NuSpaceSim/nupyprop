@@ -11,29 +11,14 @@ A python package and command line utility, including fortran for performance wit
 We recommend installing nupyprop into a conda environment like so. In this
 example the name of the environment is "nupypropdev"
 
-``` 
+```
 conda create -n nupypropdev -c conda-forge -c nuspacesim nupyprop
 conda activate nupypropdev
 ```
 
 ### with pip
 
-This tool requires python3, hdf5, and c-blosc be previously installed by the
-user in a standard location. We recommend using an os package manager or conda.
-
-#### Ubuntu
-
 ```
-sudo apt-get install python3 hdf5 c-blosc
-python3 -m pip install nupyprop
-```
-
-#### MacOS (x86_64) 10.14 or greater
-
-To install required dependencies use [homebrew](https://brew.sh/).
-
-```
-brew install python3 hdf5 c-blosc
 python3 -m pip install nupyprop
 ```
 
@@ -59,7 +44,7 @@ python3 -m pip install nupyprop
 
 6. -t or --energy_loss: energy loss type for lepton - can be stochastic or continuous. Default is stochastic.
 
-~~7. -m or --material: material used in electromagnetic energy loss; not used in main program, only used for running energy_loss.py individually. Default is rock.~~
+<!--~~7. -m or --material: material used in electromagnetic energy loss; not used in main program, only used for running energy_loss.py individually. Default is rock.~~-->
 
 7. -x or --xc_model: neutrino/anti-neutrino cross-section model used. For a list of model names, see lookup_tables.h5/Neutrino_Cross_Sections. Default is ct18nlo. 
 
@@ -68,11 +53,6 @@ python3 -m pip install nupyprop
 9. -f or --fac_nu: rescaling factor for SM cross-sections. Default is 1.
 
 10. -s or --stat: statistics. Default is 1e7 particles.
-
-%% **Example** for running tau propagation for 10<sup>7</sup> GeV neutrinos at 10 degrees with a statistics of 10<sup>7</sup> particles with stochastic energy loss & with all other parameters as defaults:
-
-%% 1. `make`
-%% 2. `python run.py -e 7 -a 10 -t stochastic -s 1e7`
 
 ~~**WARNING**: Running the code will replace the results of the output.h5 file. Backing up previous output files is recommended (or just ask me for a pre-populated output file if need be, for now, since the pre-populated output file is >25 MB). Future fixes include overwrite warnings for the user.~~ Fixed!
 
