@@ -42,8 +42,8 @@ jobs:
         conda-channels: conda-forge
 
     - run: which conda
+    - run: conda install conda-build anaconda --yes
     - run: which andconda
-    - run: conda install conda-build
     - run: which conda-build
 
     - name: Conda build nupyprop
