@@ -45,4 +45,4 @@ jobs:
 
     - name: Conda upload nupyprop
       run: anaconda upload -t ${{ secrets.ANACONDA_UPLOAD_TOKEN }} -v upload \
-        /usr/share/miniconda/conda-bld/${{ target_platform }}/*
+        /usr/share/miniconda/conda-bld/${{ matrix.target_platform }}/*
