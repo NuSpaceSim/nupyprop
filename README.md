@@ -43,7 +43,7 @@ python3 -m pip install nupyprop
 
 **Example** for running tau propagation for 10<sup>7</sup> GeV neutrinos at 10 degrees with a statistics of 10<sup>7</sup> particles with stochastic energy loss & with all other parameters as defaults:
 
-`nupyprop -e 1e7 -a 10 -t stochastic -s 1e7`
+`nupyprop -e 7 -a 10 -t stochastic -s 1e7`
 
 **Run parameters** are defined in run.py. Different switches are described as follows:
 
