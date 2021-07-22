@@ -4,8 +4,11 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'src'
-      - 'tests'
+      - 'src/**'
+      - 'tests/**'
+      - setup.py
+      - setup.cfg
+      - pyproject.toml
   pull_request:
     branches: [ main ]
   release:
@@ -38,7 +41,7 @@ jobs:
     - name: Build wheels
       uses: pypa/cibuildwheel@v2.0.0
       env:
-#         CIBW_ENVIRONMENT_MACOS: F90=gfortran-11
+        CIBW_ENVIRONMENT_MACOS: F90=gfortran-11
         CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
         CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
 

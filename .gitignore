@@ -12,5 +12,6 @@ dist/
 _version.py
 .python-version
 docs/build/
+pyrightconfig.json
 
 build_artifacts

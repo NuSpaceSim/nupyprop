@@ -22,7 +22,7 @@ archs = ["x86_64"] #, "universal2", "arm64"]
 archs = ["x86_64"]
 
 [tool.black]
-line-length = 80
+line-length = 88
 skip-string-normalization = false
 exclude = '''
 (
@@ -44,5 +44,5 @@ exclude = '''
 '''
 
 [tool.autopep8]
-max_line_length = 80
+max_line_length = 88
 ignore = "E501,W6"  # or ["E501", "W6"]

@@ -29,14 +29,14 @@ requirements:
     - numpy >=1.17
     - wheel
   run:
+    - astropy
+    - h5py
     - importlib_resources
     - matplotlib
     - numpy >=1.17
-    - pandas
     - python >=3.6
     - scipy
     - sympy
-    - pytables
 
 # Woe is us. We lack tests.
 test:
