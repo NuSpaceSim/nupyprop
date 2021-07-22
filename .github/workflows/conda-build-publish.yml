@@ -41,7 +41,7 @@ jobs:
       run: $CONDA/bin/conda install conda-build
 
     - name: Conda build nupyprop
-      run: $CONDA/bin/conda build recipe
+      run: $CONDA/bin/conda build -c conda-forge recipe
 
     - name: Conda upload nupyprop
       run: anaconda upload -t ${{ secrets.ANACONDA_UPLOAD_TOKEN }} -v upload \
