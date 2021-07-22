@@ -7,14 +7,11 @@ Created on Sat Sep 26 16:44:13 2020
 """
 
 import numpy as np
-import pandas as pd
-from pandas import HDFStore
 from decimal import Decimal
-from collections.abc import Iterable
-# import time
-import os
-import h5py
 import importlib_resources
+from astropy.table import Table
+from astropy.io import ascii
+from collections import OrderedDict
 
 E_nu = np.logspace(3,12,91,base=10).astype(np.float64)
 E_lep = np.logspace(0,12,121,base=10).astype(np.float64)
@@ -49,6 +46,7 @@ def output_file(nu_type, lepton, idepth, cross_section_model, pn_model, prop_typ
     '''
     idepth_str = str(idepth) + 'km'
     stats_str = sci_str(stats)
+    pn_model = pn_model.replace("pn_","")
     fnm = "output_%s_%s_%s_%s_%s_%s_%s.h5" % (nu_type,lepton,idepth_str,cross_section_model,pn_model,prop_type,stats_str)
     return fnm
 
@@ -57,58 +55,58 @@ def sci_str(exp_value):
     str_val = ('{:.' + str(len(dec.normalize().as_tuple().digits) - 1) + 'e}').format(dec).replace('+', '')
     return str_val
 
-def chk_file(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats):
-    '''
+# def chk_file(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats):
+#     '''
 
-    Parameters
-    ----------
-    nu_type : str
-        Type of neutrino particle. Can be nu (neutrino) or anu (anti-neutrino).
-    lepton : str
-        Type of lepton. Can be tau or muon.
-    energy : float
-        Neutrino energy, in GeV.
-    angle : int
-        Earth emergence angle (beta), in degrees.
-    idepth : int
-        Depth of water layer in km.
-    cross_section_model : str
-        Neutrino cross-section model.
-    pn_model : str
-        Photonuclear energy loss model.
-    prop_type : str
-        Type of energy loss mechanism. Can be stochastic or continuous.
-    stats : float
-        Statistics or number of neutrinos injected.
+#     Parameters
+#     ----------
+#     nu_type : str
+#         Type of neutrino particle. Can be nu (neutrino) or anu (anti-neutrino).
+#     lepton : str
+#         Type of lepton. Can be tau or muon.
+#     energy : float
+#         Neutrino energy, in GeV.
+#     angle : int
+#         Earth emergence angle (beta), in degrees.
+#     idepth : int
+#         Depth of water layer in km.
+#     cross_section_model : str
+#         Neutrino cross-section model.
+#     pn_model : str
+#         Photonuclear energy loss model.
+#     prop_type : str
+#         Type of energy loss mechanism. Can be stochastic or continuous.
+#     stats : float
+#         Statistics or number of neutrinos injected.
 
-    Returns
-    -------
-    int
-        0 is to stop execution (save the old ouput file); 1 is for replacing the old output file; 2 is to append to/overwrite the old file (only do this if you know what you're doing or else you'll end up with mixed results!).
-        Option no. 2 can be used if you need to 'add' more results for the same set of parameters or in case of abrupt code termination.
+#     Returns
+#     -------
+#     int
+#         0 is to stop execution (save the old ouput file); 1 is for replacing the old output file; 2 is to append to/overwrite the old file (only do this if you know what you're doing or else you'll end up with mixed results!).
+#         Option no. 2 can be used if you need to 'add' more results for the same set of parameters or in case of abrupt code termination.
 
-    '''
-    fnm = output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats)
-    if os.path.exists(fnm):
-        # try:
+#     '''
+#     fnm = output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats)
+#     if os.path.exists(fnm):
+#         # try:
 
-        choice = input('There already exists an output file with these set of parameters (%s). Press \'d\' for deleting the output old file and creating a new output file, \'s\' for keeping the old output file or \'o\' for overwriting the old output file: ' % fnm)
+#         choice = input('There already exists an output file with these set of parameters (%s). Press \'d\' for deleting the output old file and creating a new output file, \'s\' for keeping the old output file or \'o\' for overwriting the old output file: ' % fnm)
 
-        if choice not in {"d", "s", "o"}:
-            print("Invalid option. Please enter \'d\', \'s\' or \'o\'")
-            return chk_file(nu_type, lepton, idepth, cross_section_model, pn_model, prop_type, stats)
-        elif choice == 's':
-            return 0
-        elif choice == 'd':
-            os.remove(fnm)
-            return 1
+#         if choice not in {"d", "s", "o"}:
+#             print("Invalid option. Please enter \'d\', \'s\' or \'o\'")
+#             return chk_file(nu_type, lepton, idepth, cross_section_model, pn_model, prop_type, stats)
+#         elif choice == 's':
+#             return 0
+#         elif choice == 'd':
+#             os.remove(fnm)
+#             return 1
 
-    else: # so basically choice = 'o'
-        return 2 # output file non existant or overwrite enabled
-    # return out_val
+#     else: # so basically choice = 'o'
+#         return 2 # output file non existant or overwrite enabled
+#     # return out_val
 
 
-def add_trajs(type_traj, idepth, traj_array):
+def add_trajs(type_traj, idepth, traj_table):
     '''
 
     Parameters
@@ -117,8 +115,20 @@ def add_trajs(type_traj, idepth, traj_array):
         Type of trajectory. Can be col (for column depth) or water (for water depth).
     idepth : int
         Depth of water layer in km.
-    traj_array : arr
-        Trajectory numpy array.
+    traj_table : `~astropy.table.Table`
+        Table containing the trajectories. E
+    data_table : `~astropy.table.Table` or list of `~astropy.table.Table`
+        Table containing the observed spectrum. If multiple tables are passed
+        as a string, they will be concatenated in the order given. Each table
+        needs at least these columns, with the appropriate associated units
+        (with the physical type indicated in brackets below) as either a
+        `~astropy.units.Unit` instance or parseable string:
+
+        - ``energy``: Observed photon energy [``energy``]
+        - ``flux``: Observed fluxes [``flux`` or ``differential flux``]
+        - ``flux_error``: 68% CL gaussian uncertainty of the flux [``flux`` or
+          ``differential flux``]. It can also be provided as ``flux_error_lo``
+          and ``flux_error_hi`` (see below).
 
     Returns
     -------
@@ -126,15 +136,14 @@ def add_trajs(type_traj, idepth, traj_array):
         Adds trajectory lookup tables to lookup_tables.h5.
 
     '''
+    if type_traj == 'col':branch = 'Column_Trajectories' # sub-sub branch inside the Earth/traj_idepth branch
+    elif type_traj == 'water':branch = 'Water_Trajectories'
+
     with importlib_resources.as_file(ref) as lookup_tables:
-        hdf = HDFStore(lookup_tables,'a')
-        if type_traj == 'col':branch = 'Column_Trajectories' # sub-sub branch inside the Earth/traj_idepth branch
-        elif type_traj == 'water':branch = 'Water_Trajectories'
-        hdf.put('Earth/traj_%s/%s' % (str(idepth),branch), traj_array, format='t', data_columns=True)
-        hdf.close()
+        traj_table.write(lookup_tables, path='Earth/%s/%skm' % (branch,str(idepth)), append=True, overwrite=True)
     return print("%s lookup table successfully created for idepth = %s" % (branch,str(idepth)))
 
-def get_trajs(type_traj, angle, idepth, out='n'):
+def get_trajs(type_traj, angle, idepth, out=False):
     '''
 
     Parameters
@@ -145,8 +154,8 @@ def get_trajs(type_traj, angle, idepth, out='n'):
         Earth emergence angle in degrees.
     idepth : int
         Depth of water layer in km.
-    out : str, optional
-        'y' to write output to file. The default is 'n'.
+    out : boolean, optional
+        Set this to True to write output to file. The default is False.
 
     Returns
     -------
@@ -160,89 +169,46 @@ def get_trajs(type_traj, angle, idepth, out='n'):
     '''
     if type_traj == 'col':
         with importlib_resources.as_file(ref) as lookup_tables:
-            dataset = pd.read_hdf(lookup_tables,'Earth/traj_%s/Column_Trajectories' % str(idepth))
-        dataset_sliced = dataset[dataset['beta']==angle]
-        xalong = np.asfortranarray(dataset_sliced.xalong.T)
-        cdalong = np.asfortranarray(dataset_sliced.cdalong.T)
-        if out=='y':
-            fnm = "%s_%sdeg_%skm.dat" % (type_traj,angle,idepth)
-            np.savetxt(fnm, np.transpose([xalong,cdalong]), header="water_distance[km]" + "\t" + "cd_at_x[g/cm^2]")
+            traj_table = Table.read(lookup_tables,path='Earth/Column_Trajectories/%skm' % str(idepth))
+
+        sliced_table = traj_table[traj_table['beta']==angle]
+        xalong = np.asfortranarray(sliced_table['xalong'].T)
+        cdalong = np.asfortranarray(sliced_table['cdalong'].T)
+
+        if out:
+            fnm = "%s_%sdeg_%skm.ecsv" % (type_traj,angle,idepth)
+            ascii.write(traj_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
             print('Column trajectory data saved to file %s' % fnm)
         return xalong, cdalong
 
     elif type_traj == 'water':
         with importlib_resources.as_file(ref) as lookup_tables:
-            dataset = pd.read_hdf(lookup_tables,'Earth/traj_%s/Water_Trajectories' % str(idepth))
-        chord = float(dataset.chord[dataset['beta']==angle])
-        water = float(dataset.water[dataset['beta']==angle])
-        if out=='y':
-            fnm = "%s_%sdeg_%skm.dat" % (type_traj,angle,idepth)
-            np.savetxt(fnm, np.transpose([chord,water]), header="chord_length[km]" + "\t" + "water_layer_dist[km]")
+            traj_table = Table.read(lookup_tables,path='Earth/Water_Trajectories/%skm' % str(idepth))
+
+        chord = float(traj_table['chord'][traj_table['beta']==angle])
+        water = float(traj_table['water'][traj_table['beta']==angle])
+
+        if out:
+            fnm = "%s_%sdeg_%skm.ecsv" % (type_traj,angle,idepth)
+            ascii.write(traj_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
             print('Water trajectory data saved to file %s' % fnm)
         return chord, water
     return "Error in get_trajs in Data"
 
-# def get_trajs_test(type_traj, angle, idepth, out='n'):
-#     '''
-
-#     Parameters
-#     ----------
-#     type_traj : str
-#         Type of trajectory. Can be col (for column depth) or water (for water depth).
-#     angle : float
-#         Earth emergence angle in degrees.
-#     idepth : int
-#         Depth of water layer in km.
-#     out : str, optional
-#         'y' to write output to file. The default is 'n'.
-
-#     Returns
-#     -------
-#     tuple
-#         tuple of 1D arrays - (xalong,cdalong) [for col] and (chord,water) [for water].
-#         xalong - distance in water, in km.
-#         cdalong - column depth at xalong, in g/cm^2.
-#         chord - chord length, in km.
-#         water - final water layer distance, in km.
-
-#     '''
-#     if type_traj == 'col':
-#         with importlib_resources.as_file(ref) as lookup_tables:
-#             dataset = pd.read_hdf(lookup_tables,'Earth/traj_%s/Column_Trajectories' % str(idepth))
-#         dataset_sliced = dataset[dataset['beta']==angle]
-#         xalong = np.asfortranarray(dataset_sliced.xalong.T)
-#         cdalong = np.asfortranarray(dataset_sliced.cdalong.T)
-#         if out=='y':
-#             fnm = "%s_%sdeg_%skm.dat" % (type_traj,angle,idepth)
-#             np.savetxt(fnm, np.transpose([xalong,cdalong]), header="water_distance[km]" + "\t" + "cd_at_x[g/cm^2]")
-#             print('Column trajectory data saved to file %s' % fnm)
-#         return xalong, cdalong
-
-    elif type_traj == 'water':
-        with importlib_resources.as_file(ref) as lookup_tables:
-            dataset = pd.read_hdf(lookup_tables,'Earth/traj_%s/Water_Trajectories' % str(idepth))
-        chord = float(dataset.chord[dataset['beta']==angle])
-        water = float(dataset.water[dataset['beta']==angle])
-        if out=='y':
-            fnm = "%s_%sdeg_%skm.dat" % (type_traj,angle,idepth)
-            np.savetxt(fnm, np.transpose([chord,water]), header="chord_length[km]" + "\t" + "water_layer_dist[km]")
-            print('Water trajectory data saved to file %s' % fnm)
-        return chord, water
-    return "Error in get_trajs in Data"
-
-def add_xc(part_type, xc_obj, model, **kwargs):
+def add_xc(part_type, xc_table, **kwargs):
     '''
 
     Parameters
     ----------
     part_type : str
         Neutrino or lepton? Can be nu or tau or muon.
-    xc_obj : dict or ndarray
-        Dictionary containing neutrino cross-section values or 1D array containing lepton cross-section values, in cm^2.
+    xc_table : dict or ndarray
+        1D containing neutrino cross-section values or 1D array containing lepton cross-section values, in cm^2.
     model : str
         Neutrino cross section model.
     **kwargs
-        Material: material of propagation, for leptons.
+        nu_type: Type of neutrino particle. Can be neutrino or anti-neutrino.
+        material: Material of propagation, for leptons.
 
     Returns
     -------
@@ -250,30 +216,19 @@ def add_xc(part_type, xc_obj, model, **kwargs):
         Creates neutrino/lepton cross-section lookup entries in lookup_tables.h5.
 
     '''
-
-    with importlib_resources.as_file(ref) as lookup_tables:
-        hdf = HDFStore(lookup_tables,'a')
-        if part_type=='nu': # here, xc_obj is a dict
-            particle_type = ['nu','anu']
-            for particle in particle_type:
-                cc = xc_obj[particle]['cc']
-                nc = xc_obj[particle]['nc']
-                dframe = pd.DataFrame({'energy':E_nu, 'sigma_cc':cc, 'sigma_nc':nc})
-                if 'a' in particle: # anti-neutrino group
-                    hdf.put('Neutrino_Cross_Sections/anti_neutrino/xc/%s' % model, dframe, format='t', data_columns=True)
-                else: # neutrino group
-                    hdf.put('Neutrino_Cross_Sections/neutrino/xc/%s' % model, dframe, format='t', data_columns=True)
-            hdf.close()
-            return print("%s_sigma CC & NC lookup tables successfully created for %s model" % (part_type, model))
-        else: # energy loss XC; here, xc_obj is an array
-            material = kwargs['material']
-            dframe = pd.DataFrame({'energy':E_lep, 'sigma_%s' % model:xc_obj})
-            hdf.put('Energy_Loss/%s/%s/xc/%s' % (part_type,material,model), dframe, format='t', data_columns=True)
-            hdf.close()
-            return print("%s_sigma lookup table successfully created for %s in %s" % (part_type, model, material))
+    if part_type=='nu':
+        nu_type = kwargs['nu_type']
+        with importlib_resources.as_file(ref) as lookup_tables:
+            xc_table.write(lookup_tables, path='Neutrinos/%s/xc' % nu_type, append=True, overwrite=True)
+        return print("%s_sigma CC & NC lookup tables successfully created" % part_type)
+    else: # lepton energy loss XC
+        material = kwargs['material']
+        with importlib_resources.as_file(ref) as lookup_tables:
+            xc_table.write(lookup_tables, path='Leptons/%s/%s/xc' % (part_type,material), append=True, overwrite=True)
+        return print("%s_sigma lookup table successfully created in %s" % (part_type, material))
     return None
 
-def get_xc(part_type, model, out='n', **kwargs):
+def get_xc(part_type, model, out=False, **kwargs):
     '''
 
     Parameters
@@ -282,11 +237,11 @@ def get_xc(part_type, model, out='n', **kwargs):
         Neutrino or lepton? Can be nu or tau or muon.
     model : str
         Neutrino cross-section/lepton photonuclear energy loss model.
-    out : str, optional
-        'y' to write output to file. The default is 'n'.
+    out : boolean, optional
+        Set this to True to write output to file. The default is False.
     **kwargs
-        nu_type: Type of neutrino particle. Can be neutrino or anti-neutrino.
-        material: material of propagation, for leptons.
+        nu_type: Type of neutrino particle. Can be neutrino or anti-neutrino, for neutrinos.
+        material: Material of propagation, for leptons.
 
     Returns
     -------
@@ -300,15 +255,17 @@ def get_xc(part_type, model, out='n', **kwargs):
         if nu_type=='anti-neutrino':nu_type='anti_neutrino'
         try:
             with importlib_resources.as_file(ref) as lookup_tables:
-                dataset_xc = pd.read_hdf(lookup_tables,'Neutrino_Cross_Sections/%s/xc/%s' % (nu_type,model))
-            cscc = dataset_xc.sigma_cc
-            csnc = dataset_xc.sigma_nc
+                xc_table = Table.read(lookup_tables,path='Neutrinos/%s/xc' % nu_type)
+
+            cscc = xc_table['sigma_cc_%s' % model]
+            csnc = xc_table['sigma_nc_%s' % model]
             out_arr = np.asarray([cscc,csnc])
 
-            if out=='y':
-                fnm = "xc_%s_%s.dat" % (nu_type,model)
-                np.savetxt(fnm, np.transpose([E_nu,cscc,csnc]), header="Energy[GeV]" + "\t" + "sigma_cc[cm^2]" + "\t" + "sigma_nc[cm^2]")
-                print('Cross-section data saved to file %s' % fnm)
+            if out:
+                fnm = "xc_%s_%s.ecsv" % (nu_type,model)
+                out_table = Table([xc_table['energy'], cscc, csnc], meta=xc_table.meta)
+                ascii.write(out_table, fnm, format='ecsv', fast_writer=False, overwrite=True)
+                print('%s cross-section data saved to file %s' % (nu_type,fnm))
 
             return np.asfortranarray(out_arr.T)
         except KeyError:
@@ -319,13 +276,14 @@ def get_xc(part_type, model, out='n', **kwargs):
             material = kwargs['material']
 
             with importlib_resources.as_file(ref) as lookup_tables:
-                dataset_xc = pd.read_hdf(lookup_tables,'Energy_Loss/%s/%s/xc/%s' % (part_type,material,model))
-            out_arr = np.asarray(dataset_xc['sigma_%s' % model])
+                xc_table = Table.read(lookup_tables,path='Leptons/%s/%s/xc' % (part_type,material))
+            out_arr = np.asarray(xc_table['sigma_%s' % model])
 
-            if out=='y':
-                fnm = "xc_%s_%s_%s.dat" % (part_type,material,model)
-                np.savetxt(fnm, np.transpose([E_lep,dataset_xc['sigma_%s' % model]]), header="Energy[GeV]" + "\t" + str("sigma_%s[cm^2]") % model)
-                print('Cross-section data saved to file %s' % fnm)
+            if out:
+                fnm = "xc_%s_%s_%s.ecsv" % (part_type,material,model)
+                out_table = Table([xc_table['energy'], out_arr], meta=xc_table.meta)
+                ascii.write(out_table, fnm, format='ecsv', fast_writer=False, overwrite=True)
+                print('%s cross-section data saved to file %s' % (part_type,fnm))
 
             return np.asfortranarray(out_arr.T)
 
@@ -334,7 +292,7 @@ def get_xc(part_type, model, out='n', **kwargs):
             return None
     return None
 
-def add_ixc(part_type, ixc_dict, model, **kwargs):
+def add_ixc(part_type, ixc_table, **kwargs):
     '''
 
     Parameters
@@ -346,6 +304,7 @@ def add_ixc(part_type, ixc_dict, model, **kwargs):
     model : str
         Neutrino cross-section/lepton photonuclear energy loss model.
     **kwargs
+        nu_type: Type of neutrino particle. Can be neutrino or anti-neutrino, for neutrinos.
         material: Material of propagation, for leptons.
 
     Returns
@@ -354,26 +313,24 @@ def add_ixc(part_type, ixc_dict, model, **kwargs):
         Creates neutrino/lepton integrated cross-section lookup entries in lookup_tables.h5.
 
     '''
-    with importlib_resources.as_file(ref) as lookup_tables:
-        hdf = HDFStore(lookup_tables,'a')
-        if part_type == 'nu':
-            particle_current = ['anucc','anunc','nucc','nunc']
-            for particle in particle_current:
-                if 'a' in particle: # anti-neutrino group
-                    hdf.put('Neutrino_Cross_Sections/anti_neutrino/ixc/%s_%s' % (model,particle[3:]),ixc_dict[particle], format='t')
-                else: # neutrino group
-                    hdf.put('Neutrino_Cross_Sections/neutrino/ixc/%s_%s' % (model,particle[2:]),ixc_dict[particle], format='t')
-            hdf.close()
-            return print("%s_sigma CDF CC & NC lookup tables successfully created for %s model" % (part_type, model))
+    if part_type == 'nu':
+        nu_type = kwargs['nu_type']
 
-        else: # energy_loss; ixc_type == 'muon' or 'tau'
-            material = kwargs['material']
-            hdf.put('Energy_Loss/%s/%s/ixc/%s' % (part_type,material,model),ixc_dict, format='t')
-            hdf.close()
-            return print("%s_sigma CDF lookup table successfully created for %s model in %s" % (part_type, model, material))
+        with importlib_resources.as_file(ref) as lookup_tables:
+            ixc_table.write(lookup_tables, path='Neutrinos/%s/ixc' % nu_type, append=True, overwrite=True)
+
+        return print("%s_sigma CDF CC & NC lookup tables successfully created for" % nu_type)
+
+    else: # energy_loss; part_type == 'muon' or 'tau'
+        material = kwargs['material']
+
+        with importlib_resources.as_file(ref) as lookup_tables:
+            ixc_table.write(lookup_tables, path='Leptons/%s/%s/ixc' % (part_type,material), append=True, overwrite=True)
+
+        return print("%s_sigma CDF lookup table successfully created in %s" % (part_type, material))
     return None
 
-def get_ixc(part_type, model, out='n', **kwargs):
+def get_ixc(part_type, model, out=False, **kwargs):
     '''
 
     Parameters
@@ -382,8 +339,8 @@ def get_ixc(part_type, model, out='n', **kwargs):
         Neutrino or lepton? Can be nu or tau or muon.
     model : str
         Neutrino cross-section/lepton photonuclear energy loss model.
-    out : str, optional
-        'y' to write output to file. The default is 'n'.
+    out : boolean, optional
+        Set this to True to write output to file. The default is False.
     **kwargs
         nu_type: Type of neutrino particle. Can be neutrino or anti-neutrino.
         material: Material of propagation, for leptons.
@@ -395,35 +352,30 @@ def get_ixc(part_type, model, out='n', **kwargs):
     if part_type = tau/muon; out_arr = lepton-nucleon integrated cross section CDF values.
 
     '''
+    # v2 = -np.linspace(0.1,3,num=30)
+    # yvals = 10**v2 # The integrated cross-section values should go from y = 0, 10^(-0.1),..., 10^(-3). This is a convention we chose to adopt.
+    # yvals = np.insert(yvals,0,0)
+
     if part_type == 'nu':
         nu_type = kwargs['nu_type']
         if nu_type=='anti-neutrino':nu_type='anti_neutrino'
         try:
             with importlib_resources.as_file(ref) as lookup_tables:
-                dataset_ixc_cc = pd.read_hdf(lookup_tables,'Neutrino_Cross_Sections/%s/ixc/%s_cc' % (nu_type,model))
-                dataset_ixc_nc = pd.read_hdf(lookup_tables,'Neutrino_Cross_Sections/%s/ixc/%s_nc' % (nu_type,model))
+                ixc_table = Table.read(lookup_tables,path='Neutrinos/%s/ixc' % nu_type)
 
-            ixc_cc, ixc_nc = [], []
-
-            for energy in range(len(E_nu)):
-                ixc_cc.append(np.asarray(dataset_ixc_cc[E_nu[energy]]))
-                ixc_nc.append(np.asarray(dataset_ixc_nc[E_nu[energy]]))
-
-            ixc_cc = np.asarray(ixc_cc)
-            ixc_nc = np.asarray(ixc_cc)
-            # print('ixc_cc shape = ', ixc_cc.shape)
+            ixc_cc = np.asarray([ixc_table['cc_cdf_%s' % model][ixc_table['energy']==i] for i in E_nu])
+            ixc_nc = np.asarray([ixc_table['nc_cdf_%s' % model][ixc_table['energy']==i] for i in E_nu])
 
             out_arr = np.asarray([ixc_cc, ixc_nc])
 
-            if out=='y':
-                v2 = -np.linspace(0.1,3,num=30)
-                yvals = 10**v2 # The integrated cross-section values should go from y = 10^(-0.1) to y = 10^(-3). This is a convention we chose to adopt. (This is also why we don't use the CTW ixc_low)
-                yvals = np.insert(yvals,0,0)
-                fnm = "ixc_%s_%s.dat" % (nu_type,model)
-                np.savetxt(fnm, np.transpose([np.repeat(E_nu,31),np.tile(yvals,91),ixc_cc.flatten(),ixc_nc.flatten()]), header="Energy[GeV]" + "\t" + "y" + "\t" + "cc_cdf" + "\t" + "nc_cdf")
-                print('Cross-section CDF data saved to file %s' % fnm)
+            if out:
+                fnm = "ixc_%s_%s.ecsv" % (nu_type,model)
+                out_table = Table([ixc_table['energy'], ixc_table['y'], ixc_table['cc_cdf_%s' % model], ixc_table['nc_cdf_%s' % model]], meta=ixc_table.meta)
+                ascii.write(out_table, fnm, format='ecsv', fast_writer=False, overwrite=True)
+                print('%s cross-section CDF data saved to file %s' % (nu_type,fnm))
 
             return np.asfortranarray(out_arr.T)
+
 
         except KeyError or TypeError:
             model = str(input(("Error finding integrated cross-section values for %s model, please enter a valid model name." % str(model))))
@@ -431,33 +383,26 @@ def get_ixc(part_type, model, out='n', **kwargs):
     else: # energy loss; ixc_type == 'tau' or 'muon'
         try:
             material = kwargs['material']
+
             with importlib_resources.as_file(ref) as lookup_tables:
-                dataset_ixc = pd.read_hdf(lookup_tables,'Energy_Loss/%s/%s/ixc/%s' % (part_type,material,model))
+                ixc_table = Table.read(lookup_tables,path='Leptons/%s/%s/ixc' % (part_type,material))
 
-            ixc = []
-            for energy in range(len(E_lep)):
-                ixc.append(np.asarray(dataset_ixc[E_lep[energy]]))
+            out_arr = np.asarray([ixc_table['cdf_%s' % model][ixc_table['energy']==i] for i in E_lep])
 
-            ixc = np.asarray(ixc)
-
-            out_arr = ixc
-
-            if out=='y':
-                v2 = -np.linspace(0.1,3,num=30)
-                yvals = 10**v2 # The integrated cross-section values should go from y = 0, 10^(-0.1), 10^(-0.2).., 10^(-3). This is a convention we chose to adopt.
-                yvals = np.insert(yvals,0,0) # pad with 0 at the beginning
-                fnm = "ixc_%s_%s_%s.dat" % (part_type,material,model)
-                np.savetxt(fnm, np.transpose([np.repeat(E_lep,31),np.tile(yvals,121),ixc.flatten()]), header="Energy[GeV]" + "\t" + "y" + "\t" + "%s_cdf" % model)
-                print('Cross-section CDF data saved to file %s' % fnm)
+            if out:
+                fnm = "ixc_%s_%s_%s.ecsv" % (part_type,material,model)
+                out_table = Table([ixc_table['energy'], ixc_table['y'], ixc_table['cdf_%s' % model]], meta=ixc_table.meta)
+                ascii.write(out_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
+                print('%s cross-section CDF data saved to file %s' % (part_type,fnm))
 
             return np.asfortranarray(out_arr)
 
         except KeyError or TypeError:
-            model = str(input("Error finding energy loss cross-section values for %s model, please enter a valid model name: " % str(model)))
+            model = str(input("Error finding energy loss cross-section values for %s, please enter a valid model name: " % str(model)))
             return None
     return None
 
-def add_alpha(alpha, lepton, material):
+def add_alpha(lepton, material, alpha_table):
     '''
 
     Parameters
@@ -475,14 +420,12 @@ def add_alpha(alpha, lepton, material):
         Creates lepton ionization energy loss lookup entries in lookup_tables.h5.
 
     '''
-    with importlib_resources.as_file(ref) as lookup_tables:
-        hdf = HDFStore(lookup_tables,'a')
-        alpha_df = pd.DataFrame({'energy':E_lep,'alpha':alpha})
-        hdf.put('Energy_Loss/%s/%s/alpha' % (lepton,material),alpha_df, format='t', data_columns=True)
-        hdf.close()
-        return print("%s_alpha lookup table successfully created in %s" % (lepton,material))
 
-def get_alpha(lepton, material, out='n'):
+    with importlib_resources.as_file(ref) as lookup_tables:
+        alpha_table.write(lookup_tables, path='Leptons/%s/%s/alpha' % (lepton,material), append=True, overwrite=True)
+    return print("%s_alpha lookup table successfully created for %s" % (lepton,material))
+
+def get_alpha(lepton, material, out=False):
     '''
 
     Parameters
@@ -491,8 +434,8 @@ def get_alpha(lepton, material, out='n'):
         Lepton. Can be tau or muon.
     material : str
         Material of propagation.
-    out : str, optional
-        'y' to write output to file. The default is 'n'.
+    out : boolean, optional
+        Set this to True to write output to file. The default is False.
 
     Returns
     -------
@@ -501,18 +444,17 @@ def get_alpha(lepton, material, out='n'):
 
     '''
     with importlib_resources.as_file(ref) as lookup_tables:
-        alpha_df = pd.read_hdf(lookup_tables,'Energy_Loss/%s/%s/alpha' % (lepton,material))
-    alpha_arr = alpha_df.alpha
-    out_arr = np.asarray(alpha_arr)
+        alpha_table = Table.read(lookup_tables,path='Leptons/%s/%s/alpha' % (lepton,material))
+    out_arr = alpha_table['alpha']
 
-    if out=='y':
-        fnm = "alpha_%s_%s.dat" % (lepton,material)
-        np.savetxt(fnm, np.transpose([E_lep,out_arr]), header="Energy[GeV]" + "\t" + str("alpha[(GeV*cm^2)/g]"))
+    if out:
+        fnm = "alpha_%s_%s.ecsv" % (lepton,material)
+        ascii.write(alpha_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
         print('Alpha data saved to file %s' % fnm)
 
     return np.asfortranarray(out_arr.T)
 
-def add_beta(beta_arr, lepton, material, model, beta_type):
+def add_beta(lepton, material, beta_table):
     '''
 
     Parameters
@@ -523,10 +465,8 @@ def add_beta(beta_arr, lepton, material, model, beta_type):
         Lepton. Can be tau or muon.
     material : str
         Material of propagation.
-    model : str
-        Lepton energy loss model/process.
-    beta_type : str
-        Can be cut (for stochastic energy loss) or full (for continuous energy loss).
+    # model : str
+    #     Lepton energy loss model/process.
 
     Returns
     -------
@@ -535,13 +475,10 @@ def add_beta(beta_arr, lepton, material, model, beta_type):
 
     '''
     with importlib_resources.as_file(ref) as lookup_tables:
-        hdf = HDFStore(lookup_tables,'a')
-        beta_df = pd.DataFrame({'energy':E_lep, 'beta_%s' % model:beta_arr})
-        hdf.put('Energy_Loss/%s/%s/beta_%s/%s' % (lepton,material,beta_type,model), beta_df, format='t', data_columns=True)
-        hdf.close()
-        return print("%s_beta_%s lookup table successfully created in %s" % (lepton,beta_type,material))
+        beta_table.write(lookup_tables, path='Leptons/%s/%s/beta' % (lepton,material), append=True, overwrite=True)
+    return print("%s_beta in %s lookup table successfully created" % (lepton,material))
 
-def get_beta(lepton, material, model, beta_type, out='n'):
+def get_beta(lepton, material, model, beta_type, out=False):
     '''
 
     Parameters
@@ -554,8 +491,8 @@ def get_beta(lepton, material, model, beta_type, out='n'):
         Lepton energy loss model/process.
     beta_type : str
         Can be cut (for stochastic energy loss) or full (for continuous energy loss).
-    out : str, optional
-        'y' to write output to file. The default is 'n'.
+    out : boolean, optional
+        Set this to True to write output to file. The default is False.
 
     Returns
     -------
@@ -564,13 +501,13 @@ def get_beta(lepton, material, model, beta_type, out='n'):
 
     '''
     with importlib_resources.as_file(ref) as lookup_tables:
-        beta_df = pd.read_hdf(lookup_tables,'Energy_Loss/%s/%s/beta_%s/%s' % (lepton,material,beta_type,model))
-    beta_arr = beta_df['beta_%s' % model]
-    out_arr = np.asarray(beta_arr)
+        beta_table = Table.read(lookup_tables,path='Leptons/%s/%s/beta' % (lepton,material))
+    out_arr = beta_table['beta_%s_%s' % (model,beta_type)]
 
-    if out=='y':
-        fnm = "beta_%s_%s_%s_%s.dat" % (beta_type,lepton,material,model)
-        np.savetxt(fnm, np.transpose([E_lep,out_arr]), header="Energy[GeV]" + "\t" + str("beta[cm^2/g]"))
+    if out:
+        fnm = "beta_%s_%s_%s_%s.ecsv" % (beta_type,lepton,material,model)
+        out_table = Table([beta_table['energy'], out_arr], meta=beta_table.meta)
+        ascii.write(out_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
         print('Beta data saved to file %s' % fnm)
 
     return np.asfortranarray(out_arr.T)
@@ -597,7 +534,6 @@ def combine_lep(data_type, lepton, material, pn_model, **kwargs):
         Returns a combined 3D array depending on data_type.
 
     '''
-
     if data_type == 'xc':
         xc_brem = get_xc(lepton, 'brem', material=material)
         xc_pair = get_xc(lepton, 'pair', material=material)
@@ -625,7 +561,7 @@ def combine_lep(data_type, lepton, material, pn_model, **kwargs):
 
     return None
 
-def add_pexit(nu_type, lepton, energy, prob_dict, idepth, cross_section_model, pn_model, prop_type, stats):
+def add_pexit(nu_type, lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, pexit_table):
     '''
 
     Parameters
@@ -657,21 +593,11 @@ def add_pexit(nu_type, lepton, energy, prob_dict, idepth, cross_section_model, p
     log_energy = np.log10(energy)
     energy_str = str(log_energy)
 
-    make_array = lambda x : x if isinstance(x, Iterable) else np.array([x])
+    pexit_table.write(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats), path='Exit_Probability/%s' % energy_str, append=True, overwrite=True)
 
-    angle = make_array(prob_dict['angle'])
-    no_regen = make_array(prob_dict['no_regen'])
-    regen = make_array(prob_dict['regen'])
-
-    hdf = HDFStore(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats),'a')
-    prob_df = pd.DataFrame({'angle':angle, 'no_regen':no_regen,'regen':regen})
-    prob_df.set_index("angle", inplace = True)
-
-    hdf.put('Exit_Probability/%s' % energy_str,prob_df, format='t', data_columns=True)
-    hdf.close()
     return None
 
-def get_pexit(nu_type, lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, out='n'):
+def get_pexit(nu_type, lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, out=False):
     '''
 
     Parameters
@@ -692,8 +618,8 @@ def get_pexit(nu_type, lepton, energy, idepth, cross_section_model, pn_model, pr
         Type of energy loss mechanism. Can be stochastic or continuous.
     stats : float
         Statistics or number of neutrinos injected.
-    out : str, optional
-        'y' to write output to file. The default is 'n'.
+    out : boolean, optional
+        Set this to True to write output to file. The default is False.
 
     Returns
     -------
@@ -704,20 +630,20 @@ def get_pexit(nu_type, lepton, energy, idepth, cross_section_model, pn_model, pr
     log_energy = np.log10(energy)
     energy_str = str(log_energy)
 
-    p_exit = pd.read_hdf(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats),'Exit_Probability/%s' % energy_str)
-    angle = p_exit.index
-    no_regen = p_exit.no_regen
-    regen = p_exit.regen
+    pexit_table = Table.read(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats),path='Exit_Probability/%s' % energy_str)
+
+    no_regen = pexit_table['no_regen']
+    regen = pexit_table['regen']
     out_arr = np.asarray([no_regen, regen])
 
-    if out=='y':
-        fnm = "pexit_%s_%s_%s_%skm_%s_%s_%s_%s.dat" % (nu_type, lepton, energy_str, idepth, cross_section_model, pn_model, prop_type, sci_str(stats))
-        np.savetxt(fnm, np.transpose([angle,no_regen,regen]), header="Earth_emergence_angle[deg]" + "\t" + "no_regen" + "\t" + "with_regen")
+    if out:
+        fnm = "pexit_%s_%s_%s_%skm_%s_%s_%s_%s.ecsv" % (nu_type, lepton, energy_str, idepth, cross_section_model, pn_model, prop_type, sci_str(stats))
+        ascii.write(pexit_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
         print('Exit probability data saved to file %s' % fnm)
 
     return out_arr
 
-def add_lep_out(nu_type, lepton, energy, angle, lep_dict, idepth, cross_section_model, pn_model, prop_type, stats):
+def add_lep_out(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, lep_table):
     '''
 
     Parameters
@@ -752,24 +678,10 @@ def add_lep_out(nu_type, lepton, energy, angle, lep_dict, idepth, cross_section_
     log_energy = np.log10(energy)
     energy_str = str(log_energy)
 
-    lep_energies = lep_dict["lep_energy"]
-
-    hdf = HDFStore(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats),'a')
-    try:
-        if len(lep_energies) > 1:
-            lep_df = pd.DataFrame({'lep_energy':np.around(lep_energies,decimals=5)}) # so output isn't a massive file!
-        elif len(lep_energies) == 1:
-            lep_df = pd.DataFrame({'lep_energy':np.around(lep_energies,decimals=5)}, index=[0])
-        else:
-            lep_df = pd.DataFrame({'lep_energy':np.array([0])}, index=[0])
-    except TypeError or ValueError:
-        lep_df = pd.DataFrame({'lep_energy':np.array([0])}, index=[0])
-
-    hdf.put('Lep_out_energies/%s/%d' % (energy_str,angle),lep_df, format='t', data_columns=True)
-    hdf.close()
+    lep_table.write(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats), path='Lep_out_energies/%s/%d' % (energy_str,angle), append=True, overwrite=True)
     return None
 
-def get_lep_out(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, out='n'):
+def get_lep_out(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, out=False):
     '''
 
     Parameters
@@ -792,8 +704,8 @@ def get_lep_out(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_
         Type of energy loss mechanism. Can be stochastic or continuous.
     stats : float
         Statistics or number of neutrinos injected.
-    out : str, optional
-        'y' to write output to file. The default is 'n'.
+    out : boolean, optional
+        Set this to True to write output to file. The default is False.
 
     Returns
     -------
@@ -804,12 +716,12 @@ def get_lep_out(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_
     log_energy = np.log10(energy)
     energy_str = str(log_energy)
 
-    e_out = pd.read_hdf(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats),'Lep_out_energies/%s/%s' % (energy_str,angle))
-    out_lep = 10**(np.asarray(e_out.lep_energy)) # changed 13/7/21
+    e_out = Table.read(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats),'Lep_out_energies/%s/%s' % (energy_str,angle))
+    out_lep = 10**(np.asarray(e_out['lep_energy'])) # changed 13/7/21
 
-    if out=='y':
-        fnm = "lep_out_%s_%s_%s_%sdeg_%skm_%s_%s_%s_%s.dat" % (nu_type, lepton, energy_str, angle, idepth, cross_section_model, pn_model, prop_type, sci_str(stats))
-        np.savetxt(fnm, np.transpose([out_lep]), header="lep_out_energy[GeV]")
+    if out:
+        fnm = "lep_out_%s_%s_%s_%sdeg_%skm_%s_%s_%s_%s.ecsv" % (nu_type, lepton, energy_str, angle, idepth, cross_section_model, pn_model, prop_type, sci_str(stats))
+        ascii.write(10**e_out['lep_energy'], fnm, format='ecsv', fast_writer=True, overwrite=True)
         print('Lepton outgoing energy data saved to file %s' % fnm)
 
     return out_lep
@@ -843,7 +755,7 @@ def get_lep_out(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_
 #     hdf.close()
 #     return None
 
-def add_cdf(nu_type, lepton, energy, angle, lep_dict, idepth, cross_section_model, pn_model, prop_type, stats):
+def add_cdf(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, lep_table):
     '''
 
     Parameters
@@ -878,10 +790,8 @@ def add_cdf(nu_type, lepton, energy, angle, lep_dict, idepth, cross_section_mode
     log_energy = np.log10(energy)
     energy_str = str(log_energy)
 
-    hdf = HDFStore(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats),'a')
-
     bins = np.logspace(-5,0,51) # Default binning for use with nuSpaceSim. Change if different binning required.
-    lep_out = 10**lep_dict['lep_energy'] # because lep_out energies are in log10(GeV)
+    lep_out = 10**lep_table['lep_energy'] # because lep_out energies are in log10(GeV)
     z = lep_out/energy # z = E_lep/E_nu
     binned_z = np.digitize(z, bins)
     bin_counts = np.bincount(binned_z)
@@ -893,12 +803,19 @@ def add_cdf(nu_type, lepton, energy, angle, lep_dict, idepth, cross_section_mode
     z_cumsum = np.cumsum(binned_z_fixed)
     z_cdf = z_cumsum/z_cumsum[-1]
     z_cdf[0] = 0
-    z_cdf_df = pd.DataFrame({'z':bins, 'CDF':np.around(z_cdf,decimals=8)})
-    hdf.put('Lep_out_cdf/%s/%d' % (energy_str,angle),z_cdf_df, format='t', data_columns=True)
-    hdf.close()
+    # z_cdf_df = pd.DataFrame({'z':bins, 'CDF':np.around(z_cdf,decimals=8)})
+
+    cdf_meta = OrderedDict({'Description':'Outgoing %s energy CDF' % lepton,
+                            'z':'z=E_tau/E_nu',
+                            'cdf':'Outgoing %s energy cdf value' % lepton})
+
+    cdf_table = Table([bins,z_cdf], names=('z','cdf'), meta=cdf_meta)
+
+    cdf_table.write(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats), path='Lep_out_cdf/%s/%d' % (energy_str,angle), append=True, overwrite=True)
+
     return None
 
-def get_cdf(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, out='n'):
+def get_cdf(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, out=False):
     '''
 
     Parameters
@@ -921,8 +838,8 @@ def get_cdf(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_mode
         Type of energy loss mechanism. Can be stochastic or continuous.
     stats : float
         Statistics or number of neutrinos injected.
-    out : str, optional
-        'y' to write output to file. The default is 'n'.
+    out : boolean, optional
+        Set this to True to write output to file. The default is False.
 
     Returns
     -------
@@ -934,14 +851,14 @@ def get_cdf(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_mode
     log_energy = np.log10(energy)
     energy_str = str(log_energy)
 
-    df = pd.read_hdf(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats),'Lep_out_cdf/%s/%s' % (energy_str,angle))
+    cdf_table = Table.read(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats),'Lep_out_cdf/%s/%s' % (energy_str,angle))
 
-    cdf = dict(zip(df.z, df.cdf))
-    # cdf = np.asarray(df.cdf) # uncomment this line if you want a cdf array instead of a dict
+    cdf = cdf_table['cdf']
 
-    if out=='y':
-        fnm = "cdf_%s_%s_%s_%sdeg_%skm_%s_%s_%s_%s.dat" % (nu_type, lepton, energy_str, angle, idepth, cross_section_model, pn_model, prop_type, sci_str(stats))
-        np.savetxt(fnm, np.transpose([df.z, df.cdf]), header="z=E_lep/E_nu" + "\t" + "cdf")
+    if out:
+        fnm = "cdf_%s_%s_%s_%sdeg_%skm_%s_%s_%s_%s.ecsv" % (nu_type, lepton, energy_str, angle, idepth, cross_section_model, pn_model, prop_type, sci_str(stats))
+        # np.savetxt(fnm, np.transpose([df.z, df.cdf]), header="z=E_lep/E_nu" + "\t" + "cdf")
+        ascii.write(cdf_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
         print('Lepton outgoing energy CDF data saved to file %s' % fnm)
     return cdf
 
@@ -959,6 +876,30 @@ def get_cdf(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_mode
 #     f.attrs['cdf_bin_size'] = cdf_bin_size
 #     f.close()
 #     return None
+# part_type, xc_obj, model, **kwargs
+
+# def get_add_xc(part_type, model, **kwargs):
+#     if part_type == 'nu':
+#         nu_type = kwargs['nu_type']
+#         xc_arr = get_xc(part_type, model, nu_type=nu_type).T
+#         xc_cc = xc_arr[0]
+#         xc_nc = xc_arr[1]
+#         xc_meta = OrderedDict({'Description':'%s-nucleon cross-section values for %s' % (nu_type,model),
+#                                'energy':'Neutrino energy, in GeV',
+#                                'sigma_cc':'Charged current cross-section, in cm^2',
+#                                'sigma_nc':'Neutral current cross-section, in cm^2'})
+#         xc_table = Table([E_nu, xc_cc, xc_nc], names=('energy','sigma_cc','sigma_nc'), meta=xc_meta)
+#         add_xc(part_type,xc_table,model,nu_type=nu_type)
+#     else:
+#         material = kwargs['material']
+#         xc_arr = get_xc(part_type, model, material=material).T
+#         xc_meta = OrderedDict({'Description':'%s-nucleon cross-section values for %s in %s' % (part_type,model,material),
+#                                'energy':'%s energy, in GeV' % part_type,
+#                                'sigma_%s' % model:'cross-section for %s * N_A/A, in cm^2/g' % model})
+#         xc_table = Table([E_lep, xc_arr], names=('energy','sigma_%s' % model), meta=xc_meta)
+#         add_xc(part_type,xc_table,model,material=material)
+
+#     return None
 
 # =============================================================================
 # Test
@@ -966,37 +907,17 @@ def get_cdf(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_mode
 if __name__ == "__main__":
     # arr = get_beta('tau', 'rock', 'total', 'allm', True)
     # add_pexit_manual(1e9, np.arange(1,36), 1e8)
-    # pass
-    # pexit = get_pexit('tau', 1e7, p_type='regen', loss_type='stochastic')
-    # add_cdf('tau', 'full')
-    # write_xc('nu', 'allm', particle='neutrino')
-    # write_xc('nu', 'allm', particle='anti-neutrino')
-    # write_xc('tau', 'pn_bb', material='rock')
-    # get_ixc('tau', 'pn_allm', out='y', material='rock')
+    pass
+    # for nu_type in nu_types:
+    #     for model in nu_xc:
+    #         nu_ixc = get_ixc('nu', model, out=True, nu_type=nu_type)
+    #         nu_xc = get_xc('nu', model, out=True, nu_type=nu_type)
 
-    # type_traj = 'col'
-    # angle = 10
-    # idepth = 4
-    # part_type = 'nu'
-    # model = 'ct18nlo'
-    # nu_type = 'neutrino'
-    # material = 'rock'
-    # beta_type = 'cut'
-    # lepton = 'tau'
-    # energy = 1e7
-    # cross_section_model = 'ct18nlo'
-    # pn_model = 'allm'
-    # prop_type = 'stochastic'
-    # stats = 1e8
-
-    col_traj = get_trajs('col', 10, 4, out='y')
-    # water_traj = get_trajs('water', 10, 4, out='y')
-    # nu_xc = get_xc('nu', 'ct18nlo', out='y', nu_type = 'neutrino')
-    # lep_xc = get_xc('tau', 'pn_allm', out='y', material = 'rock')
-    # nu_ixc = get_ixc('nu', 'ct18nlo', out='y', nu_type = 'neutrino')
-    # lep_ixc = get_ixc('tau', 'pn_allm', out='y', material = 'rock')
-    # alpha = get_alpha('tau', 'rock', out='y')
-    # beta = get_beta('tau', 'rock', 'pn_allm', 'total', out='y')
-    # get_pexit('neutrino', 'tau', 1e7, 4, 'ct18nlo', 'allm', 'stochastic', 1e8, out='y')
-    # get_lep_out('neutrino', 'tau', 1e7, 10, 4, 'ct18nlo', 'allm', 'stochastic', 1e8, out='y')
-    # get_cdf('neutrino', 'tau', 1e7, 10, 4, 'ct18nlo', 'allm', 'stochastic', 1e8, out='y')
+    # for lepton in lep:
+    #     for material in materials:
+    #         get_alpha(lepton, material, out=True)
+    #         for process in lep_processes:
+    #             lep_xc = get_ixc(lepton, process, out=True, material=material)
+    #             lep_ixc = get_ixc(lepton, process, out=True, material=material)
+    #             for beta_type in beta_types:
+    #                 lep_beta = get_beta(lepton, material, process, beta_type, out=True)

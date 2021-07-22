@@ -7,7 +7,9 @@ Created on Wed May 26 11:55:30 2021
 """
 
 import nupyprop.data as Data
+# import data as Data
 from nupyprop.propagate import geometry as Geometry
+# from propagate import geometry as Geometry
 
 from collections import OrderedDict
 import numpy as np
@@ -298,16 +300,16 @@ def create_traj_table(idepth):
 
     beta_col, xalong, cdalong = gen_col_trajs(idepth)
     col_meta = OrderedDict({'Description':'Column trajectories for water layer = %s km' % str(idepth),
-                'beta':'Earth emergence angle, in degrees',
-                'xalong':'Distance in water, in km',
-                'cdalong':'Column depth at xalong, in g/cm^2'})
+                            'beta':'Earth emergence angle, in degrees',
+                            'xalong':'Distance in water, in km',
+                            'cdalong':'Column depth at xalong, in g/cm^2'})
     col_table = Table([beta_col, xalong, cdalong], names=('beta','xalong','cdalong'), meta=col_meta)
 
     beta_water, chord, water = gen_water_trajs(idepth)
     water_meta = OrderedDict({'Description':'Water trajectories for water layer = %s km' % str(idepth),
-                'beta':'Earth emergence angle, in degrees',
-                'chord':'Chord length, in km',
-                'water':'Final water layer distance, in km'})
+                              'beta':'Earth emergence angle, in degrees',
+                              'chord':'Chord length, in km',
+                              'water':'Final water layer distance, in km'})
     water_table = Table([beta_water, chord, water], names=('beta','chord','water'), meta=water_meta)
 
     Data.add_trajs('col', int(idepth), col_table)

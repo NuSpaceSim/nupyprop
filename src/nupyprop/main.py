@@ -7,14 +7,19 @@ Created on Mon Mar 15 14:04:46 2021
 """
 
 import nupyprop.data as Data
+# import data as Data
 import nupyprop.geometry as Geometry
-
+# import geometry as Geometry
 from nupyprop.propagate import run as Run
+# from propagate import run as Run
 
 import numpy as np
-import random
-import matplotlib.pyplot as plt
-from matplotlib.ticker import ScalarFormatter
+from astropy.table import Table
+from collections import OrderedDict
+from collections.abc import Iterable
+# import random
+# import matplotlib.pyplot as plt
+# from matplotlib.ticker import ScalarFormatter
 import time
 import os
 import glob
@@ -81,9 +86,9 @@ def init_xc(nu_type, lepton, nu_model, pn_model, prop_type):
         2D array containing bremmstrahlung, pair production & photonuclear energy loss values for rock, in cm^2/g.
 
     '''
-    pn_model = 'pn_' + pn_model
+    # pn_model = 'pn_' + pn_model
 
-    nu_xc = Data.get_xc('nu', nu_model, particle=nu_type)
+    nu_xc = Data.get_xc('nu', nu_model, nu_type=nu_type)
 
     xc_water = Data.combine_lep('xc', lepton, 'water', pn_model)
 
@@ -126,9 +131,9 @@ def init_ixc(nu_type, lepton, nu_model, pn_model):
         3D array containing lepton integrated cross-section CDF values for rock.
 
     '''
-    pn_model = 'pn_' + pn_model
+    # pn_model = 'pn_' + pn_model
 
-    ixc_nu = Data.get_ixc('nu', nu_model, particle=nu_type)
+    ixc_nu = Data.get_ixc('nu', nu_model, nu_type=nu_type)
 
     ixc_water = Data.combine_lep('ixc', lepton, 'water', pn_model)
 
@@ -196,6 +201,7 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton,
 
     '''
 
+    make_array = lambda x : x if isinstance(x, Iterable) else np.array([x]) # to avoid errors with single or no columns
 
     nu_xc, xc_water, xc_rock, alpha_water, alpha_rock, beta_water, beta_rock = init_xc(nu_type, lepton, cross_section_model, pn_model, prop_type)
 
@@ -205,7 +211,7 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton,
 
     ithird = 0 # use dn/dy in tau to neutrino
 
-    prob_dict = {}
+    # prob_dict = {}
 
     if prop_type == 'stochastic':
         prop_type_int = 1
@@ -222,14 +228,14 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton,
     elif nu_type == 'anti-neutrino':
         nu_type = 'anu'
 
-    for energy in E_prop:
-        for angle in angles:
-            chk_flag = Data.chk_file(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats) # checks if output file exists for any run list of energies & angles
-            if chk_flag == 0: break
+    # for energy in E_prop:
+    #     for angle in angles:
+    #         chk_flag = Data.chk_file(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats) # checks if output file exists for any run list of energies & angles
+    #         if chk_flag == 0: break
 
-    if chk_flag == 0: # user chooses not to overwrite existing output file
-        return print("No changes made")
-    # end of check loop
+    # if chk_flag == 0: # user chooses not to overwrite existing output file
+    #     return print("No changes made")
+    # # end of check loop
 
     print("The water -> rock transition occurs at %.2f degrees" % Geometry.find_interface(idepth)[0])
 
@@ -239,7 +245,6 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton,
         pexit_file.close()
         start_time = time.time()
         for angle in angles:
-            pexit_file = open("pexit_%.2f.dat" % np.log10(energy), "a")
             # pexit_file.write(str("%.5e") % energy + "\t" + str("%.5e") % angle + "\t")
             xalong, cdalong = Data.get_trajs('col', angle, idepth) # initialize arrays here for each angle, to reduce a ton of overhead when tauthrulayers & regen are called
 
@@ -254,28 +259,45 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton,
             prob_no_regen = no_regen/float(stats)
             prob_regen = regen/float(stats)
 
-            pexit_file.write(str("%.5e") % energy + "\t" + str("%.5e") % angle + "\t" + str("%.5e") % prob_no_regen + "\t" + str("%.5e") % prob_regen + "\n")
-            pexit_file.close()
+            with open("pexit_%.2f.dat" % np.log10(energy), "a") as pexit_file:
+                pexit_file.write(str("%.5e") % energy + "\t" + str("%.5e") % angle + "\t" + str("%.5e") % prob_no_regen + "\t" + str("%.5e") % prob_regen + "\n")
 
-            lep_dict = create_lep_out_dict(energy, angle)
+            e_out = make_array(np.genfromtxt(str("e_out_%.2E_%.2f" % (energy, angle))))
 
-            Data.add_cdf(nu_type, lepton, energy, angle, lep_dict, idepth, cross_section_model, pn_model, prop_type, stats) # adds the binned cdf values for each energy and angle to output file
+
+
+            lep_meta = OrderedDict({'Description':'Outgoing %s energies' % lepton,
+                                    'lep_energy':'Outgoing %s energy, in log_10(E) GeV'})
+
+            lep_table = Table([e_out], names=('lep_energy',), meta=lep_meta)
+
+
+            Data.add_cdf(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, lep_table) # adds the binned cdf values for each energy and angle to output file
 
 
             file_cleaner('e_out') # remove e_out files
 
             if cdf_only == 'no': # adds lep_out energies to output file
-                Data.add_lep_out(nu_type, lepton, energy, angle, lep_dict, idepth, cross_section_model, pn_model, prop_type, stats)
+                Data.add_lep_out(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, lep_table)
 
 
         # # end of for loop for angles
         p_angle, p_noregen, p_regen = np.genfromtxt("pexit_%.2f.dat" % np.log10(energy), usecols=(1,2,3), skip_header=1, unpack=True)
-        prob_dict_single = {'angle':p_angle,'no_regen':p_noregen,'regen':p_regen}
-        Data.add_pexit(nu_type, lepton, energy, prob_dict_single, idepth, cross_section_model, pn_model, prop_type, stats) # adds p_exit results to output file
+        # prob_dict_single = {'angle':p_angle,'no_regen':p_noregen,'regen':p_regen}
+
+
+        pexit_meta = OrderedDict({'Description':'Exit probability for %s' % lepton,
+                                  'beta':'Earth emergence angle, in degrees',
+                                  'no_regen':'Exit probability without including any %s regeneration' % lepton,
+                                  'regen':'Exit probability considering %s regeneration' % lepton})
+
+        pexit_table = Table([make_array(p_angle), make_array(p_noregen), make_array(p_regen)], names=('angle','no_regen','regen'), meta=pexit_meta)
+
+        Data.add_pexit(nu_type, lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, pexit_table) # adds p_exit results to output file
 
         file_cleaner('p_exit')  # remove p_exit files
 
-        prob_dict[energy]={'no_regen':prob_dict_single['no_regen'],'regen':prob_dict_single['regen']} # if you want to print out at the end of running the code
+        # prob_dict[energy]={'no_regen':prob_dict_single['no_regen'],'regen':prob_dict_single['regen']} # if you want to print out at the end of running the code
 
         print("Done!")
         end_time = time.time()
@@ -284,7 +306,7 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton,
 
     # close of for loop for energy
 
-    return prob_dict, lep_dict
+    return None
 
 # =============================================================================
 #
@@ -293,7 +315,7 @@ if __name__ == "__main__":
     # for i in range(10):
     # random.seed(30)
     start_time = time.time()
-    angles = np.array([1,2,3])
+    angles = np.array([1])
     # angles = np.arange(1,36)
     # angles = np.array([1,2,3,4,5])
     # angles = np.array([1,2,3,5,7,10,12,15,17,20,25,30,35])
@@ -304,9 +326,9 @@ if __name__ == "__main__":
     fac_nu = 1
     lepton = 'tau'
     cross_section_model = 'ct18nlo'
-    pn_model = 'allm'
+    pn_model = 'pn_allm' # do not need to give the 'pn_' prefix if using run.py
     prop_type = 'stochastic'
-    stat = int(1e8)
+    stat = int(1e7)
     nu_type = 'neutrino'
     cdf_only = 'yes'
 
