@@ -8,6 +8,7 @@ Created on Mon Nov 30 21:02:17 2020
 
 import argparse
 import nupyprop.main as Main
+# import main as Main
 import random
 import time
 import numpy as np
@@ -18,12 +19,13 @@ def main():
     parser = argparse.ArgumentParser()
 
     # parser.add_argument('-e', '--energy', dest='energy_val', nargs='?', const=np.array([1e7, 1e8, 1e9, 1e10]), default=np.array([1e7, 1e8, 1e9, 1e10, 1e11]), help='value of incoming neutrino energy; defaults are 10^7-10^11 GeV')
-    parser.add_argument('-e', '--energy', dest='energy_val', nargs='?', const=np.logspace(7,11,17), default=np.logspace(7,11,17), help='value of incoming neutrino energy; defaults are 10^7-10^11 GeV')
+    # parser.add_argument('-e', '--energy', dest='energy_val', nargs='?', const=np.logspace(7,11,17), default=np.logspace(7,11,17), help='value of incoming neutrino energy; defaults are 10^7-10^11 GeV')
+    parser.add_argument('-e', '--energy', dest='energy_val', nargs='?', const=np.linspace(7,11,17), default=np.linspace(7,11,17), help='value of incoming neutrino energy; defaults are 10^7-10^11 GeV in quarter decades')
     # parser.add_argument('-e', '--energy', dest='energy_val', nargs='?', const=np.array([10**8.75,10**9,10**9.25,10**9.75,10**10,10**10.25,10**10.75,10**11]), default=np.array([10**8.75,10**9,10**9.25,10**9.75,10**10,10**10.25,10**10.75,10**11]), help='value of incoming neutrino energy; defaults are 10^7-10^11 GeV')
 
     # parser.add_argument('-a', '--angle', dest='angle_val', nargs='?', const=np.arange(1,41), default=np.arange(1,41), help='value of angle; defaults are 1-40 degrees')
 
-    parser.add_argument('-a', '--angle', dest='angle_val', nargs='?', const=np.arange(1,36), default=np.arange(1,36), help='value of angle; defaults are 1,3,5,7,10,12,15,17,20,25,30,35 degrees')
+    parser.add_argument('-a', '--angle', dest='angle_val', nargs='?', const=np.arange(1,36), default=np.arange(1,36), help='value of angle; defaults are 1-35 degrees, in steps of 1 degree.')
 
     # parser.add_argument('-a', '--angle', dest='angle_val', nargs='?', const=np.array([1,2,3,5,7,10,12,15,17,20,25,30,35]), default=np.array([1,2,3,5,7,10,12,15,17,20,25,30,35]), help='value of angle; defaults are 1,3,5,7,10,12,15,17,20,25,30,35 degrees')
 
@@ -31,11 +33,11 @@ def main():
 
     parser.add_argument('-l', '--lepton', dest='lepton_id', nargs='?', type=str, const='tau', default='tau', help='particle for energy loss and propagation - can be tau or muon; default is tau')
 
-    parser.add_argument('-n', '--matter', dest='matter_id', nargs='?', type=str, const='neutrino', default='neutrino', help='type of nuetrino matter - can be neutrino or anti-neutrino; default is neutrino')
+    parser.add_argument('-n', '--nu_type', dest='nu_type_id', nargs='?', type=str, const='neutrino', default='neutrino', help='type of neutrino matter - can be neutrino or anti-neutrino; default is neutrino')
 
     parser.add_argument('-t', '--energy_loss', dest='loss_type', nargs='?', type=str, const='stochastic', default='stochastic', help='energy loss type for lepton - can be stochastic or continuous; default is stochastic')
 
-    parser.add_argument('-m', '--material', dest='material_id', nargs='?', type=str, const='rock', default='rock', help='material for energy loss - can be rock or water; default is rock')
+    # parser.add_argument('-m', '--material', dest='material_id', nargs='?', type=str, const='rock', default='rock', help='material for energy loss - can be rock or water; default is rock')
 
     parser.add_argument('-x', '--xc_model', dest='xc_model_id', nargs='?', type=str, const='ct18nlo', default='ct18nlo', help='neutrino cross-section model; default is ct18nlo')
 
@@ -51,23 +53,25 @@ def main():
     args = parser.parse_args()
     # energies = np.asarray([args.energy_val])
 
-    energies = args.energy_val
-    if type(energies) is str:
-        energies = energies.split(",") if energies else []
-        energies = np.asarray([float(i) for i in energies])
+    # energies = args.energy_val
+    energies = 10**np.fromstring(args.energy_val,dtype=float, sep=',')
+    # if type(energies) is str:
+    #     energies = energies.split(",") if energies else []
+    #     energies = np.asarray([float(i) for i in energies])
 
-    angles = args.angle_val
-    if type(angles) is str:
-        angles = angles.split(",") if angles else []
-        angles = np.asarray([int(i) for i in angles])
+    # angles = args.angle_val
+    angles = np.fromstring(args.angle_val,dtype=int, sep=',')
+    # if type(angles) is str:
+    #     angles = angles.split(",") if angles else []
+    #     angles = np.asarray([int(i) for i in angles])
 
     idepth = int(args.idepth_val)
     lepton = str(args.lepton_id)
-    nu_type = str(args.matter_id)
+    nu_type = str(args.nu_type_id)
     type_loss = str(args.loss_type)
-    material = str(args.material_id)
+    # material = str(args.material_id)
     cross_section_model = str(args.xc_model_id)
-    pn_model = str(args.pn_model_id)
+    pn_model = 'pn_' + str(args.pn_model_id)
     fac_nu = float(args.fac_nu_val)
     stat = int(args.stat_val)
     cdf_only = str(args.cdf_id)
