@@ -26,11 +26,9 @@ jobs:
         os: [ubuntu-latest] #, macos-latest]
         include:
           - os: ubuntu-latest
-            target_platform: "linux-64"
-            build_parentdir: "share"
+            platform: "linux-64"
           # - os: macos-latest
           #   target_platform: "osx-64"
-            # build_parentdir: "local"
 
     steps:
     - uses: actions/checkout@v2
@@ -39,13 +37,12 @@ jobs:
         git fetch --prune --unshallow
         git fetch --depth=1 origin +refs/tags/*:refs/tags/*
 
-    - run: echo $CONDA
-
-    - name: Install Conda-build
-      run: $CONDA/bin/conda install conda-build anaconda-client
+    # - name: Install Conda-build
+    #   run: $CONDA/bin/conda install conda-build anaconda-client
 
     - name: Conda build nupyprop
       run: $CONDA/bin/conda build -c conda-forge recipe
 
     - name: Conda upload nupyprop
-      run: $CONDA/bin/anaconda -v -t ${{ secrets.ANACONDA_UPLOAD_TOKEN }} upload -u nuspacesim /usr/${{ matrix.build_parentdir }}/miniconda/conda-bld/${{ matrix.target_platform }}/nupyprop-*
+      run: $CONDA/bin/anaconda -v -t ${{ secrets.ANACONDA_UPLOAD_TOKEN }} \
+        upload -u nuspacesim $CONDA/conda-bld/${{ matrix.platform }}/nupyprop-*
