@@ -10,6 +10,7 @@ build-backend = "setuptools.build_meta"
 write_to = '_version.py'
 version_scheme = 'post-release'
 local_scheme = 'no-local-version'
+parentdir_prefix_version = 'nupyprop-'
 
 [tool.cibuildwheel]
 test-requires = "pytest"
