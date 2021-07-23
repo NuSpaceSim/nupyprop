@@ -31,7 +31,6 @@ author = 'Sameer Patel'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'matplotlib.sphinxext.plot_directive',
     'sphinxarg.ext',
     'sphinx_copybutton',
     'sphinx.ext.autodoc',
