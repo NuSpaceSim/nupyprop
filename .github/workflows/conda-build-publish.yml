@@ -21,7 +21,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         os: [ubuntu-latest, macos-latest]
         include:
@@ -48,5 +48,5 @@ jobs:
 #       run: conda build -c conda-forge recipe
 
     - name: Conda upload nupyprop
-      run: $CONDA/bin/anaconda-client -v -t ${{ secrets.ANACONDA_UPLOAD_TOKEN }} \
+      run: anaconda-client -v -t ${{ secrets.ANACONDA_UPLOAD_TOKEN }} \
         upload -u nuspacesim /usr/${{ matrix.bld_dir }}/miniconda/conda-bld/${{ matrix.platform }}/nupyprop-*
