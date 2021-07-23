@@ -48,8 +48,9 @@ jobs:
 #       run: conda build -c conda-forge recipe
 
     - run: ls -lah $CONDA/bin
+    - run: ls -lah $CONDA/condabin
     - run: echo $PATH
 
     - name: Conda upload nupyprop
-      run: anaconda-client -v -t ${{ secrets.ANACONDA_UPLOAD_TOKEN }} \
+      run: $CONDA/bin/anaconda -v -t ${{ secrets.ANACONDA_UPLOAD_TOKEN }} \
         upload -u nuspacesim /usr/${{ matrix.bld_dir }}/miniconda/conda-bld/${{ matrix.platform }}/nupyprop-*
