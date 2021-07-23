@@ -102,16 +102,16 @@ no. of neutrinos/anti-neutrinos injected).
    ============== ================ ====================== ====== =================== ==========
    Charged Lepton Energy Loss Type E<sub>&nu;</sub> [GeV] Angles N<sub>&nu;;in</sub> Time (hrs)
    ============== ================ ====================== ====== =================== ==========
-   &tau;          Stochastic       10<sup>7</sup>         1-35   10<sup>8</sup>      1.07*, 0.26***  
-   &tau;          Continuous       10<sup>7</sup>         1-35   10<sup>8</sup>      0.88*           
-   &tau;          Stochastic       10<sup>8</sup>         1-35   10<sup>8</sup>      6.18*, 1.53***  
-   &tau;          Continuous       10<sup>8</sup>         1-35   10<sup>8</sup>      5.51*           
-   &tau;          Stochastic       10<sup>9</sup>         1-35   10<sup>8</sup>      27.96*, 5.08*** 
-   &tau;          Continuous       10<sup>9</sup>         1-35   10<sup>8</sup>      19.11*          
-   &tau;          Stochastic       10<sup>10</sup>        1-35   10<sup>8</sup>      49.80*, 12.43***
-   &tau;          Continuous       10<sup>10</sup>        1-35   10<sup>8</sup>      35.59*          
-   &tau;          Stochastic       10<sup>11</sup>        1-35   10<sup>8</sup>      12.73***        
-   &tau;          Continuous       10<sup>11</sup>        1-35   10<sup>8</sup>      -               
+   :math:`{tau}`  Stochastic       10\ :sup:`7`           1-35   10\ :sup:`8`        1.07*, 0.26***  
+   :math:`{tau}`  Continuous       10\ :sup:`7`           1-35   10\ :sup:`8`        0.88*           
+   :math:`{tau}`  Stochastic       10\ :sup:`8`           1-35   10\ :sup:`8`        6.18*, 1.53***  
+   :math:`{tau}`  Continuous       10\ :sup:`8`           1-35   10\ :sup:`8`        5.51*           
+   :math:`{tau}`  Stochastic       10\ :sup:`9`           1-35   10\ :sup:`8`        27.96*, 5.08*** 
+   :math:`{tau}`  Continuous       10\ :sup:`9`           1-35   10\ :sup:`8`        19.11*          
+   :math:`{tau}`  Stochastic       10\ :sup:`10`          1-35   10\ :sup:`8`        49.80*, 12.43***
+   :math:`{tau}`  Continuous       10\ :sup:`10`          1-35   10\ :sup:`8`        35.59*          
+   :math:`{tau}`  Stochastic       10\ :sup:`11`          1-35   10\ :sup:`8`        12.73***        
+   :math:`{tau}`  Continuous       10\ :sup:`11`          1-35   10\ :sup:`8`        -               
    ============== ================ ====================== ====== =================== ==========
 
 
@@ -120,18 +120,18 @@ no. of neutrinos/anti-neutrinos injected).
   ============== ================ ====================== ================================= =================== ==========
   Charged Lepton Energy Loss Type E<sub>&nu;</sub> [GeV] Angles                            N<sub>&nu;;in</sub> Time (hrs)
   ============== ================ ====================== ================================= =================== ==========
-  &mu;           Stochastic       10<sup>6</sup>         1,2,3,5,7,10,12,15,17,20,25,30,35 10<sup>8</sup>      -        
-  &mu;           Continuous       10<sup>6</sup>         1,2,3,5,7,10,12,15,17,20,25,30,35 10<sup>8</sup>      0.95*    
-  &mu;           Stochastic       10<sup>7</sup>         1,2,3,5,7,10,12,15,17,20,25,30,35 10<sup>8</sup>      -        
-  &mu;           Continuous       10<sup>7</sup>         1,2,3,5,7,10,12,15,17,20,25,30,35 10<sup>8</sup>      3.19*    
-  &mu;           Stochastic       10<sup>8</sup>         1,2,3,5,7,10,12,15,17,20,25,30,35 10<sup>8</sup>      -        
-  &mu;           Continuous       10<sup>8</sup>         1,2,3,5,7,10,12,15,17,20,25,30,35 10<sup>8</sup>      5.17*    
-  &mu;           Stochastic       10<sup>9</sup>         1,2,3,5,7,10,12,15,17,20,25,30,35 10<sup>8</sup>      111.77** 
-  &mu;           Continuous       10<sup>9</sup>         1,2,3,5,7,10,12,15,17,20,25,30,35 10<sup>8</sup>      7.42*    
-  &mu;           Stochastic       10<sup>10</sup>        1,2,3,5,7,10,12,15,17,20,25,30,35 10<sup>8</sup>      98.17*   
-  &mu;           Continuous       10<sup>10</sup>        1,2,3,5,7,10,12,15,17,20,25,30,35 10<sup>8</sup>      9.76*    
-  &mu;           Stochastic       10<sup>11</sup>        1,2,3,5,7,10,12,15,17,20,25,30,35 10<sup>8</sup>      -        
-  &mu;           Continuous       10<sup>11</sup>        1,2,3,5,7,10,12,15,17,20,25,30,35 10<sup>8</sup>      -        
+  :math:`{mu}`   Stochastic       10\ :sup:`6`           1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:8`         -        
+  :math:`{mu}`   Continuous       10\ :sup:`6`           1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:8`         0.95*    
+  :math:`{mu}`   Stochastic       10\ :sup:`7`           1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:8`         -        
+  :math:`{mu}`   Continuous       10\ :sup:`7`           1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:8`         3.19*    
+  :math:`{mu}`   Stochastic       10\ :sup:`8`           1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:8`         -        
+  :math:`{mu}`   Continuous       10\ :sup:`8`           1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:8`         5.17*    
+  :math:`{mu}`   Stochastic       10\ :sup:`9`           1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:8`         111.77** 
+  :math:`{mu}`   Continuous       10\ :sup:`9`           1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:8`         7.42*    
+  :math:`{mu}`   Stochastic       10\ :sup:`10`          1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:8`         98.17*   
+  :math:`{mu}`   Continuous       10\ :sup:`10`          1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:8`         9.76*    
+  :math:`{mu}`   Stochastic       10\ :sup:`11`          1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:8`         -        
+  :math:`{mu}`   Continuous       10\ :sup:`11`          1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:8`         -        
   ============== ================ ====================== ================================= =================== ==========
 
 \* - Intel Core i7-8750H; 6 cores & 12 threads. \*\* - Intel Core
