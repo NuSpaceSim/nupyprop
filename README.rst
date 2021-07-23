@@ -100,7 +100,7 @@ no. of neutrinos/anti-neutrinos injected).
 .. table:: **Code Execution Timing Table for Taus**:
 
    ============== ================ ========================== ====== =================== ==========
-   Charged Lepton Energy Loss Type E\ :sub:`:math:`nu`` [GeV]     Angles N\ :sub:`nu;;in`    Time (hrs)
+   Charged Lepton Energy Loss Type E\ :sub:`:math:`nu`` [GeV] Angles N\ :sub:`nu;;in`    Time (hrs)
    ============== ================ ========================== ====== =================== ==========
    :math:`tau`    Stochastic       10\ :sup:`7`               1-35   10\ :sup:`8`        1.07*, 0.26***  
    :math:`tau`    Continuous       10\ :sup:`7`               1-35   10\ :sup:`8`        0.88*           
