@@ -195,6 +195,9 @@ instead, or a ``virtualenv``, or a conda environment.
    ``python3 -m pip install -e .``
    
 ---
-.. raw:: html
-
-<a href="https://hits.seeyoufarm.com"><img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2FNuSpaceSim%2Fnupyprophttps%3A%2F%2Fgithub.com%2FNuSpaceSim%2Fnupyprop&count_bg=%2379C83D&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=hits&edge_flat=false"/></a>                                                                                              
+.. image:: https://hitcounter.pythonanywhere.com/count/tag.svg?url=https%3A%2F%2Fgithub.com%2FNuSpaceSim%2Fnupyprop
+   :height: 100px
+   :width: 200 px
+   :scale: 50 %
+   :alt: alternate text
+   :align: right
