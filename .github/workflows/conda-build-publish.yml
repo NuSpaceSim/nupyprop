@@ -39,6 +39,8 @@ jobs:
         git fetch --prune --unshallow
         git fetch --depth=1 origin +refs/tags/*:refs/tags/*
 
+    - run: echo $CONDA
+
     - name: Install Conda-build
       run: $CONDA/bin/conda install conda-build anaconda-client
 
