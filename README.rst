@@ -193,3 +193,9 @@ instead, or a ``virtualenv``, or a conda environment.
 4. ``cd nupyprop``
 5. build and install the package in ‘editable’ mode
    ``python3 -m pip install -e .``
+
+---
+
+[![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2FNuSpaceSim%2Fnupyprop&count_bg=%2379C83D&title_bg=%23555555&icon=atom.svg&icon_color=%23E7E7E7&title=hits&edge_flat=false)](https://hits.seeyoufarm.com)
+
+---
