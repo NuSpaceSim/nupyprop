@@ -194,10 +194,4 @@ instead, or a ``virtualenv``, or a conda environment.
 5. build and install the package in ‘editable’ mode
    ``python3 -m pip install -e .``
    
----
 .. image:: https://hitcounter.pythonanywhere.com/count/tag.svg?url=https%3A%2F%2Fgithub.com%2FNuSpaceSim%2Fnupyprop
-   :height: 100px
-   :width: 200 px
-   :scale: 50 %
-   :alt: alternate text
-   :align: right
