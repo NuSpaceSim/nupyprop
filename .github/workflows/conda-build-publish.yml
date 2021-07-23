@@ -52,5 +52,4 @@ jobs:
     - run: echo $PATH
 
     - name: Conda upload nupyprop
-      run: $CONDA/bin/anaconda -v -t ${{ secrets.ANACONDA_UPLOAD_TOKEN }} \
-        upload -u nuspacesim /usr/${{ matrix.bld_dir }}/miniconda/conda-bld/${{ matrix.platform }}/nupyprop-*
+      run: $CONDA/bin/anaconda -v -t ${{ secrets.ANACONDA_UPLOAD_TOKEN }} upload -u nuspacesim /usr/${{ matrix.bld_dir }}/miniconda/conda-bld/${{ matrix.platform }}/nupyprop-*
