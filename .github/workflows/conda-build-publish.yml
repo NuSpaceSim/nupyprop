@@ -27,10 +27,8 @@ jobs:
         include:
           - os: ubuntu-latest
             platform: "linux-64"
-            bld_dir: share
           - os: macos-latest
             target_platform: "osx-64"
-            bld_dir: local
 
     steps:
     - uses: actions/checkout@v2
@@ -48,4 +46,6 @@ jobs:
       run: conda build -c conda-forge recipe
 
     - name: Conda upload nupyprop
-      run: $CONDA/bin/anaconda -v -t ${{ secrets.ANACONDA_UPLOAD_TOKEN }} upload -u nuspacesim /usr/${{ matrix.bld_dir }}/miniconda/conda-bld/${{ matrix.platform }}/nupyprop-*
+      run: |
+        $CONDA/bin/anaconda -v -t ${{ secrets.ANACONDA_UPLOAD_TOKEN }} upload \
+           -u nuspacesim $CONDA/conda-bld/${{ matrix.platform }}/nupyprop-*
