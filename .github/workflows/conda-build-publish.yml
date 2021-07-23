@@ -44,9 +44,9 @@ jobs:
     - name: Install Conda-build
       run: conda install conda-build anaconda-client
 
-    - name: Conda build nupyprop
-      run: conda build -c conda-forge recipe
+#     - name: Conda build nupyprop
+#       run: conda build -c conda-forge recipe
 
     - name: Conda upload nupyprop
-      run: anaconda -v -t ${{ secrets.ANACONDA_UPLOAD_TOKEN }} \
+      run: $CONDA/bin/anaconda-client -v -t ${{ secrets.ANACONDA_UPLOAD_TOKEN }} \
         upload -u nuspacesim /usr/${{ matrix.bld_dir }}/miniconda/conda-bld/${{ matrix.platform }}/nupyprop-*
