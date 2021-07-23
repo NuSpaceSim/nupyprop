@@ -2,3 +2,7 @@
 
 Geometry
 ========
+
+.. automodule:: nupyprop.geometry
+   :members:
+   :undoc-members:

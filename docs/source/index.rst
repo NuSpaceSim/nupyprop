@@ -42,7 +42,6 @@ code.
 
 Use the sidebar on the left to access the documentation for each module.
 
-
 .. toctree::
    :hidden:
    :caption: Contents:

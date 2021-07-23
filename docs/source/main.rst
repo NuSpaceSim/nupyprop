@@ -2,3 +2,6 @@
 
 Main Module
 ===========
+
+.. automodule:: nupyprop.main
+    :members:
