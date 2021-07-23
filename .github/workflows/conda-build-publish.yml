@@ -37,9 +37,10 @@ jobs:
         git fetch --prune --unshallow
         git fetch --depth=1 origin +refs/tags/*:refs/tags/*
 
-    # - name: Install Conda-build
-    #   run: $CONDA/bin/conda install conda-build anaconda-client
     - uses: conda-incubator/setup-miniconda@v2
+
+    - name: Install Conda-build
+      run: conda install conda-build anaconda-client
 
     - name: Conda build nupyprop
       run: conda build -c conda-forge recipe
