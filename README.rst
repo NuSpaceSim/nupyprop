@@ -99,40 +99,40 @@ no. of neutrinos/anti-neutrinos injected).
 
 .. table:: **Code Execution Timing Table for Taus**:
 
-   ============== ================ ================== ====== =================== ==========
-   Charged Lepton Energy Loss Type E\ :sub:`nu` [GeV] Angles N\ :sub:`nu;;in`    Time (hrs)
-   ============== ================ ================== ====== =================== ==========
-   :math:`tau`    Stochastic       10\ :sup:`7`       1-35   10\ :sup:`8`        1.07*, 0.26***  
-   :math:`tau`    Continuous       10\ :sup:`7`       1-35   10\ :sup:`8`        0.88*           
-   :math:`tau`    Stochastic       10\ :sup:`8`       1-35   10\ :sup:`8`        6.18*, 1.53***  
-   :math:`tau`    Continuous       10\ :sup:`8`       1-35   10\ :sup:`8`        5.51*           
-   :math:`tau`    Stochastic       10\ :sup:`9`       1-35   10\ :sup:`8`        27.96*, 5.08*** 
-   :math:`tau`    Continuous       10\ :sup:`9`       1-35   10\ :sup:`8`        19.11*          
-   :math:`tau`    Stochastic       10\ :sup:`10`      1-35   10\ :sup:`8`        49.80*, 12.43***
-   :math:`tau`    Continuous       10\ :sup:`10`      1-35   10\ :sup:`8`        35.59*          
-   :math:`tau`    Stochastic       10\ :sup:`11`      1-35   10\ :sup:`8`        12.73***        
-   :math:`tau`    Continuous       10\ :sup:`11`      1-35   10\ :sup:`8`        -               
-   ============== ================ ================== ====== =================== ==========
+   ============== ================ ==================== ====== =================== ==========
+   Charged Lepton Energy Loss Type E\ :sub:`|nu|` [GeV] Angles N\ :sub:`|nu|;;in`    Time (hrs)
+   ============== ================ ==================== ====== =================== ==========
+   |tau|          Stochastic       10\ :sup:`7`         1-35   10\ :sup:`8`        1.07*, 0.26***  
+   |tau|          Continuous       10\ :sup:`7`         1-35   10\ :sup:`8`        0.88*           
+   |tau|          Stochastic       10\ :sup:`8`         1-35   10\ :sup:`8`        6.18*, 1.53***  
+   |tau|          Continuous       10\ :sup:`8`         1-35   10\ :sup:`8`        5.51*           
+   |tau|          Stochastic       10\ :sup:`9`         1-35   10\ :sup:`8`        27.96*, 5.08*** 
+   |tau|          Continuous       10\ :sup:`9`         1-35   10\ :sup:`8`        19.11*          
+   |tau|          Stochastic       10\ :sup:`10`        1-35   10\ :sup:`8`        49.80*, 12.43***
+   |tau|          Continuous       10\ :sup:`10`        1-35   10\ :sup:`8`        35.59*          
+   |tau|          Stochastic       10\ :sup:`11`        1-35   10\ :sup:`8`        12.73***        
+   |tau|          Continuous       10\ :sup:`11`        1-35   10\ :sup:`8`        -               
+   ============== ================ ==================== ====== =================== ==========
 
 
 .. table:: **Code Execution Timing Table for Muons**:
 
-  ============== ================ ================== ================================= ================ ==========
-  Charged Lepton Energy Loss Type E\ :sub:`nu` [GeV] Angles                            N\ :sub:`nu;;in` Time (hrs)
-  ============== ================ ================== ================================= ================ ==========
-  :math:`mu`     Stochastic       10\ :sup:`6`       1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:`8`     -        
-  :math:`mu`     Continuous       10\ :sup:`6`       1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:`8`     0.95*    
-  :math:`mu`     Stochastic       10\ :sup:`7`       1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:`8`     -        
-  :math:`mu`     Continuous       10\ :sup:`7`       1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:`8`     3.19*    
-  :math:`mu`     Stochastic       10\ :sup:`8`       1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:`8`     -        
-  :math:`mu`     Continuous       10\ :sup:`8`       1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:`8`     5.17*    
-  :math:`mu`     Stochastic       10\ :sup:`9`       1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:`8`     111.77** 
-  :math:`mu`     Continuous       10\ :sup:`9`       1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:`8`     7.42*    
-  :math:`mu`     Stochastic       10\ :sup:`10`      1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:`8`     98.17*   
-  :math:`mu`     Continuous       10\ :sup:`10`      1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:`8`     9.76*    
-  :math:`mu`     Stochastic       10\ :sup:`11`      1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:`8`     -        
-  :math:`mu`     Continuous       10\ :sup:`11`      1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:`8`     -        
-  ============== ================ ================== ================================= ================ ==========
+  ============== ================ ==================== ================================= ================== ==========
+  Charged Lepton Energy Loss Type E\ :sub:`|nu|` [GeV] Angles                            N\ :sub:`|nu|;;in` Time (hrs)
+  ============== ================ ==================== ================================= ================== ==========
+  |mu|           Stochastic       10\ :sup:`6`         1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:`8`       -        
+  |mu|           Continuous       10\ :sup:`6`         1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:`8`       0.95*    
+  |mu|           Stochastic       10\ :sup:`7`         1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:`8`       -        
+  |mu|           Continuous       10\ :sup:`7`         1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:`8`       3.19*    
+  |mu|           Stochastic       10\ :sup:`8`         1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:`8`       -        
+  |mu|           Continuous       10\ :sup:`8`         1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:`8`       5.17*    
+  |mu|           Stochastic       10\ :sup:`9`         1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:`8`       111.77** 
+  |mu|           Continuous       10\ :sup:`9`         1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:`8`       7.42*    
+  |mu|           Stochastic       10\ :sup:`10`        1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:`8`       98.17*   
+  |mu|           Continuous       10\ :sup:`10`        1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:`8`       9.76*    
+  |mu|           Stochastic       10\ :sup:`11`        1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:`8`       -        
+  |mu|           Continuous       10\ :sup:`11`        1,2,3,5,7,10,12,15,17,20,25,30,35 10\ :sup:`8`       -        
+  ============== ================ ==================== ================================= ================== ==========
 
 \* - Intel Core i7-8750H; 6 cores & 12 threads. \*\* - Intel Core
 i5-10210; 4 cores & 8 threads. \**\* - UIowa Argon cluster; 56 cores.
@@ -195,3 +195,56 @@ instead, or a ``virtualenv``, or a conda environment.
    ``python3 -m pip install -e .``
    
 .. image:: https://hitcounter.pythonanywhere.com/count/tag.svg?url=https%3A%2F%2Fgithub.com%2FNuSpaceSim%2Fnupyprop
+
+.. This data file has been placed in the public domain.
+.. Derived from the Unicode character mappings available from
+   <http://www.w3.org/2003/entities/xml/>.
+   Processed by unicode2rstsubs.py, part of Docutils:
+   <http://docutils.sourceforge.net>.
+
+.. |alpha|  unicode:: U+003B1 .. GREEK SMALL LETTER ALPHA
+.. |beta|   unicode:: U+003B2 .. GREEK SMALL LETTER BETA
+.. |chi|    unicode:: U+003C7 .. GREEK SMALL LETTER CHI
+.. |Delta|  unicode:: U+00394 .. GREEK CAPITAL LETTER DELTA
+.. |delta|  unicode:: U+003B4 .. GREEK SMALL LETTER DELTA
+.. |epsi|   unicode:: U+003F5 .. GREEK LUNATE EPSILON SYMBOL
+.. |epsis|  unicode:: U+003F5 .. GREEK LUNATE EPSILON SYMBOL
+.. |epsiv|  unicode:: U+003B5 .. GREEK SMALL LETTER EPSILON
+.. |eta|    unicode:: U+003B7 .. GREEK SMALL LETTER ETA
+.. |Gamma|  unicode:: U+00393 .. GREEK CAPITAL LETTER GAMMA
+.. |gamma|  unicode:: U+003B3 .. GREEK SMALL LETTER GAMMA
+.. |Gammad| unicode:: U+003DC .. GREEK LETTER DIGAMMA
+.. |gammad| unicode:: U+003DD .. GREEK SMALL LETTER DIGAMMA
+.. |iota|   unicode:: U+003B9 .. GREEK SMALL LETTER IOTA
+.. |kappa|  unicode:: U+003BA .. GREEK SMALL LETTER KAPPA
+.. |kappav| unicode:: U+003F0 .. GREEK KAPPA SYMBOL
+.. |Lambda| unicode:: U+0039B .. GREEK CAPITAL LETTER LAMDA
+.. |lambda| unicode:: U+003BB .. GREEK SMALL LETTER LAMDA
+.. |mu|     unicode:: U+003BC .. GREEK SMALL LETTER MU
+.. |nu|     unicode:: U+003BD .. GREEK SMALL LETTER NU
+.. |Omega|  unicode:: U+003A9 .. GREEK CAPITAL LETTER OMEGA
+.. |omega|  unicode:: U+003C9 .. GREEK SMALL LETTER OMEGA
+.. |Phi|    unicode:: U+003A6 .. GREEK CAPITAL LETTER PHI
+.. |phi|    unicode:: U+003D5 .. GREEK PHI SYMBOL
+.. |phis|   unicode:: U+003D5 .. GREEK PHI SYMBOL
+.. |phiv|   unicode:: U+003C6 .. GREEK SMALL LETTER PHI
+.. |Pi|     unicode:: U+003A0 .. GREEK CAPITAL LETTER PI
+.. |pi|     unicode:: U+003C0 .. GREEK SMALL LETTER PI
+.. |piv|    unicode:: U+003D6 .. GREEK PI SYMBOL
+.. |Psi|    unicode:: U+003A8 .. GREEK CAPITAL LETTER PSI
+.. |psi|    unicode:: U+003C8 .. GREEK SMALL LETTER PSI
+.. |rho|    unicode:: U+003C1 .. GREEK SMALL LETTER RHO
+.. |rhov|   unicode:: U+003F1 .. GREEK RHO SYMBOL
+.. |Sigma|  unicode:: U+003A3 .. GREEK CAPITAL LETTER SIGMA
+.. |sigma|  unicode:: U+003C3 .. GREEK SMALL LETTER SIGMA
+.. |sigmav| unicode:: U+003C2 .. GREEK SMALL LETTER FINAL SIGMA
+.. |tau|    unicode:: U+003C4 .. GREEK SMALL LETTER TAU
+.. |Theta|  unicode:: U+00398 .. GREEK CAPITAL LETTER THETA
+.. |theta|  unicode:: U+003B8 .. GREEK SMALL LETTER THETA
+.. |thetas| unicode:: U+003B8 .. GREEK SMALL LETTER THETA
+.. |thetav| unicode:: U+003D1 .. GREEK THETA SYMBOL
+.. |Upsi|   unicode:: U+003D2 .. GREEK UPSILON WITH HOOK SYMBOL
+.. |upsi|   unicode:: U+003C5 .. GREEK SMALL LETTER UPSILON
+.. |Xi|     unicode:: U+0039E .. GREEK CAPITAL LETTER XI
+.. |xi|     unicode:: U+003BE .. GREEK SMALL LETTER XI
+.. |zeta|   unicode:: U+003B6 .. GREEK SMALL LETTER ZETA

@@ -48,13 +48,13 @@ Use the sidebar on the left to access the documentation for each module.
    :maxdepth: 2
  
    installation.rst
+   run.rst
+   main.rst
    data.rst
    geometry.rst
    cross-section.rst
    energy-loss.rst
    propagate.rst
-   main.rst
-   run.rst
 
 .. toctree::
    :hidden:
@@ -62,3 +62,4 @@ Use the sidebar on the left to access the documentation for each module.
 
    tutorial.rst
    examples.rst
+   development.rst
