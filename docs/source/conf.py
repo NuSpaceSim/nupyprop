@@ -72,6 +72,7 @@ autodoc_mock_imports = [
         "astropy",
          "h5py",
          "matplotlib",
+         "nupyprop.propagate",
          "scipy",
          "sympy",
        ]
