@@ -37,6 +37,7 @@ requirements:
     - python >=3.6
     - scipy
     - sympy
+    - pyyaml
 
 # Woe is us. We lack tests.
 test:
