@@ -16,7 +16,10 @@ from collections import OrderedDict
 E_nu = np.logspace(3,12,91,base=10).astype(np.float64)
 E_lep = np.logspace(0,12,121,base=10).astype(np.float64)
 
-ref = importlib_resources.files('nupyprop.datafiles') / 'lookup_tables.h5' # path for lookup_tables
+nu_models = ['allm', 'bdhm', 'ct18nlo', 'nct15']
+pn_models = ['allm', 'bb']
+
+# ref = importlib_resources.files('nupyprop.datafiles') / 'lookup_tables.h5' # path for lookup_tables
 
 def output_file(nu_type, lepton, idepth, cross_section_model, pn_model, prop_type, stats):
     '''
@@ -280,7 +283,7 @@ def get_xc(part_type, model, out=False, **kwargs):
             out_arr = np.asarray(xc_table['sigma_%s' % model])
 
             if out:
-                fnm = "xc_%s_%s_%s.ecsv" % (part_type,material,model)
+                fnm = "xc_%s_%s_%s.ecsv" % (part_type,model,material)
                 out_table = Table([xc_table['energy'], out_arr], meta=xc_table.meta)
                 ascii.write(out_table, fnm, format='ecsv', fast_writer=False, overwrite=True)
                 print('%s cross-section data saved to file %s' % (part_type,fnm))
@@ -390,7 +393,7 @@ def get_ixc(part_type, model, out=False, **kwargs):
             out_arr = np.asarray([ixc_table['cdf_%s' % model][ixc_table['energy']==i] for i in E_lep])
 
             if out:
-                fnm = "ixc_%s_%s_%s.ecsv" % (part_type,material,model)
+                fnm = "ixc_%s_%s_%s.ecsv" % (part_type,model,material)
                 out_table = Table([ixc_table['energy'], ixc_table['y'], ixc_table['cdf_%s' % model]], meta=ixc_table.meta)
                 ascii.write(out_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
                 print('%s cross-section CDF data saved to file %s' % (part_type,fnm))
@@ -505,7 +508,7 @@ def get_beta(lepton, material, model, beta_type, out=False):
     out_arr = beta_table['beta_%s_%s' % (model,beta_type)]
 
     if out:
-        fnm = "beta_%s_%s_%s_%s.ecsv" % (beta_type,lepton,material,model)
+        fnm = "beta_%s_%s_%s_%s.ecsv" % (lepton,model,material,beta_type)
         out_table = Table([beta_table['energy'], out_arr], meta=beta_table.meta)
         ascii.write(out_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
         print('Beta data saved to file %s' % fnm)
