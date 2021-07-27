@@ -287,7 +287,7 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton,
 
 
         pexit_meta = OrderedDict({'Description':'Exit probability for %s' % lepton,
-                                  'beta':'Earth emergence angle, in degrees',
+                                  'angle':'Earth emergence angle, in degrees',
                                   'no_regen':'Exit probability without including any %s regeneration' % lepton,
                                   'regen':'Exit probability considering %s regeneration' % lepton})
 
