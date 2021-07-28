@@ -14,7 +14,7 @@ from astropy.io import ascii
 from collections import OrderedDict
 import os
 
-pwd = os.getcwd()
+# pwd = os.getcwd()
 
 E_nu = np.logspace(3,12,91,base=10).astype(np.float64)
 E_lep = np.logspace(0,12,121,base=10).astype(np.float64)
@@ -23,6 +23,7 @@ nu_models = ['allm', 'bdhm', 'ct18nlo', 'nct15']
 pn_models = ['brem', 'pair', 'pn_allm', 'pn_bb']
 
 ref = importlib_resources.files('nupyprop.datafiles') / 'lookup_tables.h5' # path for lookup_tables
+custom_models = importlib_resources.files('nupyprop.models') / '*.ecsv' # path for custom model files
 
 def output_file(nu_type, lepton, idepth, cross_section_model, pn_model, prop_type, stats):
     '''
@@ -53,7 +54,7 @@ def output_file(nu_type, lepton, idepth, cross_section_model, pn_model, prop_typ
     idepth_str = str(idepth) + 'km'
     stats_str = sci_str(stats)
     pn_model = pn_model.replace("pn_","")
-    fnm = pwd + "output_%s_%s_%s_%s_%s_%s_%s.h5" % (nu_type,lepton,idepth_str,cross_section_model,pn_model,prop_type,stats_str)
+    fnm = "output_%s_%s_%s_%s_%s_%s_%s.h5" % (nu_type,lepton,idepth_str,cross_section_model,pn_model,prop_type,stats_str)
     return fnm
 
 def sci_str(exp_value):
@@ -183,7 +184,7 @@ def get_trajs(type_traj, angle, idepth, out=False):
 
         if out:
             fnm = "%s_%sdeg_%skm.ecsv" % (type_traj,angle,idepth)
-            ascii.write(traj_table, pwd + fnm, format='ecsv', fast_writer=True, overwrite=True)
+            ascii.write(traj_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
             return print('Column trajectory data saved to file %s' % fnm)
         return xalong, cdalong
 
@@ -196,7 +197,7 @@ def get_trajs(type_traj, angle, idepth, out=False):
 
         if out:
             fnm = "%s_%sdeg_%skm.ecsv" % (type_traj,angle,idepth)
-            ascii.write(traj_table, pwd + fnm, format='ecsv', fast_writer=True, overwrite=True)
+            ascii.write(traj_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
             return print('Water trajectory data saved to file %s' % fnm)
         return chord, water
     return "Error in get_trajs in Data"
@@ -259,9 +260,9 @@ def get_xc(part_type, model, out=False, **kwargs):
     if part_type=='nu':
         nu_type = kwargs['nu_type']
         if nu_type=='anti-neutrino':nu_type='anti_neutrino'
-        # if model not in nu_models:
-        #     model = str(input(("Error finding cross-section values for %s model, please enter a valid model name: " % model)))
-        # else:
+        if model not in nu_models:
+            model = str(input(("Error finding cross-section values for %s model, please enter a valid model name: " % model)))
+        else:
         try:
             with importlib_resources.as_file(ref) as lookup_tables:
                 xc_table = Table.read(lookup_tables,path='Neutrinos/%s/xc' % nu_type)
@@ -273,7 +274,7 @@ def get_xc(part_type, model, out=False, **kwargs):
             if out:
                 fnm = "xc_%s_%s.ecsv" % (nu_type,model)
                 out_table = Table([xc_table['energy'], cscc, csnc], meta=xc_table.meta)
-                ascii.write(out_table, pwd + fnm, format='ecsv', fast_writer=False, overwrite=True)
+                ascii.write(out_table, fnm, format='ecsv', fast_writer=False, overwrite=True)
                 return print('%s cross-section data saved to file %s' % (nu_type,fnm))
 
             return np.asfortranarray(out_arr.T)
@@ -292,7 +293,7 @@ def get_xc(part_type, model, out=False, **kwargs):
             if out:
                 fnm = "xc_%s_%s_%s.ecsv" % (part_type,model,material)
                 out_table = Table([xc_table['energy'], out_arr], meta=xc_table.meta)
-                ascii.write(out_table, pwd + fnm, format='ecsv', fast_writer=False, overwrite=True)
+                ascii.write(out_table, fnm, format='ecsv', fast_writer=False, overwrite=True)
                 return print('%s cross-section data saved to file %s' % (part_type,fnm))
 
             return np.asfortranarray(out_arr.T)
@@ -381,7 +382,7 @@ def get_ixc(part_type, model, out=False, **kwargs):
             if out:
                 fnm = "ixc_%s_%s.ecsv" % (nu_type,model)
                 out_table = Table([ixc_table['energy'], ixc_table['y'], ixc_table['cc_cdf_%s' % model], ixc_table['nc_cdf_%s' % model]], meta=ixc_table.meta)
-                ascii.write(out_table, pwd + fnm, format='ecsv', fast_writer=False, overwrite=True)
+                ascii.write(out_table, fnm, format='ecsv', fast_writer=False, overwrite=True)
                 return print('%s cross-section CDF data saved to file %s' % (nu_type,fnm))
 
             return np.asfortranarray(out_arr.T)
@@ -402,7 +403,7 @@ def get_ixc(part_type, model, out=False, **kwargs):
             if out:
                 fnm = "ixc_%s_%s_%s.ecsv" % (part_type,model,material)
                 out_table = Table([ixc_table['energy'], ixc_table['y'], ixc_table['cdf_%s' % model]], meta=ixc_table.meta)
-                ascii.write(out_table, pwd + fnm, format='ecsv', fast_writer=True, overwrite=True)
+                ascii.write(out_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
                 return print('%s cross-section CDF data saved to file %s' % (part_type,fnm))
 
             return np.asfortranarray(out_arr)
@@ -459,7 +460,7 @@ def get_alpha(lepton, material, out=False):
 
     if out:
         fnm = "alpha_%s_%s.ecsv" % (lepton,material)
-        ascii.write(alpha_table, pwd + fnm, format='ecsv', fast_writer=True, overwrite=True)
+        ascii.write(alpha_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
         return print('Alpha data saved to file %s' % fnm)
 
     return np.asfortranarray(out_arr.T)
@@ -517,7 +518,7 @@ def get_beta(lepton, material, model, beta_type, out=False):
     if out:
         fnm = "beta_%s_%s_%s_%s.ecsv" % (lepton,model,material,beta_type)
         out_table = Table([beta_table['energy'], out_arr], meta=beta_table.meta)
-        ascii.write(out_table, pwd + fnm, format='ecsv', fast_writer=True, overwrite=True)
+        ascii.write(out_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
         return print('Beta data saved to file %s' % fnm)
 
     return np.asfortranarray(out_arr.T)
@@ -648,7 +649,7 @@ def get_pexit(nu_type, lepton, energy, idepth, cross_section_model, pn_model, pr
 
     if out:
         fnm = "pexit_%s_%s_%s_%skm_%s_%s_%s_%s.ecsv" % (nu_type, lepton, energy_str, idepth, cross_section_model, pn_model, prop_type, sci_str(stats))
-        ascii.write(pexit_table, pwd + fnm, format='ecsv', fast_writer=True, overwrite=True)
+        ascii.write(pexit_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
         return print('Exit probability data saved to file %s' % fnm)
 
     return out_arr
@@ -731,7 +732,7 @@ def get_lep_out(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_
 
     if out:
         fnm = "lep_out_%s_%s_%s_%sdeg_%skm_%s_%s_%s_%s.ecsv" % (nu_type, lepton, energy_str, angle, idepth, cross_section_model, pn_model, prop_type, sci_str(stats))
-        ascii.write(10**e_out['lep_energy'], pwd + fnm, format='ecsv', fast_writer=True, overwrite=True)
+        ascii.write(10**e_out['lep_energy'], fnm, format='ecsv', fast_writer=True, overwrite=True)
         return print('Lepton outgoing energy data saved to file %s' % fnm)
 
     return out_lep
@@ -868,7 +869,7 @@ def get_cdf(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_mode
     if out:
         fnm = "cdf_%s_%s_%s_%sdeg_%skm_%s_%s_%s_%s.ecsv" % (nu_type, lepton, energy_str, angle, idepth, cross_section_model, pn_model, prop_type, sci_str(stats))
         # np.savetxt(fnm, np.transpose([df.z, df.cdf]), header="z=E_lep/E_nu" + "\t" + "cdf")
-        ascii.write(cdf_table, pwd + fnm, format='ecsv', fast_writer=True, overwrite=True)
+        ascii.write(cdf_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
         return print('Lepton outgoing energy CDF data saved to file %s' % fnm)
     return cdf
 
