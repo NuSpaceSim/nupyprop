@@ -231,7 +231,7 @@ def add_xc(part_type, xc_table, **kwargs):
     else: # lepton energy loss XC
         material = kwargs['material']
         with importlib_resources.as_file(ref) as lookup_tables:
-            xc_table.write(lookup_tables, path='Leptons/%s/%s/xc' % (part_type,material), append=True, overwrite=True)
+            xc_table.write(lookup_tables, path='Charged_Leptons/%s/%s/xc' % (part_type,material), append=True, overwrite=True)
         return print("%s_sigma lookup table successfully created in %s" % (part_type, material))
     return None
 
@@ -260,9 +260,9 @@ def get_xc(part_type, model, out=False, **kwargs):
     if part_type=='nu':
         nu_type = kwargs['nu_type']
         if nu_type=='anti-neutrino':nu_type='anti_neutrino'
-        if model not in nu_models:
-            model = str(input(("Error finding cross-section values for %s model, please enter a valid model name: " % model)))
-        else:
+        # if model not in nu_models:
+        #     model = str(input(("Error finding cross-section values for %s model, please enter a valid model name: " % model)))
+        # else:
         try:
             with importlib_resources.as_file(ref) as lookup_tables:
                 xc_table = Table.read(lookup_tables,path='Neutrinos/%s/xc' % nu_type)
@@ -287,7 +287,7 @@ def get_xc(part_type, model, out=False, **kwargs):
         try:
 
             with importlib_resources.as_file(ref) as lookup_tables:
-                xc_table = Table.read(lookup_tables,path='Leptons/%s/%s/xc' % (part_type,material))
+                xc_table = Table.read(lookup_tables,path='Charged_Leptons/%s/%s/xc' % (part_type,material))
             out_arr = np.asarray(xc_table['sigma_%s' % model])
 
             if out:
@@ -336,7 +336,7 @@ def add_ixc(part_type, ixc_table, **kwargs):
         material = kwargs['material']
 
         with importlib_resources.as_file(ref) as lookup_tables:
-            ixc_table.write(lookup_tables, path='Leptons/%s/%s/ixc' % (part_type,material), append=True, overwrite=True)
+            ixc_table.write(lookup_tables, path='Charged_Leptons/%s/%s/ixc' % (part_type,material), append=True, overwrite=True)
 
         return print("%s_sigma CDF lookup table successfully created in %s" % (part_type, material))
     return None
@@ -396,7 +396,7 @@ def get_ixc(part_type, model, out=False, **kwargs):
             material = kwargs['material']
 
             with importlib_resources.as_file(ref) as lookup_tables:
-                ixc_table = Table.read(lookup_tables,path='Leptons/%s/%s/ixc' % (part_type,material))
+                ixc_table = Table.read(lookup_tables,path='Charged_Leptons/%s/%s/ixc' % (part_type,material))
 
             out_arr = np.asarray([ixc_table['cdf_%s' % model][ixc_table['energy']==i] for i in E_lep])
 
@@ -433,7 +433,7 @@ def add_alpha(lepton, material, alpha_table):
     '''
 
     with importlib_resources.as_file(ref) as lookup_tables:
-        alpha_table.write(lookup_tables, path='Leptons/%s/%s/alpha' % (lepton,material), append=True, overwrite=True)
+        alpha_table.write(lookup_tables, path='Charged_Leptons/%s/%s/alpha' % (lepton,material), append=True, overwrite=True)
     return print("%s_alpha lookup table successfully created for %s" % (lepton,material))
 
 def get_alpha(lepton, material, out=False):
@@ -455,7 +455,7 @@ def get_alpha(lepton, material, out=False):
 
     '''
     with importlib_resources.as_file(ref) as lookup_tables:
-        alpha_table = Table.read(lookup_tables,path='Leptons/%s/%s/alpha' % (lepton,material))
+        alpha_table = Table.read(lookup_tables,path='Charged_Leptons/%s/%s/alpha' % (lepton,material))
     out_arr = alpha_table['alpha']
 
     if out:
@@ -486,7 +486,7 @@ def add_beta(lepton, material, beta_table):
 
     '''
     with importlib_resources.as_file(ref) as lookup_tables:
-        beta_table.write(lookup_tables, path='Leptons/%s/%s/beta' % (lepton,material), append=True, overwrite=True)
+        beta_table.write(lookup_tables, path='Charged_Leptons/%s/%s/beta' % (lepton,material), append=True, overwrite=True)
     return print("%s_beta in %s lookup table successfully created" % (lepton,material))
 
 def get_beta(lepton, material, model, beta_type, out=False):
@@ -512,7 +512,7 @@ def get_beta(lepton, material, model, beta_type, out=False):
 
     '''
     with importlib_resources.as_file(ref) as lookup_tables:
-        beta_table = Table.read(lookup_tables,path='Leptons/%s/%s/beta' % (lepton,material))
+        beta_table = Table.read(lookup_tables,path='Charged_Leptons/%s/%s/beta' % (lepton,material))
     out_arr = beta_table['beta_%s_%s' % (model,beta_type)]
 
     if out:
