@@ -20,13 +20,47 @@ E_nu = np.logspace(3,12,91,base=10).astype(np.float64)
 E_lep = np.logspace(0,12,121,base=10).astype(np.float64)
 
 nu_models = ['allm', 'bdhm', 'ct18nlo', 'nct15']
-pn_models = ['brem', 'pair', 'pn_allm', 'pn_bb']
+pn_models = ['allm', 'bb']
 
 ref = importlib_resources.files('nupyprop.datafiles') / 'lookup_tables.h5' # path for lookup_tables
 custom_models = importlib_resources.files('nupyprop.models') / '*.ecsv' # path for custom model files
 nu_xc_ctw = importlib_resources.files('nupyprop.models') / 'xc_neutrino_ctw.ecsv'
 
 os.path.exists(nu_xc_ctw)
+
+class ModelError(Exception):
+    """Exception raised for errors in the input custom model file.
+
+    Attributes:
+        fnm -- input filename which caused the error
+        message -- explanation of the error
+    """
+
+    def __init__(self, fnm, message="This is either an incorrectly formatted model file or model file not found"):
+        self.fnm = fnm
+        self.message = message
+        super().__init__(self.message)
+
+    def __str__(self):
+        return f'{self.fnm} -> {self.message}'
+
+def get_custom_path(data_type, part_type, model, *args): # get custom model file posix path
+    if part_type == 'nu':
+        nu_type = args[0]
+        fnm = data_type + '_%s_%s.ecsv' % (nu_type,model)
+        file = importlib_resources.files('nupyprop.models') / fnm
+        if not os.path.exists(file):
+            raise ModelError(fnm)
+        return file
+
+    elif part_type == 'tau' or part_type == 'muon':
+        material = args[0]
+        fnm = data_type + '_%s_pn_%s_%s.ecsv' % (part_type,model,material)
+        file = importlib_resources.files('nupyprop.models') / fnm
+        if not os.path.exists(file):
+            raise ModelError(fnm)
+        return file
+
 
 with importlib_resources.as_file(nu_xc_ctw) as custom_model:
     xc_table = Table.read(custom_model, format='ascii.ecsv')
@@ -67,6 +101,9 @@ def sci_str(exp_value):
     dec = Decimal(exp_value)
     str_val = ('{:.' + str(len(dec.normalize().as_tuple().digits) - 1) + 'e}').format(dec).replace('+', '')
     return str_val
+
+def check_custom():
+    return None
 
 # def chk_file(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats):
 #     '''
@@ -208,7 +245,7 @@ def get_trajs(type_traj, angle, idepth, out=False):
         return chord, water
     return "Error in get_trajs in Data"
 
-def add_xc(part_type, xc_table, **kwargs):
+def add_xc(part_type, xc_table, *arg):
     '''
 
     Parameters
@@ -230,18 +267,18 @@ def add_xc(part_type, xc_table, **kwargs):
 
     '''
     if part_type=='nu':
-        nu_type = kwargs['nu_type']
+        nu_type = arg
         with importlib_resources.as_file(ref) as lookup_tables:
             xc_table.write(lookup_tables, path='Neutrinos/%s/xc' % nu_type, append=True, overwrite=True)
         return print("%s_sigma CC & NC lookup tables successfully created" % part_type)
     else: # lepton energy loss XC
-        material = kwargs['material']
+        material = arg
         with importlib_resources.as_file(ref) as lookup_tables:
             xc_table.write(lookup_tables, path='Charged_Leptons/%s/%s/xc' % (part_type,material), append=True, overwrite=True)
         return print("%s_sigma lookup table successfully created in %s" % (part_type, material))
     return None
 
-def get_xc(part_type, model, out=False, **kwargs):
+def get_xc(part_type, model, *arg, out=False):
     '''
 
     Parameters
@@ -264,54 +301,66 @@ def get_xc(part_type, model, out=False, **kwargs):
 
     '''
     if part_type=='nu':
-        nu_type = kwargs['nu_type']
+        nu_type = arg[0]
         if nu_type=='anti-neutrino':nu_type='anti_neutrino'
 
-        if model in nu_models:
+        if model in nu_models: # default nu_xc model selection
             with importlib_resources.as_file(ref) as lookup_tables:
                 xc_table = Table.read(lookup_tables,path='Neutrinos/%s/xc' % nu_type)
-        else:
-            fnm = "xc_%s_%s.ecsv" % (nu_type,model)
-            if not os.path.exists(fnm):
-                return print("Error! %s file does not exist" % fnm)
-
-            with importlib_resources.as_file(fnm) as lookup_table:
-                xc_table = Table.read(lookup_table, format='ascii.ecsv')
+        else: # custom nu_xc model selection
+           file = get_custom_path('xc', part_type, model, nu_type)
+           with importlib_resources.as_file(file) as lookup_table:
+               xc_table = Table.read(lookup_table, format='ascii.ecsv')
 
         cscc = xc_table['sigma_cc_%s' % model]
         csnc = xc_table['sigma_nc_%s' % model]
-        out_arr = np.asarray([cscc,csnc])
+        xc_arr = np.asarray([cscc,csnc])
 
         if out:
             fnm = "xc_%s_%s.ecsv" % (nu_type,model)
-            out_table = Table([xc_table['energy'], cscc, csnc], meta=xc_table.meta)
+            xc_meta = OrderedDict({'Description':'%s-nucleon cross-section values for %s' % (nu_type.capitalize(),str.upper(model)),
+                                   'energy':'%s energy, in GeV' % nu_type.capitalize(),
+                                   'sigma_cc_%s' % model:'Charged current cross-section for %s, in cm^2' % str.upper(model),
+                                   'sigma_nc_%s' % model:'Neutral current cross-section for %s, in cm^2' % str.upper(model)})
+            out_table = Table([xc_table['energy'], cscc, csnc], names=('energy','sigma_cc_%s' % model,'sigma_nc_%s' % model), meta=xc_meta)
             ascii.write(out_table, fnm, format='ecsv', fast_writer=False, overwrite=True)
             return print('%s cross-section data saved to file %s' % (nu_type,fnm))
 
-            return np.asfortranarray(out_arr.T)
+        return np.asfortranarray(xc_arr.T)
 
     else: # energy loss; part_type == 'tau' or 'muon'
-        material = kwargs['material']
-        # if
-        try:
-            with importlib_resources.as_file(ref) as lookup_tables:
-                xc_table = Table.read(lookup_tables,path='Charged_Leptons/%s/%s/xc' % (part_type,material))
-            out_arr = np.asarray(xc_table['sigma_%s' % model])
+        material = arg[0]
+        with importlib_resources.as_file(ref) as lookup_tables:
+            xc_table = Table.read(lookup_tables,path='Charged_Leptons/%s/%s/xc' % (part_type,material))
 
-            if out:
-                fnm = "xc_%s_%s_%s.ecsv" % (part_type,model,material)
-                out_table = Table([xc_table['energy'], out_arr], meta=xc_table.meta)
-                ascii.write(out_table, fnm, format='ecsv', fast_writer=False, overwrite=True)
-                return print('%s cross-section data saved to file %s' % (part_type,fnm))
+        xc_brem = np.asarray(xc_table['sigma_brem']) # brem is not a custom model
+        xc_pair = np.asarray(xc_table['sigma_pair']) # pair is not a custom model
 
-            return np.asfortranarray(out_arr.T)
+        if model in pn_models: # default PN model selection
 
-        except KeyError:
-            model = str(input(("Error finding cross-section values for %s model, please enter a valid model name: " % model)))
-            return None
-    return None
+            xc_pn = np.asarray(xc_table['sigma_pn_%s' % model])
 
-def add_ixc(part_type, ixc_table, **kwargs):
+        else: # custom PN model
+            with importlib_resources.as_file(get_custom_path('xc',part_type,model,material)) as lookup_table:
+                pn_table = Table.read(lookup_table,format='ascii.ecsv')
+            xc_pn = np.asarray(pn_table['sigma_pn_%s' % model])
+
+        xc_arr = np.asarray([xc_brem, xc_pair, xc_pn])
+
+        if out:
+            fnm = "xc_%s_pn_%s_%s.ecsv" % (part_type,model,material)
+            xc_meta = OrderedDict({'Description':'%s-nucleon cross-section values for %s in %s' % (part_type.capitalize(),str.upper(model),material),
+                                   'energy':'%s energy, in GeV' % part_type.capitalize(),
+                                   'sigma_brem':'N_A/A * cross-section for bremmstrahlung in %s, in cm^2/g' % material,
+                                   'sigma_pair':'N_A/A * cross-section for pair production in %s, in cm^2/g' % material,
+                                   'sigma_pn_%s' % model:'N_A/A * cross-section for PN_%s in %s, in cm^2/g' % (str.upper(model),material)})
+            out_table = Table([xc_table['energy'], xc_brem, xc_pair, xc_pn], names=('energy','sigma_brem','sigma_pair','sigma_pn_%s' % model), meta=xc_meta)
+            ascii.write(out_table, fnm, format='ecsv', fast_writer=False, overwrite=True)
+            return print('%s cross-section data saved to file %s' % (part_type,fnm))
+
+        return np.asfortranarray(xc_arr.T)
+
+def add_ixc(part_type, ixc_table, *arg):
     '''
 
     Parameters
@@ -333,7 +382,8 @@ def add_ixc(part_type, ixc_table, **kwargs):
 
     '''
     if part_type == 'nu':
-        nu_type = kwargs['nu_type']
+        nu_type = arg[0]
+        if nu_type=='anti-neutrino':nu_type='anti_neutrino'
 
         with importlib_resources.as_file(ref) as lookup_tables:
             ixc_table.write(lookup_tables, path='Neutrinos/%s/ixc' % nu_type, append=True, overwrite=True)
@@ -341,7 +391,7 @@ def add_ixc(part_type, ixc_table, **kwargs):
         return print("%s_sigma CDF CC & NC lookup tables successfully created for" % nu_type)
 
     else: # energy_loss; part_type == 'muon' or 'tau'
-        material = kwargs['material']
+        material = arg[0]
 
         with importlib_resources.as_file(ref) as lookup_tables:
             ixc_table.write(lookup_tables, path='Charged_Leptons/%s/%s/ixc' % (part_type,material), append=True, overwrite=True)
@@ -349,7 +399,7 @@ def add_ixc(part_type, ixc_table, **kwargs):
         return print("%s_sigma CDF lookup table successfully created in %s" % (part_type, material))
     return None
 
-def get_ixc(part_type, model, out=False, **kwargs):
+def get_ixc(part_type, model, *arg, out=False):
     '''
 
     Parameters
@@ -376,50 +426,70 @@ def get_ixc(part_type, model, out=False, **kwargs):
     # yvals = np.insert(yvals,0,0)
 
     if part_type == 'nu':
-        nu_type = kwargs['nu_type']
+        nu_type = arg[0]
         if nu_type=='anti-neutrino':nu_type='anti_neutrino'
-        try:
+
+        if model in nu_models: # default nu_ixc model selection
             with importlib_resources.as_file(ref) as lookup_tables:
                 ixc_table = Table.read(lookup_tables,path='Neutrinos/%s/ixc' % nu_type)
+        else: # custom nu_ixc model selection
+            file = get_custom_path('ixc', part_type, model, nu_type)
+            with importlib_resources.as_file(file) as lookup_table:
+               ixc_table = Table.read(lookup_table, format='ascii.ecsv')
 
-            ixc_cc = np.asarray([ixc_table['cc_cdf_%s' % model][ixc_table['energy']==i] for i in E_nu])
-            ixc_nc = np.asarray([ixc_table['nc_cdf_%s' % model][ixc_table['energy']==i] for i in E_nu])
+        ixc_cc = np.asarray([ixc_table['cc_cdf_%s' % model][ixc_table['energy']==i] for i in E_nu])
+        ixc_nc = np.asarray([ixc_table['nc_cdf_%s' % model][ixc_table['energy']==i] for i in E_nu])
 
-            out_arr = np.asarray([ixc_cc, ixc_nc])
+        ixc_arr = np.asarray([ixc_cc, ixc_nc])
 
-            if out:
-                fnm = "ixc_%s_%s.ecsv" % (nu_type,model)
-                out_table = Table([ixc_table['energy'], ixc_table['y'], ixc_table['cc_cdf_%s' % model], ixc_table['nc_cdf_%s' % model]], meta=ixc_table.meta)
-                ascii.write(out_table, fnm, format='ecsv', fast_writer=False, overwrite=True)
-                return print('%s cross-section CDF data saved to file %s' % (nu_type,fnm))
+        if out:
+            fnm = "ixc_%s_%s.ecsv" % (nu_type,model)
+            ixc_meta = OrderedDict({'Description':'%s-nucleon cross-section CDF values for %s' % (nu_type.capitalize(),str.upper(model)),
+                                    'energy':'%s energy, in GeV' % nu_type.capitalize(),
+                                    'y':'Inelasticity; y = (E_initial-E_final)/E_initial',
+                                    'cc_cdf_%s' % model:'Charged current cross-section CDF values for %s' % str.upper(model),
+                                    'nc_cdf_%s' % model:'Neutral current cross-section CDF values for %s' % str.upper(model)})
+            out_table = Table([ixc_table['energy'], ixc_table['y'], ixc_table['cc_cdf_%s' % model], ixc_table['nc_cdf_%s' % model]], meta=ixc_meta)
+            ascii.write(out_table, fnm, format='ecsv', fast_writer=False, overwrite=True)
+            return print('%s cross-section CDF data saved to file %s' % (nu_type,fnm))
 
-            return np.asfortranarray(out_arr.T)
+        return np.asfortranarray(ixc_arr.T)
 
 
-        except KeyError or TypeError:
-            model = str(input(("Error finding integrated cross-section values for %s model, please enter a valid model name." % str(model))))
-            return None
     else: # energy loss; ixc_type == 'tau' or 'muon'
-        try:
-            material = kwargs['material']
+        material = arg[0]
 
-            with importlib_resources.as_file(ref) as lookup_tables:
-                ixc_table = Table.read(lookup_tables,path='Charged_Leptons/%s/%s/ixc' % (part_type,material))
+        with importlib_resources.as_file(ref) as lookup_tables:
+            ixc_table = Table.read(lookup_tables,path='Charged_Leptons/%s/%s/ixc' % (part_type,material))
 
-            out_arr = np.asarray([ixc_table['cdf_%s' % model][ixc_table['energy']==i] for i in E_lep])
+        ixc_brem = np.asarray([ixc_table['cdf_brem'][ixc_table['energy']==i] for i in E_lep]) # brem is not a custom model
+        ixc_pair = np.asarray([ixc_table['cdf_pair'][ixc_table['energy']==i] for i in E_lep]) # pair is not a custom model
 
-            if out:
-                fnm = "ixc_%s_%s_%s.ecsv" % (part_type,model,material)
-                out_table = Table([ixc_table['energy'], ixc_table['y'], ixc_table['cdf_%s' % model]], meta=ixc_table.meta)
-                ascii.write(out_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
-                return print('%s cross-section CDF data saved to file %s' % (part_type,fnm))
+        if model in pn_models: # default PN model selection
 
-            return np.asfortranarray(out_arr)
+            ixc_pn = np.asarray([ixc_table['cdf_pn_%s' % model][ixc_table['energy']==i] for i in E_lep])
 
-        except KeyError or TypeError:
-            model = str(input("Error finding energy loss cross-section values for %s, please enter a valid model name: " % str(model)))
-            return None
-    return None
+        else: # custom PN model
+            with importlib_resources.as_file(get_custom_path('ixc',part_type,model,material)) as lookup_table:
+                pn_table = Table.read(lookup_table,format='ascii.ecsv')
+            ixc_pn = np.asarray([pn_table['cdf_pn_%s' % model][ixc_table['energy']==i] for i in E_lep])
+
+        ixc_arr = np.asarray([ixc_brem, ixc_pair, ixc_pn])
+
+        if out:
+            fnm = "ixc_%s_pn_%s_%s.ecsv" % (part_type,model,material)
+            ixc_meta = OrderedDict({'Description':'%s-nucleon cross-section CDF values for PN_%s in %s' % (part_type.capitalize(),str.upper(model),material),
+                                    'energy':'%s energy, in GeV' % part_type.capitalize(),
+                                    'y':'Inelasticity; y = (E_initial-E_final)/E_initial',
+                                    'cdf_brem':'Cross-section CDF values for bremmstrahlung in %s' % material,
+                                    'cdf_pair':'Cross-section CDF values for pair production in %s' % material,
+                                    'cdf_pn_%s' % model:'Cross-section CDF values for PN_%s in %s' % (str.upper(model),material)})
+            out_table = Table([ixc_table['energy'], ixc_table['y'], ixc_brem.flatten(), ixc_pair.flatten(), ixc_pn.flatten()], names=('energy','y','cdf_brem','cdf_pair','cdf_pn_%s' % model), meta=ixc_meta)
+            ascii.write(out_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
+            return print('%s cross-section CDF data saved to file %s' % (part_type,fnm))
+
+        return np.asfortranarray(ixc_arr.T)
+
 
 def add_alpha(lepton, material, alpha_table):
     '''
@@ -464,14 +534,14 @@ def get_alpha(lepton, material, out=False):
     '''
     with importlib_resources.as_file(ref) as lookup_tables:
         alpha_table = Table.read(lookup_tables,path='Charged_Leptons/%s/%s/alpha' % (lepton,material))
-    out_arr = alpha_table['alpha']
+    alpha_arr = alpha_table['alpha']
 
     if out:
         fnm = "alpha_%s_%s.ecsv" % (lepton,material)
         ascii.write(alpha_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
         return print('Alpha data saved to file %s' % fnm)
 
-    return np.asfortranarray(out_arr.T)
+    return np.asfortranarray(alpha_arr.T)
 
 def add_beta(lepton, material, beta_table):
     '''
@@ -497,7 +567,7 @@ def add_beta(lepton, material, beta_table):
         beta_table.write(lookup_tables, path='Charged_Leptons/%s/%s/beta' % (lepton,material), append=True, overwrite=True)
     return print("%s_beta in %s lookup table successfully created" % (lepton,material))
 
-def get_beta(lepton, material, model, beta_type, out=False):
+def get_beta(lepton, model, material, *arg, out=False):
     '''
 
     Parameters
@@ -519,19 +589,74 @@ def get_beta(lepton, material, model, beta_type, out=False):
         1D array containing lepton energy loss model/process beta value, in cm^2/g.
 
     '''
+    beta_type = arg[0]
+
+    if beta_type=='cut':beta_type_str = 'y_max=1e-3'
+    elif beta_type=='total':beta_type_str = 'y_max'
+
     with importlib_resources.as_file(ref) as lookup_tables:
         beta_table = Table.read(lookup_tables,path='Charged_Leptons/%s/%s/beta' % (lepton,material))
-    out_arr = beta_table['beta_%s_%s' % (model,beta_type)]
+
+    beta_brem = beta_table['beta_brem_%s' % beta_type] # brem is not a custom model
+    beta_pair = beta_table['beta_pair_%s' % beta_type] # pair is not a custom model
+
+    if model in pn_models: # default PN model selection
+        beta_pn = beta_table['beta_pn_%s_%s' % (model,beta_type)]
+
+    else: # custom PN model
+        with importlib_resources.as_file(get_custom_path('beta',lepton,model,material)) as lookup_table:
+            pn_table = Table.read(lookup_table,format='ascii.ecsv')
+        beta_pn = pn_table['beta_pn_%s_%s' % (model,beta_type)]
+
+    beta_arr = np.asarray([beta_brem, beta_pair, beta_pn])
 
     if out:
-        fnm = "beta_%s_%s_%s_%s.ecsv" % (lepton,model,material,beta_type)
-        out_table = Table([beta_table['energy'], out_arr], meta=beta_table.meta)
-        ascii.write(out_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
+        fnm = "beta_%s_pn_%s_%s_%s.ecsv" % (lepton,model,material,beta_type)
+        beta_meta = OrderedDict({'Description':'Model/parameterization dependent photonuclear energy loss lookup table for %s in %s' % (lepton.capitalize(),material),
+                                  'energy':'%s energy, in GeV' % lepton.capitalize(),
+                                  'beta_pn_%s_%s' % (model,beta_type):'Photonuclear %s energy loss model beta values integrated from y_min to %s, in cm^2/g' % (str.upper(model),beta_type_str)})
+        out_table = Table([beta_table['energy'], beta_pn], names=('energy','beta_pn_%s_%s' % (model,beta_type)), meta=beta_meta)
+        ascii.write(out_table, fnm, format='ecsv', fast_writer=False, overwrite=True)
         return print('Beta data saved to file %s' % fnm)
 
-    return np.asfortranarray(out_arr.T)
+    return np.asfortranarray(beta_arr.T)
 
-def combine_lep(data_type, lepton, material, pn_model, **kwargs):
+
+# def get_part_data(data_type, particle, model, *args, out=False): # don't include alpha
+
+#     # if particle=='anti-neutrino':particle='anti_neutrino'
+
+#     if data_type == 'xc':
+
+#         if particle == 'neutrino' or particle == 'anti_neutrino':
+#             pass
+
+#         elif particle == 'tau' or particle == 'muon':
+#             pass
+
+
+#     elif data_type == 'ixc':
+
+#         if particle == 'neutrino' or particle == 'anti_neutrino':
+#             pass
+
+#         elif particle == 'tau' or particle == 'muon':
+#             pass
+
+#     elif data_type == 'beta':
+#         pass
+
+
+#     else:
+#         return print("Error in get_part_data")
+
+#     return None
+
+def test(*args):
+    # print(args)
+    return args
+
+def combine_lep(data_type, lepton, material, pn_model, *arg):
     '''
 
     Parameters
@@ -544,7 +669,7 @@ def combine_lep(data_type, lepton, material, pn_model, **kwargs):
         Material of propagation.
     pn_model : str
         Lepton photonuclear energy loss model.
-    **kwargs
+    *arg : str
         beta_type : Can be cut or full, for data_type = beta only.
 
     Returns
@@ -554,15 +679,16 @@ def combine_lep(data_type, lepton, material, pn_model, **kwargs):
 
     '''
     if data_type == 'xc':
-        xc_brem = get_xc(lepton, 'brem', material=material)
-        xc_pair = get_xc(lepton, 'pair', material=material)
-        xc_pn = get_xc(lepton, pn_model, material=material)
+        xc_brem = get_xc(lepton, 'brem', material)
+        xc_pair = get_xc(lepton, 'pair', material)
+        xc_pn = get_xc(lepton, pn_model, material)
         xc_arr = np.asarray([xc_brem, xc_pair, xc_pn])
         xc = np.asfortranarray(xc_arr.T)
         return xc
 
     elif data_type == 'beta':
-        beta_type = kwargs['beta_type']
+        beta_type = arg
+
         beta_brem = get_beta(lepton, material, 'brem', beta_type)
         beta_pair = get_beta(lepton, material, 'pair', beta_type)
         beta_pn = get_beta(lepton, material, pn_model, beta_type)
@@ -571,9 +697,9 @@ def combine_lep(data_type, lepton, material, pn_model, **kwargs):
         return beta
 
     elif data_type == 'ixc':
-        ixc_brem = get_ixc(lepton, 'brem', material=material)
-        ixc_pair = get_ixc(lepton, 'pair', material=material)
-        ixc_pn = get_ixc(lepton, pn_model, material=material)
+        ixc_brem = get_ixc(lepton, 'brem', material)
+        ixc_pair = get_ixc(lepton, 'pair', material)
+        ixc_pn = get_ixc(lepton, pn_model, material)
         ixc_arr = np.asarray([ixc_brem, ixc_pair, ixc_pn])
         ixc = np.asfortranarray(ixc_arr.T)
         return ixc
@@ -876,49 +1002,9 @@ def get_cdf(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_mode
 
     if out:
         fnm = "cdf_%s_%s_%s_%sdeg_%skm_%s_%s_%s_%s.ecsv" % (nu_type, lepton, energy_str, angle, idepth, cross_section_model, pn_model, prop_type, sci_str(stats))
-        # np.savetxt(fnm, np.transpose([df.z, df.cdf]), header="z=E_lep/E_nu" + "\t" + "cdf")
         ascii.write(cdf_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
         return print('Lepton outgoing energy CDF data saved to file %s' % fnm)
     return cdf
-
-# def add_header(nu_type, lepton, idepth, nu_cs, lep_pn, loss_type, stats):
-#     f = h5py.File('output_nu_tau_4km_ct18nlo_allm_stochastic_1e8.h5','a')
-#     if nu_type=='nu':f.attrs['Matter of Neutrino'] = "Neutrino"
-#     elif nu_type=='anu':f.attrs['Matter of Neutrino'] = "Anti-Neutrino"
-#     f.attrs['lepton'] = lepton
-#     f.attrs['water_depth'] = str(idepth) + "km"
-#     f.attrs['neutrino_model'] = nu_cs
-#     f.attrs['photonuclear_model'] = lep_pn
-#     f.attrs['loss_type'] = loss_type
-#     f.attrs['neutrinos_in'] = stats
-#     cdf_bin_size = 51 # this is fixed from the variable 'bins' in function add_cdf(...)
-#     f.attrs['cdf_bin_size'] = cdf_bin_size
-#     f.close()
-#     return None
-# part_type, xc_obj, model, **kwargs
-
-# def get_add_xc(part_type, model, **kwargs):
-#     if part_type == 'nu':
-#         nu_type = kwargs['nu_type']
-#         xc_arr = get_xc(part_type, model, nu_type=nu_type).T
-#         xc_cc = xc_arr[0]
-#         xc_nc = xc_arr[1]
-#         xc_meta = OrderedDict({'Description':'%s-nucleon cross-section values for %s' % (nu_type,model),
-#                                'energy':'Neutrino energy, in GeV',
-#                                'sigma_cc':'Charged current cross-section, in cm^2',
-#                                'sigma_nc':'Neutral current cross-section, in cm^2'})
-#         xc_table = Table([E_nu, xc_cc, xc_nc], names=('energy','sigma_cc','sigma_nc'), meta=xc_meta)
-#         add_xc(part_type,xc_table,model,nu_type=nu_type)
-#     else:
-#         material = kwargs['material']
-#         xc_arr = get_xc(part_type, model, material=material).T
-#         xc_meta = OrderedDict({'Description':'%s-nucleon cross-section values for %s in %s' % (part_type,model,material),
-#                                'energy':'%s energy, in GeV' % part_type,
-#                                'sigma_%s' % model:'cross-section for %s * N_A/A, in cm^2/g' % model})
-#         xc_table = Table([E_lep, xc_arr], names=('energy','sigma_%s' % model), meta=xc_meta)
-#         add_xc(part_type,xc_table,model,material=material)
-
-#     return None
 
 # =============================================================================
 # Test
@@ -927,6 +1013,11 @@ if __name__ == "__main__":
     # arr = get_beta('tau', 'rock', 'total', 'allm', True)
     # add_pexit_manual(1e9, np.arange(1,36), 1e8)
     pass
+    # nu_xc = get_xc('nu','ctw','neutrino')
+    # xc_water = get_xc('tau','bdhm','water')
+    # nu_ixc = get_ixc('nu','ctw','neutrino',out=True)
+    # lep_ixc_water = get_ixc('tau','bdhm','water',out=True)
+    # beta_rock = get_beta('muon','rock','bdhm','total',out=True)
     # for nu_type in nu_types:
     #     for model in nu_xc:
     #         nu_ixc = get_ixc('nu', model, out=True, nu_type=nu_type)

@@ -88,22 +88,18 @@ def init_xc(nu_type, lepton, nu_model, pn_model, prop_type):
     '''
     # pn_model = 'pn_' + pn_model
 
-    nu_xc = Data.get_xc('nu', nu_model, nu_type=nu_type)
+    if prop_type == 'stochastic':beta_type = 'cut'
+    elif prop_type == 'continuous':beta_type = 'total'
 
-    xc_water = Data.combine_lep('xc', lepton, 'water', pn_model)
+    nu_xc = Data.get_xc('nu', nu_model, nu_type)
 
-    xc_rock = Data.combine_lep('xc', lepton, 'rock', pn_model)
-
+    xc_water = Data.get_xc(lepton, pn_model, 'water')
     alpha_water = Data.get_alpha(lepton, 'water')
+    beta_water = Data.get_beta(lepton, pn_model, 'water', beta_type)
 
+    xc_rock = Data.get_xc(lepton, pn_model, 'rock')
     alpha_rock = Data.get_alpha(lepton, 'rock')
-
-    if prop_type == 'stochastic':
-        beta_water = Data.combine_lep('beta', lepton, 'water', pn_model, beta_type='cut')
-        beta_rock = Data.combine_lep('beta', lepton, 'rock', pn_model, beta_type='cut')
-    elif prop_type == 'continuous':
-        beta_water = Data.combine_lep('beta', lepton, 'water', pn_model, beta_type='total')
-        beta_rock = Data.combine_lep('beta', lepton, 'rock', pn_model, beta_type='total')
+    beta_rock = Data.get_beta(lepton, pn_model, 'rock', beta_type)
 
     return nu_xc,xc_water,xc_rock,alpha_water,alpha_rock,beta_water,beta_rock
 
@@ -123,23 +119,23 @@ def init_ixc(nu_type, lepton, nu_model, pn_model):
 
     Returns
     -------
-    ixc_nu : ndarray
+    nu_ixc : ndarray
         3D array containing neutrino integrated cross-section CDF values.
-    ixc_water : ndarray
+    lep_ixc_water : ndarray
         3D array containing lepton integrated cross-section CDF values for water.
-    ixc_rock : ndarray
+    lep_ixc_rock : ndarray
         3D array containing lepton integrated cross-section CDF values for rock.
 
     '''
     # pn_model = 'pn_' + pn_model
 
-    ixc_nu = Data.get_ixc('nu', nu_model, nu_type=nu_type)
+    nu_ixc = Data.get_ixc('nu', nu_model, nu_type)
 
-    ixc_water = Data.combine_lep('ixc', lepton, 'water', pn_model)
+    lep_ixc_water = Data.get_ixc(lepton, pn_model, 'water')
 
-    ixc_rock = Data.combine_lep('ixc', lepton, 'rock', pn_model)
+    lep_ixc_rock = Data.get_ixc(lepton, pn_model, 'rock')
 
-    return ixc_nu, ixc_water, ixc_rock
+    return nu_ixc, lep_ixc_water, lep_ixc_rock
 
 def create_lep_out_dict(energy, angle):
     '''
@@ -326,7 +322,7 @@ if __name__ == "__main__":
     fac_nu = 1
     lepton = 'tau'
     cross_section_model = 'ct18nlo'
-    pn_model = 'pn_allm' # do not need to give the 'pn_' prefix if using run.py
+    pn_model = 'allm' # do not need to give the 'pn_' prefix if using run.py
     prop_type = 'stochastic'
     stat = int(1e7)
     nu_type = 'neutrino'

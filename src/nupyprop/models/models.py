@@ -116,8 +116,8 @@ def ctw_xc(): # CTW parameterization (eq. 7)
 
     nu_xc_meta = OrderedDict({'Description':'Neutrino-nucleon cross-section values for CTW',
                                'energy':'Neutrino energy, in GeV',
-                               'sigma_cc':'Charged current cross-section, in cm^2',
-                               'sigma_nc':'Neutral current cross-section, in cm^2'})
+                               'sigma_cc':'Charged current cross-section for CTW, in cm^2',
+                               'sigma_nc':'Neutral current cross-section for CTW, in cm^2'})
 
     nu_xc_table = Table([E_nu, sigma_nu_cc, sigma_nu_nc], names=('energy','sigma_cc_ctw','sigma_nc_ctw'), meta=nu_xc_meta) # neutrino table
 
@@ -129,10 +129,10 @@ def ctw_xc(): # CTW parameterization (eq. 7)
 
     sigma_anu_nc = 10**np.asarray([sigma(i,C_an_nc[0],C_an_nc[1],C_an_nc[2],C_an_nc[3],C_an_nc[4]) for i in E_nu]) # anti-neutrino; NC
 
-    anu_xc_meta = OrderedDict({'Description':'Anti-neutrino-nucleon cross-section values for CTW',
-                               'energy':'Anti-neutrino energy, in GeV',
-                               'sigma_cc':'Charged current cross-section, in cm^2',
-                               'sigma_nc':'Neutral current cross-section, in cm^2'})
+    anu_xc_meta = OrderedDict({'Description':'Anti_neutrino-nucleon cross-section values for CTW',
+                               'energy':'Anti_neutrino energy, in GeV',
+                               'sigma_cc':'Charged current cross-section for CTW, in cm^2',
+                               'sigma_nc':'Neutral current cross-section for CTW, in cm^2'})
 
     anu_xc_table = Table([E_nu, sigma_anu_cc, sigma_anu_nc], names=('energy','sigma_cc_ctw','sigma_nc_ctw'), meta=anu_xc_meta) # anti-neutrino table
 
@@ -196,20 +196,20 @@ def ctw_ixc(): # CTW parameterization (eqs. 12, 13)
 
     nu_ixc_meta = OrderedDict({'Description':'Neutrino-nucleon cross-section CDF values for CTW',
                             'energy':'Neutrino energy, in GeV',
-                            'y':'Inelasticity, y = (E_init-E_final)/E_initial.',
-                            'cc_cdf':'Charged current cross-section CDF value',
-                            'nc_cdf':'Neutral current cross-section CDF value',
+                            'y':'Inelasticity; y = (E_initial-E_final)/E_initial',
+                            'cc_cdf_ctw':'Charged current cross-section CDF values for CTW',
+                            'nc_cdf_ctw':'Neutral current cross-section CDF values for CTW',
                             'Note':'The integrated cross-section CDF values should be integrated from y = 0, 10^(-0.1),...,10^(-3). This is a convention we chose to adopt'})
 
     nu_ixc_table = Table([np.repeat(E_nu,31), np.tile(yvals_padded,len(E_nu)), C_n_cc, C_n_nc], names=('energy','y','cc_cdf_ctw','nc_cdf_ctw'), meta=nu_ixc_meta)
     fnm_nu = "ixc_neutrino_ctw.ecsv"
     ascii.write(nu_ixc_table, fnm_nu, format='ecsv', fast_writer=False, overwrite=True)
 
-    anu_ixc_meta = OrderedDict({'Description':'Anti-neutrino-nucleon cross-section CDF values for CTW',
-                            'energy':'Anti-neutrino energy, in GeV',
-                            'y':'Inelasticity, y = (E_init-E_final)/E_initial.',
-                            'cc_cdf':'Charged current cross-section CDF value',
-                            'nc_cdf':'Neutral current cross-section CDF value',
+    anu_ixc_meta = OrderedDict({'Description':'Anti_neutrino-nucleon cross-section CDF values for CTW',
+                            'energy':'Anti_neutrino energy, in GeV',
+                            'y':'Inelasticity; y = (E_initial-E_final)/E_initial',
+                            'cc_cdf_ctw':'Charged current cross-section CDF values for CTW',
+                            'nc_cdf_ctw':'Neutral current cross-section CDF values for CTW',
                             'Note':'The integrated cross-section CDF values should be integrated from y = 0, 10^(-0.1),...,10^(-3). This is a convention we chose to adopt'})
 
     anu_ixc_table = Table([np.repeat(E_nu,31), np.tile(yvals_padded,len(E_nu)), C_an_cc, C_an_nc], names=('energy','y','cc_cdf_ctw','nc_cdf_ctw'), meta=anu_ixc_meta)
@@ -431,10 +431,10 @@ def calc_beta(lepton, material, model):
     beta_total = np.asarray([integrate.nquad(pn, [pn_q2, pn_y_tot], args=(i, m_le, z, A, model))[0] for i in E_lep])
     beta_total = np.asarray([rep(i) for i in beta_total])
 
-    beta_meta = OrderedDict({'Description':'Model/parameterization dependent energy loss lookup table for %s in %s' % (lepton,material),
-                             'energy':'%s energy, in GeV' % lepton,
-                             'beta_pn_%s_cut' % model:'Photonuclear %s energy loss model beta value integrated from y_min to y_max=1e-3, in cm^2/g' % model,
-                             'beta_pn_%s_total' % model:'Photonuclear %s energy loss model beta value integrated from y_min to y_max, in cm^2/g' % model})
+    beta_meta = OrderedDict({'Description':'Model/parameterization dependent photonuclear energy loss lookup table for %s in %s' % (lepton.capitalize(),material),
+                             'energy':'%s energy, in GeV' % lepton.capitalize(),
+                             'beta_pn_%s_cut' % model:'Photonuclear %s energy loss model beta values integrated from y_min to y_max=1e-3, in cm^2/g' % str.upper(model),
+                             'beta_pn_%s_total' % model:'Photonuclear %s energy loss model beta values integrated from y_min to y_max, in cm^2/g' % str.upper(model)})
     beta_table = Table([E_lep, beta_cut, beta_total], names=('energy','beta_pn_%s_cut' % model,'beta_pn_%s_total' % model), meta=beta_meta)
 
     fnm = "beta_%s_pn_%s_%s.ecsv" % (lepton,model,material)
@@ -481,18 +481,18 @@ def calc_xc(lepton, material, model):
 
     cdf = np.asarray(ixc_lst).flatten()
 
-    xc_meta = OrderedDict({'Description':'%s-nucleon cross-section values for %s in %s' % (lepton,model,material),
-                           'energy':'%s energy, in GeV' % lepton,
-                           'sigma_%s' % model:'cross-section for %s * N_A/A, in cm^2/g' % model})
+    xc_meta = OrderedDict({'Description':'%s-nucleon cross-section values for PN_%s in %s' % (lepton.capitalize(),str.upper(model),material),
+                           'energy':'%s energy, in GeV' % lepton.capitalize(),
+                           'sigma_%s' % model:'N_A/A * cross-section for PN_%s in %s, in cm^2/g' % (str.upper(model),material)})
     xc_table = Table([E_lep, xc_arr], names=('energy','sigma_pn_%s' % model), meta=xc_meta)
 
     fnm_xc = "xc_%s_pn_%s_%s.ecsv" % (lepton,model,material)
     ascii.write(xc_table, fnm_xc, format='ecsv', fast_writer=True, overwrite=True)
 
-    ixc_meta = OrderedDict({'Description':'%s-nucleon cross-section CDF values for %s in %s' % (lepton,model,material),
-                            'energy':'%s energy, in GeV' % lepton,
-                            'y':'Inelasticity, y = (E_init-E_final)/E_initial.',
-                            'cdf':'Cross-section CDF value',
+    ixc_meta = OrderedDict({'Description':'%s-nucleon cross-section CDF values for PN_%s in %s' % (lepton.capitalize(),str.upper(model),material),
+                            'energy':'%s energy, in GeV' % lepton.capitalize(),
+                            'y':'Inelasticity; y = (E_initial-E_final)/E_initial',
+                            'cdf':'Cross-section CDF values for PN_%s in %s' % (str.upper(model),material),
                             'Note':'The integrated cross-section CDF values should be integrated from y = 0, 10^(-0.1),...,10^(-3). This is a convention we chose to adopt'})
     ixc_table = Table([np.repeat(E_lep,31), np.tile(yvals_padded,len(E_lep)), cdf], names=('energy','y','cdf_pn_%s' % model), meta=ixc_meta)
 
