@@ -152,7 +152,7 @@ def main():
     nu_type = str(args.nu_type_id)
     type_loss = str(args.loss_type)
     cross_section_model = str(args.xc_model_id)
-    pn_model = "pn_" + str(args.pn_model_id)
+    pn_model = str(args.pn_model_id)
     fac_nu = float(args.fac_nu_val)
     stat = int(args.stat_val)
     cdf_only = str(args.cdf_id)
