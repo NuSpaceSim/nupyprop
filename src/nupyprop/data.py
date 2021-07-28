@@ -24,6 +24,12 @@ pn_models = ['brem', 'pair', 'pn_allm', 'pn_bb']
 
 ref = importlib_resources.files('nupyprop.datafiles') / 'lookup_tables.h5' # path for lookup_tables
 custom_models = importlib_resources.files('nupyprop.models') / '*.ecsv' # path for custom model files
+nu_xc_ctw = importlib_resources.files('nupyprop.models') / 'xc_neutrino_ctw.ecsv'
+
+os.path.exists(nu_xc_ctw)
+
+with importlib_resources.as_file(nu_xc_ctw) as custom_model:
+    xc_table = Table.read(custom_model, format='ascii.ecsv')
 
 def output_file(nu_type, lepton, idepth, cross_section_model, pn_model, prop_type, stats):
     '''
@@ -260,32 +266,34 @@ def get_xc(part_type, model, out=False, **kwargs):
     if part_type=='nu':
         nu_type = kwargs['nu_type']
         if nu_type=='anti-neutrino':nu_type='anti_neutrino'
-        # if model not in nu_models:
-        #     model = str(input(("Error finding cross-section values for %s model, please enter a valid model name: " % model)))
-        # else:
-        try:
+
+        if model in nu_models:
             with importlib_resources.as_file(ref) as lookup_tables:
                 xc_table = Table.read(lookup_tables,path='Neutrinos/%s/xc' % nu_type)
+        else:
+            fnm = "xc_%s_%s.ecsv" % (nu_type,model)
+            if not os.path.exists(fnm):
+                return print("Error! %s file does not exist" % fnm)
 
-            cscc = xc_table['sigma_cc_%s' % model]
-            csnc = xc_table['sigma_nc_%s' % model]
-            out_arr = np.asarray([cscc,csnc])
+            with importlib_resources.as_file(fnm) as lookup_table:
+                xc_table = Table.read(lookup_table, format='ascii.ecsv')
 
-            if out:
-                fnm = "xc_%s_%s.ecsv" % (nu_type,model)
-                out_table = Table([xc_table['energy'], cscc, csnc], meta=xc_table.meta)
-                ascii.write(out_table, fnm, format='ecsv', fast_writer=False, overwrite=True)
-                return print('%s cross-section data saved to file %s' % (nu_type,fnm))
+        cscc = xc_table['sigma_cc_%s' % model]
+        csnc = xc_table['sigma_nc_%s' % model]
+        out_arr = np.asarray([cscc,csnc])
+
+        if out:
+            fnm = "xc_%s_%s.ecsv" % (nu_type,model)
+            out_table = Table([xc_table['energy'], cscc, csnc], meta=xc_table.meta)
+            ascii.write(out_table, fnm, format='ecsv', fast_writer=False, overwrite=True)
+            return print('%s cross-section data saved to file %s' % (nu_type,fnm))
 
             return np.asfortranarray(out_arr.T)
-        except KeyError:
-            model = str(input(("Error finding cross-section values for %s model, please enter a valid model name: " % model)))
-            return None
+
     else: # energy loss; part_type == 'tau' or 'muon'
         material = kwargs['material']
         # if
         try:
-
             with importlib_resources.as_file(ref) as lookup_tables:
                 xc_table = Table.read(lookup_tables,path='Charged_Leptons/%s/%s/xc' % (part_type,material))
             out_arr = np.asarray(xc_table['sigma_%s' % model])
