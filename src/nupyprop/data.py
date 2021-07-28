@@ -23,10 +23,6 @@ nu_models = ['allm', 'bdhm', 'ct18nlo', 'nct15']
 pn_models = ['allm', 'bb']
 
 ref = importlib_resources.files('nupyprop.datafiles') / 'lookup_tables.h5' # path for lookup_tables
-custom_models = importlib_resources.files('nupyprop.models') / '*.ecsv' # path for custom model files
-nu_xc_ctw = importlib_resources.files('nupyprop.models') / 'xc_neutrino_ctw.ecsv'
-
-os.path.exists(nu_xc_ctw)
 
 class ModelError(Exception):
     """Exception raised for errors in the input custom model file.
@@ -60,10 +56,6 @@ def get_custom_path(data_type, part_type, model, *args): # get custom model file
         if not os.path.exists(file):
             raise ModelError(fnm)
         return file
-
-
-with importlib_resources.as_file(nu_xc_ctw) as custom_model:
-    xc_table = Table.read(custom_model, format='ascii.ecsv')
 
 def output_file(nu_type, lepton, idepth, cross_section_model, pn_model, prop_type, stats):
     '''
@@ -101,9 +93,6 @@ def sci_str(exp_value):
     dec = Decimal(exp_value)
     str_val = ('{:.' + str(len(dec.normalize().as_tuple().digits) - 1) + 'e}').format(dec).replace('+', '')
     return str_val
-
-def check_custom():
-    return None
 
 # def chk_file(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats):
 #     '''
@@ -267,12 +256,12 @@ def add_xc(part_type, xc_table, *arg):
 
     '''
     if part_type=='nu':
-        nu_type = arg
+        nu_type = arg[0]
         with importlib_resources.as_file(ref) as lookup_tables:
             xc_table.write(lookup_tables, path='Neutrinos/%s/xc' % nu_type, append=True, overwrite=True)
         return print("%s_sigma CC & NC lookup tables successfully created" % part_type)
     else: # lepton energy loss XC
-        material = arg
+        material = arg[0]
         with importlib_resources.as_file(ref) as lookup_tables:
             xc_table.write(lookup_tables, path='Charged_Leptons/%s/%s/xc' % (part_type,material), append=True, overwrite=True)
         return print("%s_sigma lookup table successfully created in %s" % (part_type, material))
@@ -622,90 +611,6 @@ def get_beta(lepton, model, material, *arg, out=False):
     return np.asfortranarray(beta_arr.T)
 
 
-# def get_part_data(data_type, particle, model, *args, out=False): # don't include alpha
-
-#     # if particle=='anti-neutrino':particle='anti_neutrino'
-
-#     if data_type == 'xc':
-
-#         if particle == 'neutrino' or particle == 'anti_neutrino':
-#             pass
-
-#         elif particle == 'tau' or particle == 'muon':
-#             pass
-
-
-#     elif data_type == 'ixc':
-
-#         if particle == 'neutrino' or particle == 'anti_neutrino':
-#             pass
-
-#         elif particle == 'tau' or particle == 'muon':
-#             pass
-
-#     elif data_type == 'beta':
-#         pass
-
-
-#     else:
-#         return print("Error in get_part_data")
-
-#     return None
-
-def test(*args):
-    # print(args)
-    return args
-
-def combine_lep(data_type, lepton, material, pn_model, *arg):
-    '''
-
-    Parameters
-    ----------
-    data_type : str
-        Can be xc (lepton cross-section type), beta (lepton energy loss) or ixc (lepton integrated cross-section CDFs).
-    lepton : str
-        Lepton. Can be tau or muon.
-    material : str
-        Material of propagation.
-    pn_model : str
-        Lepton photonuclear energy loss model.
-    *arg : str
-        beta_type : Can be cut or full, for data_type = beta only.
-
-    Returns
-    -------
-    ndarray
-        Returns a combined 3D array depending on data_type.
-
-    '''
-    if data_type == 'xc':
-        xc_brem = get_xc(lepton, 'brem', material)
-        xc_pair = get_xc(lepton, 'pair', material)
-        xc_pn = get_xc(lepton, pn_model, material)
-        xc_arr = np.asarray([xc_brem, xc_pair, xc_pn])
-        xc = np.asfortranarray(xc_arr.T)
-        return xc
-
-    elif data_type == 'beta':
-        beta_type = arg
-
-        beta_brem = get_beta(lepton, material, 'brem', beta_type)
-        beta_pair = get_beta(lepton, material, 'pair', beta_type)
-        beta_pn = get_beta(lepton, material, pn_model, beta_type)
-        beta_arr = np.asarray([beta_brem, beta_pair, beta_pn])
-        beta = np.asfortranarray(beta_arr.T)
-        return beta
-
-    elif data_type == 'ixc':
-        ixc_brem = get_ixc(lepton, 'brem', material)
-        ixc_pair = get_ixc(lepton, 'pair', material)
-        ixc_pn = get_ixc(lepton, pn_model, material)
-        ixc_arr = np.asarray([ixc_brem, ixc_pair, ixc_pn])
-        ixc = np.asfortranarray(ixc_arr.T)
-        return ixc
-
-    return None
-
 def add_pexit(nu_type, lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, pexit_table):
     '''
 
@@ -1013,7 +918,22 @@ if __name__ == "__main__":
     # arr = get_beta('tau', 'rock', 'total', 'allm', True)
     # add_pexit_manual(1e9, np.arange(1,36), 1e8)
     pass
-    # nu_xc = get_xc('nu','ctw','neutrino')
+    nu_xc_new = get_xc('nu', 'ct18nlo', 'neutrino')
+
+    xc_water_new = get_xc('tau', 'allm', 'water')
+    xc_rock_new = get_xc('tau', 'allm', 'rock')
+
+    alpha_water_new = get_alpha('tau','water')
+    alpha_rock_new = get_alpha('tau','rock')
+
+    beta_water_new = get_beta('tau','allm','water','cut')
+    beta_rock_new = get_beta('tau','allm','rock','cut')
+
+    nu_ixc_new = get_ixc('nu', 'ct18nlo', 'neutrino')
+
+    water_ixc_new = get_ixc('tau', 'allm', 'water')
+    rock_ixc_new = get_ixc('tau', 'allm', 'rock')
+
     # xc_water = get_xc('tau','bdhm','water')
     # nu_ixc = get_ixc('nu','ctw','neutrino',out=True)
     # lep_ixc_water = get_ixc('tau','bdhm','water',out=True)

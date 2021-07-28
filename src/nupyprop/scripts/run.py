@@ -34,7 +34,7 @@ def get_parser():
         nargs="?",
         const=f"{np.array2string(np.arange(1, 36), separator=',')}"[1:-1],
         default=f"{np.array2string(np.arange(1, 36), separator=',')}"[1:-1],
-        help="value of angle; defaults are 1-35 degrees, in steps of 1 degree.",
+        help="value of Earth emergence angle; defaults are 1-35 degrees, in steps of 1 degree.",
     )
 
     parser.add_argument(
@@ -45,7 +45,7 @@ def get_parser():
         type=float,
         const=4,
         default=4,
-        help="value of water layer in km; default is 4",
+        help="value of water layer in km; default is 4 km",
     )
 
     parser.add_argument(
@@ -67,7 +67,7 @@ def get_parser():
         type=str,
         const="neutrino",
         default="neutrino",
-        help="type of neutrino matter - can be neutrino or anti-neutrino; default is neutrino",
+        help="type of neutrino matter - can be neutrino or anti_neutrino; default is neutrino",
     )
 
     parser.add_argument(
@@ -111,7 +111,7 @@ def get_parser():
         type=float,
         const=1.0,
         default=1.0,
-        help="rescaling for BSM cross-sections; default is 1.0",
+        help="rescaling for BSM neutrino cross-sections; default is 1.0",
     )
 
     parser.add_argument(
@@ -122,7 +122,7 @@ def get_parser():
         type=float,
         const=1e7,
         default=1e7,
-        help="statistics; default is 1e7",
+        help="statistics or number of neutrinos injected; default is 1e7",
     )
 
     parser.add_argument(
