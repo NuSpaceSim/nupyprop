@@ -1608,7 +1608,7 @@ subroutine regen(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_
 
 end subroutine regen
 
-subroutine p_exit_w(xc_water, lep_ixc_water, alpha_water, beta_water)
+subroutine p_exit_w(lepton, prop_type, xc_water, lep_ixc_water, alpha_water, beta_water)
     !! This is a test subroutine for calculating survival probabilities of leptons in water.
     implicit none
 
@@ -1616,6 +1616,7 @@ subroutine p_exit_w(xc_water, lep_ixc_water, alpha_water, beta_water)
     real(dp), intent(in) :: lep_ixc_water(:,:,:)
     real(dp), intent(in) :: alpha_water(:)
     real(dp), intent(in) :: beta_water(:,:)
+    integer, intent(in) :: lepton, prop_type
 
     real(dp) :: energy(104) = (/1.e+07, 1.e+07, 1.e+07, 1.e+07, 1.e+07, 1.e+07, 1.e+07, 1.e+07,&
        & 1.e+07, 1.e+07, 1.e+07, 1.e+07, 1.e+07, 1.e+07, 1.e+07, 1.e+07,&
@@ -1667,7 +1668,9 @@ subroutine p_exit_w(xc_water, lep_ixc_water, alpha_water, beta_water)
         surv = 0.0_dp
         ic = 0._dp
         do k = 1, int(imax)
-            call propagate_lep_water(energy(j), xc_water, lep_ixc_water, alpha_water, beta_water, dm(j), 1, 1, p_id, df, e_fin)
+            call propagate_lep_water(energy(j), xc_water, lep_ixc_water, alpha_water, beta_water, dm(j),&
+            & lepton, prop_type, p_id, df, e_fin)
+
             if (p_id == 1 .and. e_fin > 50._dp) then
                 ic = ic + 1._dp
             end if
@@ -1677,6 +1680,78 @@ subroutine p_exit_w(xc_water, lep_ixc_water, alpha_water, beta_water)
     end do
 
 end subroutine p_exit_w
+
+subroutine p_exit_r(angle, lepton, prop_type, d_entry, xc_rock, lep_ixc_rock, alpha_rock, beta_rock, xalong, cdalong, idepth)
+    !! This is a test subroutine for calculating survival probabilities of leptons in water.
+    implicit none
+
+    real(dp), intent(in) :: xc_rock(:,:)
+    real(dp), intent(in) :: lep_ixc_rock(:,:,:)
+    real(dp), intent(in) :: alpha_rock(:)
+    real(dp), intent(in) :: beta_rock(:,:)
+    real(dp), intent(in) :: d_entry
+    integer, intent(in) :: lepton, prop_type, idepth
+    real(dp), intent(in) :: xalong(:), angle
+    real(dp), intent(in) :: cdalong(:)
+
+    real(dp) :: energy(104) = (/1.e+07, 1.e+07, 1.e+07, 1.e+07, 1.e+07, 1.e+07, 1.e+07, 1.e+07,&
+       & 1.e+07, 1.e+07, 1.e+07, 1.e+07, 1.e+07, 1.e+07, 1.e+07, 1.e+07,&
+       & 1.e+07, 1.e+07, 1.e+07, 1.e+07, 1.e+07, 1.e+07, 1.e+07, 1.e+07,&
+       & 1.e+07, 1.e+07, 1.e+08, 1.e+08, 1.e+08, 1.e+08, 1.e+08, 1.e+08,&
+       & 1.e+08, 1.e+08, 1.e+08, 1.e+08, 1.e+08, 1.e+08, 1.e+08, 1.e+08,&
+       & 1.e+08, 1.e+08, 1.e+08, 1.e+08, 1.e+08, 1.e+08, 1.e+08, 1.e+08,&
+       & 1.e+08, 1.e+08, 1.e+08, 1.e+08, 1.e+09, 1.e+09, 1.e+09, 1.e+09,&
+       & 1.e+09, 1.e+09, 1.e+09, 1.e+09, 1.e+09, 1.e+09, 1.e+09, 1.e+09,&
+       & 1.e+09, 1.e+09, 1.e+09, 1.e+09, 1.e+09, 1.e+09, 1.e+09, 1.e+09,&
+       & 1.e+09, 1.e+09, 1.e+09, 1.e+09, 1.e+09, 1.e+09, 1.e+10, 1.e+10,&
+       & 1.e+10, 1.e+10, 1.e+10, 1.e+10, 1.e+10, 1.e+10, 1.e+10, 1.e+10,&
+       & 1.e+10, 1.e+10, 1.e+10, 1.e+10, 1.e+10, 1.e+10, 1.e+10, 1.e+10,&
+       & 1.e+10, 1.e+10, 1.e+10, 1.e+10, 1.e+10, 1.e+10, 1.e+10, 1.e+10/)
+
+    real(dp) :: dm(104) = (/0.  ,   0.24,   0.48,   0.72,   0.96,   1.2 ,   1.44,   1.68,&
+         & 1.92,   2.16,   2.4 ,   2.64,   2.88,   3.12,   3.36,   3.6 ,&
+         & 3.84,   4.08,   4.32,   4.56,   4.8 ,   5.04,   5.28,   5.52,&
+         & 5.76,   6.  ,   0.  ,   1.52,   3.04,   4.56,   6.08,   7.6 ,&
+         & 9.12,  10.64,  12.16,  13.68,  15.2 ,  16.72,  18.24,  19.76,&
+        & 21.28,  22.8 ,  24.32,  25.84,  27.36,  28.88,  30.4 ,  31.92,&
+        & 33.44,  34.96,  36.48,  38.  ,   0.  ,   3.12,   6.24,   9.36,&
+        & 12.48,  15.6 ,  18.72,  21.84,  24.96,  28.08,  31.2 ,  34.32,&
+        & 37.44,  40.56,  43.68,  46.8 ,  49.92,  53.04,  56.16,  59.28,&
+        & 62.4 ,  65.52,  68.64,  71.76,  74.88,  78.  ,   0.  ,   4.  ,&
+         & 8.  ,  12.  ,  16.  ,  20.  ,  24.  ,  28.  ,  32.  ,  36.  ,&
+        & 40.  ,  44.  ,  48.  ,  52.  ,  56.  ,  60.  ,  64.  ,  68.  ,&
+        & 72.  ,  76.  ,  80.  ,  84.  ,  88.  ,  92.  ,  96.  , 100./)
+
+    real(dp) :: surv, e_fin, df, imax, ic, energy_single, dm_single
+    integer :: j, k
+    integer :: p_id
+
+!    energy_single = 1e10
+!    dm_single = 50
+!    surv = 0.0
+!    ic = 0._dp
+!    call propagate_lep_water(energy_single, xc_water, lep_ixc_water, alpha_water,&
+!    & beta_water, dm_single, 1, 1, p_id, df, e_fin)
+!    print *,p_id,df,e_fin
+
+    imax = 1e4_dp
+    do j = 1, 104
+        surv = 0.0_dp
+        ic = 0._dp
+        do k = 1, int(imax)
+            call propagate_lep_rock(angle,energy(j), xc_rock, lep_ixc_rock, alpha_rock,&
+            & beta_rock, d_entry, dm(j), xalong, cdalong, idepth, lepton, prop_type, p_id,&
+            & df, e_fin)
+
+            if (p_id == 1 .and. e_fin > 50._dp) then
+                ic = ic + 1._dp
+            end if
+        end do
+        surv = ic/imax
+        print *,energy(j), dm(j), surv, df
+    end do
+
+end subroutine p_exit_r
 
 end module transport
 
