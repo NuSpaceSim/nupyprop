@@ -13,6 +13,8 @@ from astropy.table import Table
 from astropy.io import ascii
 from collections import OrderedDict
 import os
+import glob
+from collections.abc import Iterable
 
 # pwd = os.getcwd()
 
@@ -911,43 +913,54 @@ def get_cdf(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_mode
         return print('Lepton outgoing energy CDF data saved to file %s' % fnm)
     return cdf
 
+def sort_htc_files(nu_type, lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, cdf_only='no'):
+
+    files_path = "osg_out/" # my output folder from OSG is osg_out/energy/*
+
+    make_array = lambda x : x if isinstance(x, Iterable) else np.array([x]) # to avoid errors with single or no columns
+
+    log_energy = int(np.log10(energy))
+
+    eout_files = sorted(glob.glob(files_path + str(log_energy) + "/" + "eout_*"))
+
+    assert len(eout_files) == len(sorted(glob.glob(files_path + str(log_energy) + "/" + "pexit_*")))
+
+    for i in range(len(eout_files)): # make sure len(eout_files) ==
+        fnm = eout_files[i].replace(".dat","")
+        angle = float(fnm.split("_")[-1])
+        e_out = make_array(np.genfromtxt(eout_files[i]))
+        p_angle, p_noregen, p_regen = np.genfromtxt(files_path + str(log_energy) + "/" + "pexit_%.2E_%.2f.dat" % (energy,angle), usecols=(1,2,3), unpack=True)
+
+        lep_meta = OrderedDict({'Description':'Outgoing %s energies' % lepton,
+                                'lep_energy':'Outgoing %s energy, in log_10(E) GeV'})
+        lep_table = Table([e_out], names=('lep_energy',), meta=lep_meta)
+        add_cdf(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, lep_table) # adds the binned cdf values for each energy and angle to output file
+
+        if cdf_only == 'no': # adds lep_out energies to output file
+            add_lep_out(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, lep_table)
+
+        pexit_meta = OrderedDict({'Description':'Exit probability for %s' % lepton,
+                                  'angle':'Earth emergence angle, in degrees',
+                                  'no_regen':'Exit probability without including any %s regeneration' % lepton,
+                                  'regen':'Exit probability including %s regeneration' % lepton})
+
+        pexit_table = Table([make_array(p_angle), make_array(p_noregen), make_array(p_regen)], names=('angle','no_regen','regen'), meta=pexit_meta)
+
+        add_pexit(nu_type, lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, pexit_table) # adds p_exit results to output file
+    return None
+
 # =============================================================================
 # Test
 # =============================================================================
 if __name__ == "__main__":
-    # arr = get_beta('tau', 'rock', 'total', 'allm', True)
-    # add_pexit_manual(1e9, np.arange(1,36), 1e8)
+    nu_type = 'neutrino'
+    lepton = 'tau'
+    energy = 1e7
+    idepth = 4
+    cross_section_model = 'ct18nlo'
+    pn_model = 'allm'
+    prop_type = 'stochastic'
+    stats = 1e8
+    cdf_only = 'yes'
     pass
-    nu_xc_new = get_xc('nu', 'ct18nlo', 'neutrino')
-
-    xc_water_new = get_xc('tau', 'allm', 'water')
-    xc_rock_new = get_xc('tau', 'allm', 'rock')
-
-    alpha_water_new = get_alpha('tau','water')
-    alpha_rock_new = get_alpha('tau','rock')
-
-    beta_water_new = get_beta('tau','allm','water','cut')
-    beta_rock_new = get_beta('tau','allm','rock','cut')
-
-    nu_ixc_new = get_ixc('nu', 'ct18nlo', 'neutrino')
-
-    water_ixc_new = get_ixc('tau', 'allm', 'water')
-    rock_ixc_new = get_ixc('tau', 'allm', 'rock')
-
-    # xc_water = get_xc('tau','bdhm','water')
-    # nu_ixc = get_ixc('nu','ctw','neutrino',out=True)
-    # lep_ixc_water = get_ixc('tau','bdhm','water',out=True)
-    # beta_rock = get_beta('muon','rock','bdhm','total',out=True)
-    # for nu_type in nu_types:
-    #     for model in nu_xc:
-    #         nu_ixc = get_ixc('nu', model, out=True, nu_type=nu_type)
-    #         nu_xc = get_xc('nu', model, out=True, nu_type=nu_type)
-
-    # for lepton in lep:
-    #     for material in materials:
-    #         get_alpha(lepton, material, out=True)
-    #         for process in lep_processes:
-    #             lep_xc = get_ixc(lepton, process, out=True, material=material)
-    #             lep_ixc = get_ixc(lepton, process, out=True, material=material)
-    #             for beta_type in beta_types:
-    #                 lep_beta = get_beta(lepton, material, process, beta_type, out=True)
+    # sort_htc_files(nu_type, lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, cdf_only)
