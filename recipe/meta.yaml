@@ -38,6 +38,7 @@ requirements:
     - scipy
     - sympy
     - pyyaml
+    - tabulate
 
 # Woe is us. We lack tests.
 test:
