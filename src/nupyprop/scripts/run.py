@@ -136,7 +136,7 @@ def get_parser():
     )
 
     parser.add_argument(
-        "-h",
+        "-htc",
         "--htc_mode",
         dest="htc_id",
         nargs="?",
