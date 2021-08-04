@@ -1976,9 +1976,9 @@ subroutine run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_wate
 !    write(6,*)'stat_val=',stats
 
     if (angle < 10._dp) then
-        write(filename,'(a,es8.2,a,F4.2)') 'e_out_',energy,'_',angle ! filename is e_out_energy_angle
+        write(filename,'(a,es8.2,a,F4.2,a)') 'eout_',energy,'_',angle,'.dat' ! filename is e_out_energy_angle
     else
-        write(filename,'(a,es8.2,a,F5.2)') 'e_out_',energy,'_',angle ! filename is e_out_energy_angle
+        write(filename,'(a,es8.2,a,F5.2,a)') 'eout_',energy,'_',angle,'.dat' ! filename is e_out_energy_angle
     end if
 
     open(newunit=u, file=trim(filename), status="replace")

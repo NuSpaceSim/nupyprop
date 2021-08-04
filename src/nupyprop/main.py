@@ -7,27 +7,22 @@ Created on Mon Mar 15 14:04:46 2021
 """
 
 import nupyprop.data as Data
-# import data as Data
 import nupyprop.geometry as Geometry
-# import geometry as Geometry
 from nupyprop.propagate import run as Run
+
+# import data as Data
+# import geometry as Geometry
 # from propagate import run as Run
 
 import numpy as np
 from astropy.table import Table
 from collections import OrderedDict
 from collections.abc import Iterable
-# import random
-# import matplotlib.pyplot as plt
-# from matplotlib.ticker import ScalarFormatter
 import time
 import os
 import glob
-import functools
-print = functools.partial(print, flush=True)
 
 rho_water = 1.02 # g/cm^3
-rho_rock = 2.65 # g/cm^3
 
 def file_cleaner(output_type):
     '''
@@ -44,7 +39,7 @@ def file_cleaner(output_type):
 
     '''
     if output_type == 'e_out':
-        files = glob.glob("e_out_*") # cleanup of Fortran e_out files
+        files = glob.glob("eout_*") # cleanup of Fortran e_out files
     elif output_type == 'p_exit':
         files = glob.glob("pexit_*") # cleanup of p_exit files
 
@@ -137,30 +132,6 @@ def init_ixc(nu_type, lepton, nu_model, pn_model):
 
     return nu_ixc, lep_ixc_water, lep_ixc_rock
 
-def create_lep_out_dict(energy, angle):
-    '''
-
-    Parameters
-    ----------
-    energy : float
-        Neutrino energy, in GeV.
-    angle : float
-        Earth emergence angle (beta), in degrees.
-
-    Returns
-    -------
-    lep_dict : dict
-        Creates outgoing lepton energy [in log10(GeV)] dictionary from temporary generated file.
-
-    '''
-
-    fnm = str("e_out_%.2E_%.2f" % (energy, angle))
-
-    e_out = np.genfromtxt(fnm)
-
-    lep_dict = {'lep_energy': e_out}
-
-    return lep_dict
 
 def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton, fac_nu, stats, prop_type, cdf_only):
     '''
@@ -207,8 +178,6 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton,
 
     ithird = 0 # use dn/dy in tau to neutrino
 
-    # prob_dict = {}
-
     if prop_type == 'stochastic':
         prop_type_int = 1
     else:
@@ -224,27 +193,19 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton,
     elif nu_type == 'anti-neutrino':
         nu_type = 'anu'
 
-    # for energy in E_prop:
-    #     for angle in angles:
-    #         chk_flag = Data.chk_file(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats) # checks if output file exists for any run list of energies & angles
-    #         if chk_flag == 0: break
-
-    # if chk_flag == 0: # user chooses not to overwrite existing output file
-    #     return print("No changes made")
-    # # end of check loop
-
+    start_time = time.time()
     print("The water -> rock transition occurs at %.2f degrees" % Geometry.find_interface(idepth)[0])
 
     for energy in E_prop:
-        pexit_file = open("pexit_%.2f.dat" % np.log10(energy), "w")
-        pexit_file.write("#" + "\t" + "Energy" + "\t" + "Angle" + "\t" + "Without Regeneration" + "\t" + "With Regeneration" + "\n")
-        pexit_file.close()
-        start_time = time.time()
+
+        with open("pexit_%.2f.dat" % np.log10(energy), "a") as pexit_file:
+            pexit_file.write("#\tEnergy\tAngle\tWithout Regeneration\tWith Regeneration\n")
+
         for angle in angles:
-            # pexit_file.write(str("%.5e") % energy + "\t" + str("%.5e") % angle + "\t")
+
             xalong, cdalong = Data.get_trajs('col', angle, idepth) # initialize arrays here for each angle, to reduce a ton of overhead when tauthrulayers & regen are called
 
-            print("Energy = %.2e, Angle = %.1f" % (energy, angle))
+            print("Energy = %.2e, Angle = %.1f" % (energy, angle), flush=True)
 
             chord, water = Data.get_trajs('water', angle, idepth)
             dwater = water*rho_water # depth in water [kmwe] in last or only section
@@ -256,10 +217,9 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton,
             prob_regen = regen/float(stats)
 
             with open("pexit_%.2f.dat" % np.log10(energy), "a") as pexit_file:
-                pexit_file.write(str("%.5e") % energy + "\t" + str("%.5e") % angle + "\t" + str("%.5e") % prob_no_regen + "\t" + str("%.5e") % prob_regen + "\n")
+                pexit_file.write("%.5e\t%.5e\t%.5e\t%.5e\n" % (energy,angle,prob_no_regen,prob_regen))
 
-            e_out = make_array(np.genfromtxt(str("e_out_%.2E_%.2f" % (energy, angle))))
-
+            e_out = make_array(np.genfromtxt(str("eout_%.2E_%.2f.dat" % (energy, angle))))
 
 
             lep_meta = OrderedDict({'Description':'Outgoing %s energies' % lepton,
@@ -277,10 +237,8 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton,
                 Data.add_lep_out(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, lep_table)
 
 
-        # # end of for loop for angles
+        # end of for loop for angles
         p_angle, p_noregen, p_regen = np.genfromtxt("pexit_%.2f.dat" % np.log10(energy), usecols=(1,2,3), skip_header=1, unpack=True)
-        # prob_dict_single = {'angle':p_angle,'no_regen':p_noregen,'regen':p_regen}
-
 
         pexit_meta = OrderedDict({'Description':'Exit probability for %s' % lepton,
                                   'angle':'Earth emergence angle, in degrees',
@@ -293,14 +251,86 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton,
 
         file_cleaner('p_exit')  # remove p_exit files
 
-        # prob_dict[energy]={'no_regen':prob_dict_single['no_regen'],'regen':prob_dict_single['regen']} # if you want to print out at the end of running the code
-
-        print("Done!")
-        end_time = time.time()
-        print(f"It took {end_time-start_time:.2f} seconds to compute")
-
-
     # close of for loop for energy
+    end_time = time.time()
+    print(f"It took {end_time-start_time:.2f} seconds to compute")
+    print("Done!")
+
+    return None
+
+def main_htc(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton, fac_nu, stats, prop_type):
+    '''
+
+    Parameters
+    ----------
+    E_prop : ndarray
+        Ingoing neutrino energies, in GeV.
+    angles : ndarray
+        Earth emergence angles (beta), in degrees.
+    nu_type : str
+        Type of neutrino particle. Can be neutrino or anti-neutrino.
+    cross_section_model : str
+        Neutrino cross-section model.
+    pn_model : str
+        Photonuclear energy loss model.
+    idepth : int
+        Depth of water layer in km.
+    lepton : str
+        Type of lepton. Can be tau or muon.
+    fac_nu : float
+        Rescaling factor for BSM cross-sections.
+    stats : float
+        Statistics; no. of ingoing neutrinos.
+    prop_type : str
+        Energy loss propagation type. Can be stochastic or continuous.
+    cdf_only : str
+        If set to yes, the output file will NOT contain outgoing lepton energies.
+
+    Returns
+    -------
+    NONE
+        Adds exit probability & outgoing lepton energy results to output_x.h5
+
+    '''
+
+    nu_xc, xc_water, xc_rock, alpha_water, alpha_rock, beta_water, beta_rock = init_xc(nu_type, lepton, cross_section_model, pn_model, prop_type)
+
+    nu_ixc, lep_ixc_water, lep_ixc_rock = init_ixc(nu_type, lepton, cross_section_model, pn_model)
+
+    ithird = 0 # use dn/dy in tau to neutrino
+
+    if prop_type == 'stochastic':
+        prop_type_int = 1
+    else:
+        prop_type_int = 2
+
+    if lepton == 'tau':
+        lepton_int = 1
+    else:
+        lepton_int = 2
+
+    print("The water -> rock transition occurs at %.2f degrees" % Geometry.find_interface(idepth)[0])
+
+    for energy in E_prop: # needs to be a 1-element array
+        for angle in angles: # needs to be a 1-element array
+
+            xalong, cdalong = Data.get_trajs('col', angle, idepth) # initialize arrays here for each angle, to reduce a ton of overhead when tauthrulayers & regen are called
+
+            print("Energy = %.2e, Angle = %.1f" % (energy, angle), flush=True)
+
+            chord, water = Data.get_trajs('water', angle, idepth)
+            dwater = water*rho_water # depth in water [kmwe] in last or only section
+            depthE = Geometry.columndepth(angle, idepth)*1e-5 # column depth in kmwe
+
+            no_regen, regen = Run.run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton_int, fac_nu, stats, prop_type_int)
+
+            prob_no_regen = no_regen/float(stats)
+            prob_regen = regen/float(stats)
+
+            with open("pexit_%.2E_%.2f.dat" % (energy,angle), "w") as pexit_file:
+                pexit_file.write("%.5e\t%.5e\t%.5e\t%.5e\n" % (energy,angle,prob_no_regen,prob_regen))
+
+    print("Done!")
 
     return None
 

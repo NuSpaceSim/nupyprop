@@ -9,9 +9,8 @@ Created on Mon Nov 30 21:02:17 2020
 import argparse
 import nupyprop.main as Main
 
-import time
 import numpy as np
-
+from tabulate import tabulate
 
 def get_parser():
     parser = argparse.ArgumentParser()
@@ -116,8 +115,8 @@ def get_parser():
 
     parser.add_argument(
         "-s",
-        "--stat",
-        dest="stat_val",
+        "--stats",
+        dest="stats_val",
         nargs="?",
         type=float,
         const=1e7,
@@ -134,6 +133,17 @@ def get_parser():
         const="no",
         default="no",
         help="CDF only; default is no. If set to yes, the output file will NOT contain outgoing lepton energies.",
+    )
+
+    parser.add_argument(
+        "-h",
+        "--htc_mode",
+        dest="htc_id",
+        nargs="?",
+        type=str,
+        const="no",
+        default="no",
+        help="HTC mode; default is no. If set to yes, the code will be optimized to run in high throughput computing mode.",
     )
 
     return parser
@@ -154,24 +164,53 @@ def main():
     cross_section_model = str(args.xc_model_id)
     pn_model = str(args.pn_model_id)
     fac_nu = float(args.fac_nu_val)
-    stat = int(args.stat_val)
+    stats = int(args.stats_val)
     cdf_only = str(args.cdf_id)
+    htc_mode = str(args.htc_id)
 
-    start_time = time.time()
+    param_data = [["Parameter Name", "Value"],
+              ["Charged Lepton", lepton.capitalize()],
+              ["Neutrino Type", nu_type.capitalize()],
+              ["Depth of Water Layer [km]", idepth],
+              ["Energy Loss Propagation", type_loss.capitalize()],
+              ["Neutrino Cross Section Model", str.upper(cross_section_model)],
+              ["Charged Lepton Photonuclear Energy Loss Model", str.upper(pn_model)],
+              ["BSM Neutrino Cross Section Scaling Factor", fac_nu],
+              ["Statistics", '{:.0e}'.format(stats)],
+              ["CDF Only", cdf_only.capitalize()],
+              ["HTC Mode", htc_mode.capitalize()]]
 
-    Main.main(
-        energies,
-        angles,
-        nu_type,
-        cross_section_model,
-        pn_model,
-        idepth,
-        lepton,
-        fac_nu,
-        stat,
-        type_loss,
-        cdf_only,
-    )
+    print(tabulate(param_data, headers='firstrow', showindex='always',tablefmt='fancy_grid'))
 
-    end_time = time.time()
-    print(f"It took {end_time-start_time:.2f} seconds to compute")
+
+    if htc_mode == 'yes':
+
+        Main.main_htc(
+            energies,
+            angles,
+            nu_type,
+            cross_section_model,
+            pn_model,
+            idepth,
+            lepton,
+            fac_nu,
+            stats,
+            type_loss,
+        )
+
+    else:
+
+        Main.main(
+            energies,
+            angles,
+            nu_type,
+            cross_section_model,
+            pn_model,
+            idepth,
+            lepton,
+            fac_nu,
+            stats,
+            type_loss,
+            cdf_only,
+
+        )
