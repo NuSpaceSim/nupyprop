@@ -39,7 +39,7 @@ requirements:
     - sympy
     - pyyaml
     - tabulate
-    - jupyter-lab
+    - jupyterlab
 
 # Woe is us. We lack tests.
 test:
