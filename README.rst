@@ -74,7 +74,7 @@ described as follows:
 
 9.  -f or –fac_nu: rescaling factor for SM cross-sections. Default is 1.
 
-10. -s or –stat: statistics or no. of injected neutrinos. Default is 1e7
+10. -s or –stats: statistics or no. of injected neutrinos. Default is 1e7
     neutrinos.
 
 11. -c or –cdf_only: If set to yes, the output file will **not** contain
