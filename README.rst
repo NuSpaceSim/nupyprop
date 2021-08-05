@@ -205,11 +205,6 @@ in the following order:
    outgoing lepton energies.
 6. *run.py*: contains all the run parameters and variables needed for
    all the other .py files.
-   
-..
-.. figure:: /figures/nupyprop_uml_full.png
-   :alt: UML Diagram
-   UML Diagram
 
 Developing the code on Ubuntu
 -----------------------------
