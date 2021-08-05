@@ -922,14 +922,23 @@ def sort_htc_files(nu_type, lepton, energy, idepth, cross_section_model, pn_mode
     log_energy = int(np.log10(energy))
 
     eout_files = sorted(glob.glob(files_path + str(log_energy) + "/" + "eout_*"))
+    eout_files = sorted(eout_files, key=len)
 
     assert len(eout_files) == len(sorted(glob.glob(files_path + str(log_energy) + "/" + "pexit_*")))
+
+    p_angle_lst = []
+    p_noregen_lst = []
+    p_regen_lst = []
 
     for i in range(len(eout_files)): # make sure len(eout_files) ==
         fnm = eout_files[i].replace(".dat","")
         angle = float(fnm.split("_")[-1])
         e_out = make_array(np.genfromtxt(eout_files[i]))
         p_angle, p_noregen, p_regen = np.genfromtxt(files_path + str(log_energy) + "/" + "pexit_%.2E_%.2f.dat" % (energy,angle), usecols=(1,2,3), unpack=True)
+
+        p_angle_lst.append(p_angle)
+        p_noregen_lst.append(p_noregen)
+        p_regen_lst.append(p_regen)
 
         lep_meta = OrderedDict({'Description':'Outgoing %s energies' % lepton,
                                 'lep_energy':'Outgoing %s energy, in log_10(E) GeV'})
@@ -939,14 +948,14 @@ def sort_htc_files(nu_type, lepton, energy, idepth, cross_section_model, pn_mode
         if cdf_only == 'no': # adds lep_out energies to output file
             add_lep_out(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, lep_table)
 
-        pexit_meta = OrderedDict({'Description':'Exit probability for %s' % lepton,
-                                  'angle':'Earth emergence angle, in degrees',
-                                  'no_regen':'Exit probability without including any %s regeneration' % lepton,
-                                  'regen':'Exit probability including %s regeneration' % lepton})
+    pexit_meta = OrderedDict({'Description':'Exit probability for %s' % lepton,
+                              'angle':'Earth emergence angle, in degrees',
+                              'no_regen':'Exit probability without including any %s regeneration' % lepton,
+                              'regen':'Exit probability including %s regeneration' % lepton})
 
-        pexit_table = Table([make_array(p_angle), make_array(p_noregen), make_array(p_regen)], names=('angle','no_regen','regen'), meta=pexit_meta)
+    pexit_table = Table([make_array(p_angle_lst), make_array(p_noregen_lst), make_array(p_regen_lst)], names=('angle','no_regen','regen'), meta=pexit_meta)
 
-        add_pexit(nu_type, lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, pexit_table) # adds p_exit results to output file
+    add_pexit(nu_type, lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, pexit_table) # adds p_exit results to output file
     return None
 
 # =============================================================================
