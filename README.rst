@@ -6,6 +6,8 @@ Propagate neutrinos through the earth.
 A python package and command line utility, including fortran for
 performance with openMP.
 
+Documentation: https://nupyprop.readthedocs.io/en/latest/
+
 Installation
 ------------
 
