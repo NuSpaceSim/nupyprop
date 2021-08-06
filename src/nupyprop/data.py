@@ -905,7 +905,7 @@ def get_cdf(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_mode
 
     cdf_table = Table.read(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats),'Lep_out_cdf/%s/%s' % (energy_str,angle))
 
-    cdf = cdf_table['cdf']
+    cdf = np.asarray(cdf_table['cdf'])
 
     if out:
         fnm = "cdf_%s_%s_%s_%sdeg_%skm_%s_%s_%s_%s.ecsv" % (nu_type, lepton, energy_str, angle, idepth, cross_section_model, pn_model, prop_type, sci_str(stats))
