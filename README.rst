@@ -127,7 +127,7 @@ Model Tables
    |                   nCTEQ15                  | `Phys. Rev. D 93, 085037 <https://journals.aps.org/prd/abstract/10.1103/PhysRevD.93.085037>`_,   |
    |                                            | `Phys. Rev. D 81, 114012 <https://journals.aps.org/prd/abstract/10.1103/PhysRevD.81.114012>`_    |
    +--------------------------------------------+--------------------------------------------------------------------------------------------------+
-   |                User Defined                | See models/models.py                                                                             |
+   |                User Defined                | See `nuPyProp tutorial repository <https://github.com/sameer-patel-1/nupyprop_tutorial>`_        |
    +--------------------------------------------+--------------------------------------------------------------------------------------------------+
    
 
@@ -149,7 +149,7 @@ Model Tables
    |     Capella, Kaidalov, Merino, Tran (CKMT)    | `Eur. Phys. J. C 10, 153 <https://arxiv.org/abs/hep-ph/9806367>`_                              |
    |                                               | `Phys. Rev. D 63, 094020 <https://journals.aps.org/prd/abstract/10.1103/PhysRevD.63.094020>`_  |
    +-----------------------------------------------+------------------------------------------------------------------------------------------------+
-   |                  User Defined                 | See models/models.py                                                                           |
+   |                  User Defined                 | See `nuPyProp tutorial repository <https://github.com/sameer-patel-1/nupyprop_tutorial>`_      |
    +-----------------------------------------------+------------------------------------------------------------------------------------------------+
 
 Code Execution Timing Tables
