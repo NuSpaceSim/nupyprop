@@ -47,45 +47,45 @@ with all other parameters as defaults:
 **Run parameters** are defined in run.py. Different switches are
 described as follows:
 
-1. -e or –energy: incoming neutrino energy in log_10(GeV). Works for
+1. ``-e`` or ``--energy``: incoming neutrino energy in log_10(GeV). Works for
    single energy or multiple energies. For multiple energies, separate
    energies with commas eg. 7,8,9,10,11. Default energies are
    10\ :sup:`7`,10\ :sup:`7.25`,10\ :sup:`7.5`,…10\ :sup:`11` GeV.
 
-2. -a or –angle: slant Earth angles in degrees. Works for single angle
+2. ``-a`` or ``--angle``: slant Earth angles in degrees. Works for single angle
    or multiple angles. For multiple angles, separate angles with commas
    eg. 1,3,5,7,10. Default angles are 1->35 degrees, in steps of 1
    degree.
 
-3. -i or –idepth: depth of ice/water in km. Default value is 4 km.
+3. ``-i`` or ``--idepth``: depth of ice/water in km. Default value is 4 km.
 
-4. -l or –lepton: flavor of lepton used to propagate. Can be either muon
+4. ``-l`` or ``--lepton``: flavor of lepton used to propagate. Can be either muon
    or tau. Default is tau.
 
-5. -n or –nu_type: type of neutrino matter. Can be either neutrino or
+5. ``-n`` or ``--nu_type``: type of neutrino matter. Can be either neutrino or
    anti-neutrino. Default is neutrino.
 
-6. -t or –energy_loss: energy loss type for lepton - can be stochastic
+6. ``-t`` or ``--energy_loss``: energy loss type for lepton - can be stochastic
    or continuous. Default is stochastic.
 
-7.  -x or –xc_model: neutrino/anti-neutrino cross-section model used.
+7.  ``-x`` or ``--xc_model``: neutrino/anti-neutrino cross-section model used.
     Can be from the pre-defined set of models (see xc-table_) or custom.
     Default is ct18nlo.
 
-8.  -p or –pn_model: photonuclear interaction energy loss model used.
+8.  ``-p`` or ``--pn_model``: photonuclear interaction energy loss model used.
     Can be from the pre-defined set of models (see pn-table_) or custom.
     Default is allm.
 
-9.  -f or –fac_nu: rescaling factor for SM cross-sections. Default is 1.
+9.  ``-f`` or ``--fac_nu``: rescaling factor for BSM cross-sections. Default is 1.
 
-10. -s or –stats: statistics or no. of injected neutrinos. Default is 1e7
+10. ``-s`` or ``--stats``: statistics or no. of injected neutrinos. Default is 1e7
     neutrinos.
 
-11. -c or –cdf_only: If set to yes, the output file will **not** contain
+11. ``-c`` or ``--cdf_only``: If set to yes, the output file will **not** contain
     outgoing lepton energies, and will only contain exit probabilities
     and binned outgoing energy CDF values. Default is no.
     
-12. -htc or –htc_mode: High throughput computing mode. If set to yes,
+12. ``-htc`` or ``--htc_mode``: High throughput computing mode. If set to yes,
     the code will be optimized to run in high throughput computing mode.
     Default is no.
 
