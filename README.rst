@@ -1,4 +1,4 @@
-nupyprop
+nuPyProp
 ========
 
 Propagate neutrinos through the earth.
@@ -6,7 +6,11 @@ Propagate neutrinos through the earth.
 A python package and command line utility, including fortran for
 performance with openMP.
 
-Documentation: https://nupyprop.readthedocs.io/en/latest/
+Documentation (WIP): https://nupyprop.readthedocs.io/en/latest/
+
+**Note:** While the documentation is currently WIP, users and developers should consult the 
+`nuPyProp tutorial repository <https://github.com/sameer-patel-1/nupyprop_tutorial>`_
+for visualizing output from the code and creating user-defined models.
 
 Installation
 ------------
@@ -238,8 +242,6 @@ instead, or a ``virtualenv``, or a conda environment.
 4. ``cd nupyprop``
 5. build and install the package in ‘editable’ mode
    ``python3 -m pip install -e .``
-   
-.. image:: https://hitcounter.pythonanywhere.com/count/tag.svg?url=https%3A%2F%2Fgithub.com%2FNuSpaceSim%2Fnupyprop
 
 .. This data file has been placed in the public domain.
 .. Derived from the Unicode character mappings available from
