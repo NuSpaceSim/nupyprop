@@ -198,8 +198,8 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton,
 
     for energy in E_prop:
 
-        with open("pexit_%.2f.dat" % np.log10(energy), "a") as pexit_file:
-            pexit_file.write("#\tEnergy\tAngle\tWithout Regeneration\tWith Regeneration\n")
+        # with open("pexit_%.2f.dat" % np.log10(energy), "a") as pexit_file:
+            # pexit_file.write("#\tEnergy\tAngle\tWithout Regeneration\tWith Regeneration\n")
 
         for angle in angles:
 
@@ -238,7 +238,7 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton,
 
 
         # end of for loop for angles
-        p_angle, p_noregen, p_regen = np.genfromtxt("pexit_%.2f.dat" % np.log10(energy), usecols=(1,2,3), skip_header=1, unpack=True)
+        p_angle, p_noregen, p_regen = np.genfromtxt("pexit_%.2f.dat" % np.log10(energy), usecols=(1,2,3), unpack=True)
 
         pexit_meta = OrderedDict({'Description':'Exit probability for %s' % lepton,
                                   'angle':'Earth emergence angle, in degrees',
