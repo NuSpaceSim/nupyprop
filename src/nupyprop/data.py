@@ -50,6 +50,11 @@ def patch_for_astropy(arr):
     if arr.size == 0:arr = np.zeros(1) # set empty array to 0
     return arr
 
+def sci_str(exp_value):
+    dec = Decimal(exp_value)
+    str_val = ('{:.' + str(len(dec.normalize().as_tuple().digits) - 1) + 'e}').format(dec).replace('+', '')
+    return str_val
+
 def get_custom_path(data_type, part_type, model, *args): # get custom model file posix path
     if part_type == 'nu':
         nu_type = args[0]
@@ -100,11 +105,6 @@ def output_file(nu_type, lepton, idepth, cross_section_model, pn_model, prop_typ
     elif nu_type=='anti_neutrino':nu_type='anu' # shorten output filename
     fnm = "output_%s_%s_%s_%s_%s_%s_%s.h5" % (nu_type,lepton,idepth_str,cross_section_model,pn_model,prop_type,stats_str)
     return fnm
-
-def sci_str(exp_value):
-    dec = Decimal(exp_value)
-    str_val = ('{:.' + str(len(dec.normalize().as_tuple().digits) - 1) + 'e}').format(dec).replace('+', '')
-    return str_val
 
 # def chk_file(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats):
 #     '''
@@ -977,7 +977,8 @@ if __name__ == "__main__":
     cross_section_model = 'ct18nlo'
     pn_model = 'allm'
     prop_type = 'stochastic'
-    stats = 1e8
+    stats = 1e9
     cdf_only = 'yes'
     pass
     # sort_htc_files(nu_type, lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, cdf_only)
+    # pexit_no_regen = get_pexit(nu_type, lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats)[0] # without regen
