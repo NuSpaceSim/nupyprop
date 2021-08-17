@@ -42,6 +42,14 @@ class ModelError(Exception):
     def __str__(self):
         return f'{self.fnm} -> {self.message}'
 
+def patch_for_astropy(arr):
+    try:
+        len(arr)
+    except TypeError:
+        arr = arr.reshape(1) # to avoid astropy table errors for '0 len' arrays (annoying, I know!)
+    if arr.size == 0:arr = np.zeros(1) # set empty array to 0
+    return arr
+
 def get_custom_path(data_type, part_type, model, *args): # get custom model file posix path
     if part_type == 'nu':
         nu_type = args[0]
@@ -932,6 +940,13 @@ def sort_htc_files(nu_type, lepton, energy, idepth, cross_section_model, pn_mode
         fnm = eout_files[i].replace(".dat","")
         angle = float(fnm.split("_")[-1])
         e_out = make_array(np.genfromtxt(eout_files[i]))
+
+        try:
+            len(e_out)
+        except TypeError:
+            e_out=e_out.reshape(1) # to avoid astropy table errors for '0 len' arrays (annoying, I know!)
+        if e_out.size == 0:e_out = np.array([0.]) # no charged leptons getting out :(
+
         p_angle, p_noregen, p_regen = np.genfromtxt(files_path + str(log_energy) + "/" + "pexit_%.2E_%.2f.dat" % (energy,angle), usecols=(1,2,3), unpack=True)
 
         p_angle_lst.append(p_angle)

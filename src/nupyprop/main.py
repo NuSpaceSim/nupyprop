@@ -198,9 +198,6 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton,
 
     for energy in E_prop:
 
-        # with open("pexit_%.2f.dat" % np.log10(energy), "a") as pexit_file:
-            # pexit_file.write("#\tEnergy\tAngle\tWithout Regeneration\tWith Regeneration\n")
-
         for angle in angles:
 
             xalong, cdalong = Data.get_trajs('col', angle, idepth) # initialize arrays here for each angle, to reduce a ton of overhead when tauthrulayers & regen are called
@@ -220,7 +217,7 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton,
                 pexit_file.write("%.5e\t%.5e\t%.5e\t%.5e\n" % (energy,angle,prob_no_regen,prob_regen))
 
             e_out = make_array(np.genfromtxt(str("eout_%.2E_%.2f.dat" % (energy, angle))))
-
+            e_out = Data.patch_for_astropy(e_out)
 
             lep_meta = OrderedDict({'Description':'Outgoing %s energies' % lepton,
                                     'lep_energy':'Outgoing %s energy, in log_10(E) GeV'})
@@ -240,12 +237,16 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton,
         # end of for loop for angles
         p_angle, p_noregen, p_regen = np.genfromtxt("pexit_%.2f.dat" % np.log10(energy), usecols=(1,2,3), unpack=True)
 
+        p_angle = Data.patch_for_astropy(p_angle)
+        p_noregen = Data.patch_for_astropy(p_noregen)
+        p_regen = Data.patch_for_astropy(p_regen)
+
         pexit_meta = OrderedDict({'Description':'Exit probability for %s' % lepton,
                                   'angle':'Earth emergence angle, in degrees',
                                   'no_regen':'Exit probability without including any %s regeneration' % lepton,
                                   'regen':'Exit probability including %s regeneration' % lepton})
 
-        pexit_table = Table([make_array(p_angle), make_array(p_noregen), make_array(p_regen)], names=('angle','no_regen','regen'), meta=pexit_meta)
+        pexit_table = Table([p_angle, p_noregen, p_regen], names=('angle','no_regen','regen'), meta=pexit_meta)
 
         Data.add_pexit(nu_type, lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, pexit_table) # adds p_exit results to output file
 
