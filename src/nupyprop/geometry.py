@@ -19,8 +19,6 @@ from astropy.table import Table
 import warnings
 warnings.filterwarnings('ignore')
 
-
-
 Re = 6371.0 # radius of the earth in km
 Rlay = np.array([1221.5, 3480.0, 5701.0, 5771.0, 5971.0, 6151.0, 6346.6, 6356.0, 6368.0, 6371.0]) # PREM layers based on R_earth. If you're using another Earth model, be sure to change it here as well as propagate.f90, in PREMdensity subroutine.
 

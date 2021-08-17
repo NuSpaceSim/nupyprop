@@ -53,7 +53,7 @@ def init_xc(nu_type, lepton, nu_model, pn_model, prop_type):
     Parameters
     ----------
     nu_type : str
-        Type of neutrino particle. Can be neutrino or anti-neutrino.
+        Type of neutrino particle. Can be neutrino or anti_neutrino.
     lepton : str
         Type of lepton. Can be tau or muon.
     nu_model : str
@@ -143,7 +143,7 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton,
     angles : ndarray
         Earth emergence angles (beta), in degrees.
     nu_type : str
-        Type of neutrino particle. Can be neutrino or anti-neutrino.
+        Type of neutrino particle. Can be neutrino or anti_neutrino.
     cross_section_model : str
         Neutrino cross-section model.
     pn_model : str
@@ -175,7 +175,6 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton,
 
     nu_ixc, lep_ixc_water, lep_ixc_rock = init_ixc(nu_type, lepton, cross_section_model, pn_model)
 
-
     ithird = 0 # use dn/dy in tau to neutrino
 
     if prop_type == 'stochastic':
@@ -187,11 +186,6 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton,
         lepton_int = 1
     else:
         lepton_int = 2
-
-    if nu_type == 'neutrino':
-        nu_type = 'nu'
-    elif nu_type == 'anti-neutrino':
-        nu_type = 'anu'
 
     start_time = time.time()
     print("The water -> rock transition occurs at %.2f degrees" % Geometry.find_interface(idepth)[0])
@@ -269,7 +263,7 @@ def main_htc(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lep
     angles : ndarray
         Earth emergence angles (beta), in degrees.
     nu_type : str
-        Type of neutrino particle. Can be neutrino or anti-neutrino.
+        Type of neutrino particle. Can be neutrino or anti_neutrino.
     cross_section_model : str
         Neutrino cross-section model.
     pn_model : str
