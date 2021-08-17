@@ -55,7 +55,7 @@ def get_parser():
         type=str,
         const="tau",
         default="tau",
-        help="particle for energy loss and propagation - can be tau or muon; default is tau",
+        help="charged lepton for energy loss and propagation - can be tau or muon; default is tau",
     )
 
     parser.add_argument(
@@ -110,7 +110,7 @@ def get_parser():
         type=float,
         const=1.0,
         default=1.0,
-        help="rescaling for BSM neutrino cross-sections; default is 1.0",
+        help="rescaling for SM neutrino cross-sections; default is 1.0",
     )
 
     parser.add_argument(
@@ -160,6 +160,7 @@ def main():
     idepth = int(args.idepth_val)
     lepton = str(args.lepton_id)
     nu_type = str(args.nu_type_id)
+    if nu_type=='anti-neutrino':nu_type='anti_neutrino' # change here globally
     type_loss = str(args.loss_type)
     cross_section_model = str(args.xc_model_id)
     pn_model = str(args.pn_model_id)
@@ -170,12 +171,12 @@ def main():
 
     param_data = [["Parameter Name", "Value"],
               ["Charged Lepton", lepton.capitalize()],
-              ["Neutrino Type", nu_type.capitalize()],
+              ["Neutrino Matter/Type", nu_type.capitalize()],
               ["Depth of Water Layer [km]", idepth],
               ["Energy Loss Propagation", type_loss.capitalize()],
               ["Neutrino Cross Section Model", str.upper(cross_section_model)],
               ["Charged Lepton Photonuclear Energy Loss Model", str.upper(pn_model)],
-              ["BSM Neutrino Cross Section Scaling Factor", fac_nu],
+              ["SM Neutrino Cross Section Scaling Factor", fac_nu],
               ["Statistics", '{:.0e}'.format(stats)],
               ["CDF Only", cdf_only.capitalize()],
               ["HTC Mode", htc_mode.capitalize()]]

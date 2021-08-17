@@ -65,7 +65,7 @@ def output_file(nu_type, lepton, idepth, cross_section_model, pn_model, prop_typ
     Parameters
     ----------
     nu_type : str
-        Type of neutrino particle. Can be nu (neutrino) or anu (anti-neutrino).
+        Type of neutrino particle. Can be neutrino or anti_neutrino.
     lepton : str
         Type of lepton. Can be tau or muon.
     idepth : int
@@ -88,6 +88,8 @@ def output_file(nu_type, lepton, idepth, cross_section_model, pn_model, prop_typ
     idepth_str = str(idepth) + 'km'
     stats_str = sci_str(stats)
     pn_model = pn_model.replace("pn_","")
+    if nu_type=='neutrino':nu_type='nu' # shorten output filename
+    elif nu_type=='anti_neutrino':nu_type='anu' # shorten output filename
     fnm = "output_%s_%s_%s_%s_%s_%s_%s.h5" % (nu_type,lepton,idepth_str,cross_section_model,pn_model,prop_type,stats_str)
     return fnm
 
@@ -102,7 +104,7 @@ def sci_str(exp_value):
 #     Parameters
 #     ----------
 #     nu_type : str
-#         Type of neutrino particle. Can be nu (neutrino) or anu (anti-neutrino).
+#         Type of neutrino particle. Can be neutrino or anti_neutrino.
 #     lepton : str
 #         Type of lepton. Can be tau or muon.
 #     energy : float
@@ -248,7 +250,7 @@ def add_xc(part_type, xc_table, *arg):
     model : str
         Neutrino cross section model.
     **kwargs
-        nu_type: Type of neutrino particle. Can be neutrino or anti-neutrino.
+        nu_type: Type of neutrino particle. Can be neutrino or anti_neutrino.
         material: Material of propagation, for leptons.
 
     Returns
@@ -281,7 +283,7 @@ def get_xc(part_type, model, *arg, out=False):
     out : boolean, optional
         Set this to True to write output to file. The default is False.
     **kwargs
-        nu_type: Type of neutrino particle. Can be neutrino or anti-neutrino, for neutrinos.
+        nu_type: Type of neutrino particle. Can be neutrino or anti_neutrino, for neutrinos.
         material: Material of propagation, for leptons.
 
     Returns
@@ -293,8 +295,6 @@ def get_xc(part_type, model, *arg, out=False):
     '''
     if part_type=='nu':
         nu_type = arg[0]
-        if nu_type=='anti-neutrino':nu_type='anti_neutrino'
-
         if model in nu_models: # default nu_xc model selection
             with importlib_resources.as_file(ref) as lookup_tables:
                 xc_table = Table.read(lookup_tables,path='Neutrinos/%s/xc' % nu_type)
@@ -359,11 +359,11 @@ def add_ixc(part_type, ixc_table, *arg):
     part_type : str
         Neutrino or lepton? Can be nu or tau or muon.
     ixc_dict : dict
-        Integrated cross-section CDF value dictionary for neutrinos/anti-neutrinos or leptons.
+        Integrated cross-section CDF value dictionary for neutrinos/anti_neutrinos or leptons.
     model : str
         Neutrino cross-section/lepton photonuclear energy loss model.
     **kwargs
-        nu_type: Type of neutrino particle. Can be neutrino or anti-neutrino, for neutrinos.
+        nu_type: Type of neutrino particle. Can be neutrino or anti_neutrino, for neutrinos.
         material: Material of propagation, for leptons.
 
     Returns
@@ -374,8 +374,6 @@ def add_ixc(part_type, ixc_table, *arg):
     '''
     if part_type == 'nu':
         nu_type = arg[0]
-        if nu_type=='anti-neutrino':nu_type='anti_neutrino'
-
         with importlib_resources.as_file(ref) as lookup_tables:
             ixc_table.write(lookup_tables, path='Neutrinos/%s/ixc' % nu_type, append=True, overwrite=True)
 
@@ -402,7 +400,7 @@ def get_ixc(part_type, model, *arg, out=False):
     out : boolean, optional
         Set this to True to write output to file. The default is False.
     **kwargs
-        nu_type: Type of neutrino particle. Can be neutrino or anti-neutrino.
+        nu_type: Type of neutrino particle. Can be neutrino or anti_neutrino.
         material: Material of propagation, for leptons.
 
     Returns
@@ -418,8 +416,6 @@ def get_ixc(part_type, model, *arg, out=False):
 
     if part_type == 'nu':
         nu_type = arg[0]
-        if nu_type=='anti-neutrino':nu_type='anti_neutrino'
-
         if model in nu_models: # default nu_ixc model selection
             with importlib_resources.as_file(ref) as lookup_tables:
                 ixc_table = Table.read(lookup_tables,path='Neutrinos/%s/ixc' % nu_type)
@@ -619,7 +615,7 @@ def add_pexit(nu_type, lepton, energy, idepth, cross_section_model, pn_model, pr
     Parameters
     ----------
     nu_type : str
-        Type of neutrino particle. Can be nu (neutrino) or anu (anti-neutrino).
+        Type of neutrino particle. Can be neutrino or anti_neutrino.
     lepton : str
         Type of lepton. Can be tau or muon.
     energy : float
@@ -655,7 +651,7 @@ def get_pexit(nu_type, lepton, energy, idepth, cross_section_model, pn_model, pr
     Parameters
     ----------
     nu_type : str
-        Type of neutrino particle. Can be neutrino or anti-neutrino.
+        Type of neutrino particle. Can be neutrino or anti_neutrino.
     lepton : str
         Type of lepton. Can be tau or muon.
     energy : float
@@ -701,7 +697,7 @@ def add_lep_out(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_
     Parameters
     ----------
     nu_type : str
-        Type of neutrino particle. Can be neutrino or anti-neutrino.
+        Type of neutrino particle. Can be neutrino or anti_neutrino.
     lepton : str
         Type of lepton. Can be tau or muon.
     energy : float
@@ -739,7 +735,7 @@ def get_lep_out(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_
     Parameters
     ----------
     nu_type : str
-        Type of neutrino particle. Can be neutrino or anti-neutrino.
+        Type of neutrino particle. Can be neutrino or anti_neutrino.
     lepton : str
         Type of lepton. Can be tau or muon.
     energy : float
@@ -813,7 +809,7 @@ def add_cdf(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_mode
     Parameters
     ----------
     nu_type : str
-        Type of neutrino particle. Can be neutrino or anti-neutrino.
+        Type of neutrino particle. Can be neutrino or anti_neutrino.
     lepton : str
         Type of lepton. Can be tau or muon.
     energy : float
@@ -873,7 +869,7 @@ def get_cdf(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_mode
     Parameters
     ----------
     nu_type : str
-        Type of neutrino particle. Can be neutrino or anti-neutrino.
+        Type of neutrino particle. Can be neutrino or anti_neutrino.
     lepton : str
         Type of lepton. Can be tau or muon.
     energy : float
