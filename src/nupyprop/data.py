@@ -96,7 +96,6 @@ def output_file(nu_type, lepton, idepth, cross_section_model, pn_model, prop_typ
     -------
     fnm : str
         Gets the name of the output file based on input parameters.
-
     '''
     
     idepth_str = str(idepth) + 'km'
