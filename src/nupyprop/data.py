@@ -72,7 +72,7 @@ def get_custom_path(data_type, part_type, model, *args): # get custom model file
             raise ModelError(fnm)
         return file
 
-def output_file(nu_type, lepton, idepth, cross_section_model, pn_model, prop_type, stats):
+def output_file(nu_type, lepton, idepth, cross_section_model, pn_model, prop_type, stats, arg=None):
     '''
 
     Parameters
@@ -98,12 +98,16 @@ def output_file(nu_type, lepton, idepth, cross_section_model, pn_model, prop_typ
         Gets the name of the output file based on input parameters.
 
     '''
+    
     idepth_str = str(idepth) + 'km'
     stats_str = sci_str(stats)
     pn_model = pn_model.replace("pn_","")
     if nu_type=='neutrino':nu_type='nu' # shorten output filename
     elif nu_type=='anti_neutrino':nu_type='anu' # shorten output filename
-    fnm = "output_%s_%s_%s_%s_%s_%s_%s.h5" % (nu_type,lepton,idepth_str,cross_section_model,pn_model,prop_type,stats_str)
+    if arg is None:
+        fnm = "output_%s_%s_%s_%s_%s_%s_%s.h5" % (nu_type,lepton,idepth_str,cross_section_model,pn_model,prop_type,stats_str)
+    else: # if a custom argument is present, it should be in the end of the filename
+        fnm = "output_%s_%s_%s_%s_%s_%s_%s_%s.h5" % (nu_type,lepton,idepth_str,cross_section_model,pn_model,prop_type,stats_str,arg)
     return fnm
 
 # def chk_file(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats):
@@ -617,7 +621,7 @@ def get_beta(lepton, model, material, *arg, out=False):
     return np.asfortranarray(beta_arr.T)
 
 
-def add_pexit(nu_type, lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, pexit_table):
+def add_pexit(nu_type, lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, pexit_table, arg=None):
     '''
 
     Parameters
@@ -649,11 +653,11 @@ def add_pexit(nu_type, lepton, energy, idepth, cross_section_model, pn_model, pr
     log_energy = np.log10(energy)
     energy_str = str(log_energy)
 
-    pexit_table.write(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats), path='Exit_Probability/%s' % energy_str, append=True, overwrite=True)
+    pexit_table.write(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg), path='Exit_Probability/%s' % energy_str, append=True, overwrite=True)
 
     return None
 
-def get_pexit(nu_type, lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, out=False):
+def get_pexit(nu_type, lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, out=False, arg=None):
     '''
 
     Parameters
@@ -686,7 +690,7 @@ def get_pexit(nu_type, lepton, energy, idepth, cross_section_model, pn_model, pr
     log_energy = np.log10(energy)
     energy_str = str(log_energy)
 
-    pexit_table = Table.read(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats),path='Exit_Probability/%s' % energy_str)
+    pexit_table = Table.read(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg),path='Exit_Probability/%s' % energy_str)
 
     no_regen = pexit_table['no_regen']
     regen = pexit_table['regen']
@@ -699,7 +703,7 @@ def get_pexit(nu_type, lepton, energy, idepth, cross_section_model, pn_model, pr
 
     return out_arr
 
-def add_lep_out(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, lep_table):
+def add_lep_out(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, lep_table, arg=None):
     '''
 
     Parameters
@@ -734,10 +738,10 @@ def add_lep_out(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_
     log_energy = np.log10(energy)
     energy_str = str(log_energy)
 
-    lep_table.write(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats), path='Lep_out_energies/%s/%d' % (energy_str,angle), append=True, overwrite=True)
+    lep_table.write(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg), path='Lep_out_energies/%s/%d' % (energy_str,angle), append=True, overwrite=True)
     return None
 
-def get_lep_out(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, out=False):
+def get_lep_out(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, out=False, arg=None):
     '''
 
     Parameters
@@ -772,7 +776,7 @@ def get_lep_out(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_
     log_energy = np.log10(energy)
     energy_str = str(log_energy)
 
-    e_out = Table.read(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats),'Lep_out_energies/%s/%s' % (energy_str,angle))
+    e_out = Table.read(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg),'Lep_out_energies/%s/%s' % (energy_str,angle))
     out_lep = 10**(np.asarray(e_out['lep_energy'])) # changed 13/7/21
 
     if out:
@@ -811,7 +815,7 @@ def get_lep_out(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_
 #     hdf.close()
 #     return None
 
-def add_cdf(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, lep_table):
+def add_cdf(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, lep_table, arg=None):
     '''
 
     Parameters
@@ -867,11 +871,11 @@ def add_cdf(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_mode
 
     cdf_table = Table([bins,z_cdf], names=('z','cdf'), meta=cdf_meta)
 
-    cdf_table.write(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats), path='Lep_out_cdf/%s/%d' % (energy_str,angle), append=True, overwrite=True)
+    cdf_table.write(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg), path='Lep_out_cdf/%s/%d' % (energy_str,angle), append=True, overwrite=True)
 
     return None
 
-def get_cdf(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, out=False):
+def get_cdf(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, out=False, arg=None):
     '''
 
     Parameters
@@ -907,7 +911,7 @@ def get_cdf(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_mode
     log_energy = np.log10(energy)
     energy_str = str(log_energy)
 
-    cdf_table = Table.read(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats),'Lep_out_cdf/%s/%s' % (energy_str,angle))
+    cdf_table = Table.read(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg),'Lep_out_cdf/%s/%s' % (energy_str,angle))
 
     z = cdf_table['z']
     cdf = cdf_table['cdf']
@@ -930,13 +934,13 @@ def sort_htc_files(nu_type, lepton, energy, idepth, cross_section_model, pn_mode
     eout_files = sorted(glob.glob(files_path + str(log_energy) + "/" + "eout_*"))
     eout_files = sorted(eout_files, key=len)
 
-    assert len(eout_files) == len(sorted(glob.glob(files_path + str(log_energy) + "/" + "pexit_*")))
+    assert len(eout_files) == len(sorted(glob.glob(files_path + str(log_energy) + "/" + "pexit_*"))) # make sure len(eout_files) == len(pexit_files)
 
     p_angle_lst = []
     p_noregen_lst = []
     p_regen_lst = []
 
-    for i in range(len(eout_files)): # make sure len(eout_files) ==
+    for i in range(len(eout_files)):
         fnm = eout_files[i].replace(".dat","")
         angle = float(fnm.split("_")[-1])
         e_out = make_array(np.genfromtxt(eout_files[i]))
@@ -956,12 +960,16 @@ def sort_htc_files(nu_type, lepton, energy, idepth, cross_section_model, pn_mode
         if cdf_only == 'no': # adds lep_out energies to output file
             add_lep_out(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, lep_table)
 
+    pexit_angle = patch_for_astropy(np.asarray(p_angle_lst))
+    pexit_noregen = patch_for_astropy(np.asarray(p_noregen_lst))
+    pexit_regen = patch_for_astropy(np.asarray(p_regen_lst))
+
     pexit_meta = OrderedDict({'Description':'Exit probability for %s' % lepton,
                               'angle':'Earth emergence angle, in degrees',
                               'no_regen':'Exit probability without including any %s regeneration' % lepton,
                               'regen':'Exit probability including %s regeneration' % lepton})
 
-    pexit_table = Table([make_array(p_angle_lst), make_array(p_noregen_lst), make_array(p_regen_lst)], names=('angle','no_regen','regen'), meta=pexit_meta)
+    pexit_table = Table([pexit_angle, pexit_noregen, pexit_regen], names=('angle','no_regen','regen'), meta=pexit_meta)
 
     add_pexit(nu_type, lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, pexit_table) # adds p_exit results to output file
     return None
