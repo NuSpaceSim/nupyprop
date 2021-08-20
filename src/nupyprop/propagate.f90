@@ -1467,8 +1467,10 @@ subroutine distnu(r, ithird, dist_val)
     !! Energy fraction, y = E_nu_tau/E_tau.
 
     real(dp) :: fnu, y, fm, ff, y0, y1
+    integer :: P = 1 ! 1 = fully polarized; 0 = fully unpolarized tau
 
-    fnu(y) = y/3._dp * (5._dp - 3._dp* y**2 + y**3) - y/3._dp * (1._dp - 3._dp * y**2 + 2._dp * y**3)
+    ! fnu(y) = y/3._dp * (5._dp - 3._dp* y**2 + y**3) - y/3._dp * (1._dp - 3._dp * y**2 + 2._dp * y**3)
+    fnu(y) = y/3._dp * (5._dp - 3._dp* y**2 + y**3) - P * (y/3._dp * (1._dp - 3._dp * y**2 + 2._dp * y**3))
 
     if (ithird /= 1) then
         fm = 1._dp ! max value of distribution
