@@ -15,5 +15,7 @@ _version.py
 .python-version
 docs/build/
 pyrightconfig.json
+src/nupyprop/matplotlibrc
+src/nupyprop/interp_cdf.py
 
 build_artifacts
