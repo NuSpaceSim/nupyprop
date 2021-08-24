@@ -8,9 +8,9 @@ performance with openMP.
 
 Documentation (WIP): https://nupyprop.readthedocs.io/en/latest/
 
-**Note:** While the documentation is currently WIP, users and developers should consult the 
-`nuPyProp tutorial repository <https://research-git.uiowa.edu/spatel31/nupyprop_tutorial>`_
-for visualizing output from the code and creating user-defined models.
+.. **Note:** While the documentation is currently WIP, users and developers should consult the 
+.. `nuPyProp tutorial repository <https://research-git.uiowa.edu/spatel31/nupyprop_tutorial>`_
+.. for visualizing output from the code and creating user-defined models.
 
 Installation
 ------------
