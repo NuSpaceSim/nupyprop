@@ -127,30 +127,30 @@ Model Tables
    |                   nCTEQ15                  | `Phys. Rev. D 93, 085037 <https://journals.aps.org/prd/abstract/10.1103/PhysRevD.93.085037>`_,   |
    |                                            | `Phys. Rev. D 81, 114012 <https://journals.aps.org/prd/abstract/10.1103/PhysRevD.81.114012>`_    |
    +--------------------------------------------+--------------------------------------------------------------------------------------------------+
-   |                User Defined                | See `nuPyProp tutorial repository <https://research-git.uiowa.edu/spatel31/nupyprop_tutorial>`__       |
+   |                User Defined                | See `nuPyProp tutorial repository <https://research-git.uiowa.edu/spatel31/nupyprop_tutorial>`__ |
    +--------------------------------------------+--------------------------------------------------------------------------------------------------+
    
 
 
 .. _pn-table:
 
-   +-----------------------------------------------+------------------------------------------------------------------------------------------------+
-   | Charged Lepton Photonuclear Energy Loss Model |                                            Reference                                           |
-   +===============================================+================================================================================================+
-   |      Abramowicz, Levin, Levy, Maor (ALLM)     | `hep-ph/9712415 <https://arxiv.org/abs/hep-ph/9712415>`_,                                      |
-   |                                               | `Phys. Rev. D 63, 094020 <https://journals.aps.org/prd/abstract/10.1103/PhysRevD.63.094020>`_  |
-   +-----------------------------------------------+------------------------------------------------------------------------------------------------+
-   |              Bezrukov-Bugaev (BB)             | `Yad. Fiz. 33, 1195 <https://inspirehep.net/literature/170124>`_,                              |
-   |                                               | `Phys. Rev. D 63, 094020 <https://journals.aps.org/prd/abstract/10.1103/PhysRevD.63.094020>`_  |
-   +-----------------------------------------------+------------------------------------------------------------------------------------------------+
-   |        Block, Durand, Ha, McKay (BDHM)        | `Phys. Rev. D 89, 094027 <https://journals.aps.org/prd/abstract/10.1103/PhysRevD.89.094027>`_, |
-   |                                               | `Phys. Rev. D 63, 094020 <https://journals.aps.org/prd/abstract/10.1103/PhysRevD.63.094020>`_  |
-   +-----------------------------------------------+------------------------------------------------------------------------------------------------+
-   |     Capella, Kaidalov, Merino, Tran (CKMT)    | `Eur. Phys. J. C 10, 153 <https://arxiv.org/abs/hep-ph/9806367>`_                              |
-   |                                               | `Phys. Rev. D 63, 094020 <https://journals.aps.org/prd/abstract/10.1103/PhysRevD.63.094020>`_  |
-   +-----------------------------------------------+------------------------------------------------------------------------------------------------+
-   |                  User Defined                 | See `nuPyProp tutorial repository <https://research-git.uiowa.edu/spatel31/nupyprop_tutorial>`__     |
-   +-----------------------------------------------+------------------------------------------------------------------------------------------------+
+   +-----------------------------------------------+-------------------------------------------------------------------------------------------------+
+   | Charged Lepton Photonuclear Energy Loss Model |                                            Reference                                            |
+   +===============================================+=================================================================================================+
+   |      Abramowicz, Levin, Levy, Maor (ALLM)     | `hep-ph/9712415 <https://arxiv.org/abs/hep-ph/9712415>`_,                                       |
+   |                                               | `Phys. Rev. D 63, 094020 <https://journals.aps.org/prd/abstract/10.1103/PhysRevD.63.094020>`_   |
+   +-----------------------------------------------+-------------------------------------------------------------------------------------------------+
+   |              Bezrukov-Bugaev (BB)             | `Yad. Fiz. 33, 1195 <https://inspirehep.net/literature/170124>`_,                               |
+   |                                               | `Phys. Rev. D 63, 094020 <https://journals.aps.org/prd/abstract/10.1103/PhysRevD.63.094020>`_   |
+   +-----------------------------------------------+-------------------------------------------------------------------------------------------------+
+   |        Block, Durand, Ha, McKay (BDHM)        | `Phys. Rev. D 89, 094027 <https://journals.aps.org/prd/abstract/10.1103/PhysRevD.89.094027>`_,  |
+   |                                               | `Phys. Rev. D 63, 094020 <https://journals.aps.org/prd/abstract/10.1103/PhysRevD.63.094020>`_   |
+   +-----------------------------------------------+-------------------------------------------------------------------------------------------------+
+   |     Capella, Kaidalov, Merino, Tran (CKMT)    | `Eur. Phys. J. C 10, 153 <https://arxiv.org/abs/hep-ph/9806367>`_                               |
+   |                                               | `Phys. Rev. D 63, 094020 <https://journals.aps.org/prd/abstract/10.1103/PhysRevD.63.094020>`_   |
+   +-----------------------------------------------+-------------------------------------------------------------------------------------------------+
+   |                  User Defined                 | See `nuPyProp tutorial repository <https://research-git.uiowa.edu/spatel31/nupyprop_tutorial>`__|
+   +-----------------------------------------------+-------------------------------------------------------------------------------------------------+
 
 Code Execution Timing Tables
 ----------------------------
