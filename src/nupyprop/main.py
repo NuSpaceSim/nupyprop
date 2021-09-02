@@ -217,11 +217,7 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton,
                                     'lep_energy':'Outgoing %s energy, in log_10(E) GeV'})
 
             lep_table = Table([e_out], names=('lep_energy',), meta=lep_meta)
-
-
-            Data.add_cdf(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, lep_table) # adds the binned cdf values for each energy and angle to output file
-
-
+            
             file_cleaner('e_out') # remove e_out files
 
             if cdf_only == 'no': # adds lep_out energies to output file
@@ -247,6 +243,8 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton,
         file_cleaner('p_exit')  # remove p_exit files
 
     # close of for loop for energy
+    Data.add_cdf(nu_type, lepton, idepth, cross_section_model, pn_model, prop_type, stats) # adds the binned cdf values for all neutrino energies and angles in an output file, to the output file.
+
     end_time = time.time()
     print(f"It took {end_time-start_time:.2f} seconds to compute")
     print("Done!")

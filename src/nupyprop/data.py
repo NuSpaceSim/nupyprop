@@ -12,8 +12,8 @@ import importlib_resources
 from astropy.table import Table
 from astropy.io import ascii
 from collections import OrderedDict
-import os
 import glob
+import h5py
 from collections.abc import Iterable
 
 # pwd = os.getcwd()
@@ -785,93 +785,31 @@ def get_lep_out(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_
 
     return out_lep
 
-# def add_pexit_manual(nu_type, energy, angles, idepth, cross_section_model, pn_model, prop_type, stats): # manual will only work for regen (so basically, for muons)
-
-#     log_energy = np.log10(energy)
-#     lepton = 'muon'
-#     energy_str = str(log_energy)
-
-#     angle, no_regen, regen = [],[],[]
-#     for angle in angles:
-#         e_out = pd.read_hdf(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats),'Lep_out_energies/%s/%s' % (energy_str,angle))
-#         e_out_len =  len(e_out.lep_energy)
-#         if e_out_len == 1:
-#             if np.asarray(e_out.lep_energy)[0] == 0:
-#                 p_exit = 0.0
-#             else:
-#                 p_exit = e_out_len/stats
-#         else:
-#             p_exit = e_out_len/stats
-#         angle.append(angle)
-#         no_regen.append(p_exit)
-#         regen.append(p_exit)
-
-#     hdf = HDFStore(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats),'a')
-#     prob_df = pd.DataFrame({'angle':angle, 'no_regen':no_regen,'regen':regen})
-#     prob_df.set_index("angle", inplace = True)
-
-#     hdf.put('Exit_Probability/%s' % energy_str,prob_df, format='t', data_columns=True)
-#     hdf.close()
-#     return None
-
-def add_cdf(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, lep_table, arg=None):
-    '''
-
-    Parameters
-    ----------
-    nu_type : str
-        Type of neutrino particle. Can be neutrino or anti_neutrino.
-    lepton : str
-        Type of lepton. Can be tau or muon.
-    energy : float
-        Neutrino energy, in GeV.
-    angle : float
-        Earth emergence angle (beta), in degrees.
-    lep_dict : dict
-        Outgoing lepton energy dictionary with {"lep_energy":energy_arr}.
-    idepth : int
-        Depth of water layer in km.
-    cross_section_model : str
-        Neutrino cross-section model.
-    pn_model : str
-        Photonuclear energy loss model.
-    prop_type : str
-        Type of energy loss mechanism. Can be stochastic or continuous.
-    stats : float
-        Statistics or number of neutrinos injected.
-
-    Returns
-    -------
-    NONE
-        Adds outgoing lepton energy CDF values to output_x.h5.
-
-    '''
-    log_energy = np.log10(energy)
-    energy_str = str(log_energy)
-
+def add_cdf(nu_type, lepton, idepth, cross_section_model, pn_model, prop_type, stats, arg=None):
+    out_file = output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg)
     bins = np.logspace(-5,0,51) # Default binning for use with nuSpaceSim. Change if different binning required.
-    lep_out = 10**lep_table['lep_energy'] # because lep_out energies are in log10(GeV)
-    z = lep_out/energy # z = E_lep/E_nu
-    binned_z = np.digitize(z, bins)
-    bin_counts = np.bincount(binned_z)
-    if len(bin_counts) < len(bins):
-        zeros_z = np.zeros(len(bins) - len(bin_counts))
-        binned_z_fixed = np.concatenate((bin_counts, zeros_z))
-    else:
-        binned_z_fixed = bin_counts
-    z_cumsum = np.cumsum(binned_z_fixed)
-    z_cdf = z_cumsum/z_cumsum[-1]
-    z_cdf[0] = 0
-    # z_cdf_df = pd.DataFrame({'z':bins, 'CDF':np.around(z_cdf,decimals=8)})
-
     cdf_meta = OrderedDict({'Description':'Outgoing %s energy CDF' % lepton,
                             'z':'z=E_tau/E_nu',
-                            'cdf':'Outgoing %s energy cdf value' % lepton})
+                            'x':'Outgoing %s energy cdf values for x degrees' % lepton})
+    with h5py.File(out_file, 'a') as hf:
+        energies = sorted([float(i) for i in hf['Lep_out_energies'].keys()])
 
-    cdf_table = Table([bins,z_cdf], names=('z','cdf'), meta=cdf_meta)
-
-    cdf_table.write(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg), path='Lep_out_cdf/%s/%d' % (energy_str,angle), append=True, overwrite=True)
-
+        for energy in energies:
+            energy_str = str(energy)
+            angles = sorted([int(i) for i in hf['Lep_out_energies'][energy_str].keys()])
+            cdf_angles = []
+            cdf_angles.append(bins)
+            for angle in angles:
+                e_out = get_lep_out(nu_type, lepton, 10**energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, arg=arg)
+                z = e_out/10**energy # z = E_lep/E_nu
+                count, bins_count = np.histogram(e_out/10**energy, bins)
+                pdf = count / sum(count)
+                z_cdf = np.cumsum(pdf)
+                z_cdf = np.insert(z_cdf,0,0)
+                cdf_angles.append(z_cdf)
+            cdf_table = Table(cdf_angles, names=('z',*angles), meta=cdf_meta)
+            cdf_table.write(out_file, path='Lep_out_cdf/%s' % (energy_str), append=True, overwrite=True)
+        print('CDF tables created!')
     return None
 
 def get_cdf(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, out=False, arg=None):
@@ -880,7 +818,7 @@ def get_cdf(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_mode
     Parameters
     ----------
     nu_type : str
-        Type of neutrino particle. Can be neutrino or anti_neutrino.
+        Type of neutrino particle. Can be neutrino or anti-neutrino.
     lepton : str
         Type of lepton. Can be tau or muon.
     energy : float
@@ -910,17 +848,13 @@ def get_cdf(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_mode
     log_energy = np.log10(energy)
     energy_str = str(log_energy)
 
-    cdf_table = Table.read(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg),'Lep_out_cdf/%s/%s' % (energy_str,angle))
+    cdf_table = Table.read(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg),'Lep_out_cdf/%s' % (energy_str))
 
-    z = cdf_table['z']
-    cdf = cdf_table['cdf']
-
-    out_arr = np.asarray([z,cdf])
     if out:
-        fnm = "cdf_%s_%s_%s_%sdeg_%skm_%s_%s_%s_%s.ecsv" % (nu_type, lepton, energy_str, angle, idepth, cross_section_model, pn_model, prop_type, sci_str(stats))
+        fnm = "cdf_%s_%s_%s_%skm_%s_%s_%s_%s.ecsv" % (nu_type, lepton, energy_str, idepth, cross_section_model, pn_model, prop_type, sci_str(stats))
         ascii.write(cdf_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
         return print('Lepton outgoing energy CDF data saved to file %s' % fnm)
-    return out_arr
+    return cdf_table
 
 def sort_htc_files(nu_type, lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, cdf_only='no'):
 
@@ -954,10 +888,10 @@ def sort_htc_files(nu_type, lepton, energy, idepth, cross_section_model, pn_mode
         lep_meta = OrderedDict({'Description':'Outgoing %s energies' % lepton,
                                 'lep_energy':'Outgoing %s energy, in log_10(E) GeV'})
         lep_table = Table([e_out], names=('lep_energy',), meta=lep_meta)
-        add_cdf(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, lep_table) # adds the binned cdf values for each energy and angle to output file
 
         if cdf_only == 'no': # adds lep_out energies to output file
             add_lep_out(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, lep_table)
+            print("Lep_out tables created successfully")
 
     pexit_angle = patch_for_astropy(np.asarray(p_angle_lst))
     pexit_noregen = patch_for_astropy(np.asarray(p_noregen_lst))
@@ -971,6 +905,7 @@ def sort_htc_files(nu_type, lepton, energy, idepth, cross_section_model, pn_mode
     pexit_table = Table([pexit_angle, pexit_noregen, pexit_regen], names=('angle','no_regen','regen'), meta=pexit_meta)
 
     add_pexit(nu_type, lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, pexit_table) # adds p_exit results to output file
+    print("P_exit tables created successfully")
     return None
 
 # =============================================================================
@@ -989,3 +924,4 @@ if __name__ == "__main__":
     pass
     # sort_htc_files(nu_type, lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, cdf_only)
     # pexit_no_regen = get_pexit(nu_type, lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats)[0] # without regen
+    # Data.add_cdf(nu_type, lepton, idepth, cross_section_model, pn_model, prop_type, stats) # adds the binned cdf values for all neutrino energies and angles in an output file, to the output file.
