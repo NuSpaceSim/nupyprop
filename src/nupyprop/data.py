@@ -14,6 +14,7 @@ from astropy.io import ascii
 from collections import OrderedDict
 import glob
 import h5py
+import os
 from collections.abc import Iterable
 
 # pwd = os.getcwd()
@@ -34,7 +35,7 @@ class ModelError(Exception):
         message -- explanation of the error
     """
 
-    def __init__(self, fnm, message="This is either an incorrectly formatted model file or model file not found"):
+    def __init__(self, fnm, message="This is either an incorrectly formatted model file or file not found"):
         self.fnm = fnm
         self.message = message
         super().__init__(self.message)
@@ -43,21 +44,54 @@ class ModelError(Exception):
         return f'{self.fnm} -> {self.message}'
 
 def patch_for_astropy(arr):
+    """makes a patch for astropy to avoid errors with '0 len' arrays
+
+    Args:
+        arr (ndarray): 1D array containing data
+
+    Returns:
+        ndarray: astropy patched array containing the same data
+    """
     try:
         len(arr)
     except TypeError:
-        arr = arr.reshape(1) # to avoid astropy table errors for '0 len' arrays (annoying, I know!)
+        arr = arr.reshape(1)
     if arr.size == 0:arr = np.zeros(1) # set empty array to 0
     return arr
 
 def sci_str(exp_value):
+    """converts exponential value to scientific string format
+
+    Args:
+        exp_value (float): exponential value to be converted
+
+    Returns:
+        str: string equivalent of input with some custom formatting
+    """
     dec = Decimal(exp_value)
     str_val = ('{:.' + str(len(dec.normalize().as_tuple().digits) - 1) + 'e}').format(dec).replace('+', '')
     return str_val
 
-def get_custom_path(data_type, part_type, model, *args): # get custom model file posix path
+def get_custom_path(data_type, part_type, model, arg):
+    """gets the path of the model file to be used for loading data from custom model files
+
+    Args:
+        data_type (str): type of data; can be xc for cross-section values, ixc for cross-section CDF
+            values and beta for energy loss parameter values
+        part_type (str): type of particle; can be nu for neutrinos or tau for tau leptons or muon for muons
+        model (str): name of the model; if the model is a photonuclear model, the model must be prefixed
+            with pn_
+        arg (str): type of neutrino for part_type=nu or the material for part_type=tau and part_type=muon
+
+    Raises:
+        ModelError: either an incorrectly formatted model file or file not found
+        ModelError: either an incorrectly formatted model file or file not found
+
+    Returns:
+        PosixPath: path of the csutom mode file
+    """
     if part_type == 'nu':
-        nu_type = args[0]
+        nu_type = arg
         fnm = data_type + '_%s_%s.ecsv' % (nu_type,model)
         file = importlib_resources.files('nupyprop.models') / fnm
         if not os.path.exists(file):
@@ -65,7 +99,7 @@ def get_custom_path(data_type, part_type, model, *args): # get custom model file
         return file
 
     elif part_type == 'tau' or part_type == 'muon':
-        material = args[0]
+        material = arg
         fnm = data_type + '_%s_pn_%s_%s.ecsv' % (part_type,model,material)
         file = importlib_resources.files('nupyprop.models') / fnm
         if not os.path.exists(file):
@@ -73,31 +107,21 @@ def get_custom_path(data_type, part_type, model, *args): # get custom model file
         return file
 
 def output_file(nu_type, lepton, idepth, cross_section_model, pn_model, prop_type, stats, arg=None):
-    '''
+    """gets the name of the output file based on input args
 
-    Parameters
-    ----------
-    nu_type : str
-        Type of neutrino particle. Can be neutrino or anti_neutrino.
-    lepton : str
-        Type of lepton. Can be tau or muon.
-    idepth : int
-        Depth of water layer in km.
-    cross_section_model : str
-        Neutrino cross-section model.
-    pn_model : str
-        Photonuclear energy loss model.
-    prop_type : str
-        Type of energy loss mechanism. Can be stochastic or continuous.
-    stats : float
-        Statistics or number of neutrinos injected.
+    Args:
+        nu_type (str): type of neutrino particle; can be neutrino or anti_neutrino
+        lepton (str): type of lepton; can be tau or muon
+        idepth (int): depth of water layer, in km
+        cross_section_model (str): neutrino cross-section model
+        pn_model (str): photonuclear energy loss model
+        prop_type (str): type of energy loss mechanism; can be stochastic or continuous
+        stats (int): statistics or number of neutrinos injected
+        arg (str, optional): additional arguments at the end of the file name. Defaults to None.
 
-    Returns
-    -------
-    fnm : str
-        Gets the name of the output file based on input parameters.
-    '''
-    
+    Returns:
+        str: name of the output file
+    """
     idepth_str = str(idepth) + 'km'
     stats_str = sci_str(stats)
     pn_model = pn_model.replace("pn_","")
@@ -109,87 +133,21 @@ def output_file(nu_type, lepton, idepth, cross_section_model, pn_model, prop_typ
         fnm = "output_%s_%s_%s_%s_%s_%s_%s_%s.h5" % (nu_type,lepton,idepth_str,cross_section_model,pn_model,prop_type,stats_str,arg)
     return fnm
 
-# def chk_file(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats):
-#     '''
-
-#     Parameters
-#     ----------
-#     nu_type : str
-#         Type of neutrino particle. Can be neutrino or anti_neutrino.
-#     lepton : str
-#         Type of lepton. Can be tau or muon.
-#     energy : float
-#         Neutrino energy, in GeV.
-#     angle : int
-#         Earth emergence angle (beta), in degrees.
-#     idepth : int
-#         Depth of water layer in km.
-#     cross_section_model : str
-#         Neutrino cross-section model.
-#     pn_model : str
-#         Photonuclear energy loss model.
-#     prop_type : str
-#         Type of energy loss mechanism. Can be stochastic or continuous.
-#     stats : float
-#         Statistics or number of neutrinos injected.
-
-#     Returns
-#     -------
-#     int
-#         0 is to stop execution (save the old ouput file); 1 is for replacing the old output file; 2 is to append to/overwrite the old file (only do this if you know what you're doing or else you'll end up with mixed results!).
-#         Option no. 2 can be used if you need to 'add' more results for the same set of parameters or in case of abrupt code termination.
-
-#     '''
-#     fnm = output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats)
-#     if os.path.exists(fnm):
-#         # try:
-
-#         choice = input('There already exists an output file with these set of parameters (%s). Press \'d\' for deleting the output old file and creating a new output file, \'s\' for keeping the old output file or \'o\' for overwriting the old output file: ' % fnm)
-
-#         if choice not in {"d", "s", "o"}:
-#             print("Invalid option. Please enter \'d\', \'s\' or \'o\'")
-#             return chk_file(nu_type, lepton, idepth, cross_section_model, pn_model, prop_type, stats)
-#         elif choice == 's':
-#             return 0
-#         elif choice == 'd':
-#             os.remove(fnm)
-#             return 1
-
-#     else: # so basically choice = 'o'
-#         return 2 # output file non existant or overwrite enabled
-#     # return out_val
-
-
 def add_trajs(type_traj, idepth, traj_table):
-    '''
+    """adds trajectory lookup tables to lookup_tables.h5
 
-    Parameters
-    ----------
-    type_traj : str
-        Type of trajectory. Can be col (for column depth) or water (for water depth).
-    idepth : int
-        Depth of water layer in km.
-    traj_table : `~astropy.table.Table`
-        Table containing the trajectories. E
-    data_table : `~astropy.table.Table` or list of `~astropy.table.Table`
-        Table containing the observed spectrum. If multiple tables are passed
-        as a string, they will be concatenated in the order given. Each table
-        needs at least these columns, with the appropriate associated units
-        (with the physical type indicated in brackets below) as either a
-        `~astropy.units.Unit` instance or parseable string:
+    Args:
+        type_traj (str): type of trajectory; can be col (for column depth) or water (for water depth)
+        idepth (int): depth of water layer, in km
+        traj_table (`~astropy.table.Table`): astropy table containing the trajectories
+            Each table will need the following columns:
+            - ``beta``: Earth emergence angle, in degrees [``beta``]
+            - ``xalong``: Distance in water, in km [`xalong``]
+            - ``cdalong``: Column depth at xalong, in g/cm^2 [``cdalong``]
 
-        - ``energy``: Observed photon energy [``energy``]
-        - ``flux``: Observed fluxes [``flux`` or ``differential flux``]
-        - ``flux_error``: 68% CL gaussian uncertainty of the flux [``flux`` or
-          ``differential flux``]. It can also be provided as ``flux_error_lo``
-          and ``flux_error_hi`` (see below).
-
-    Returns
-    -------
-    None
-        Adds trajectory lookup tables to lookup_tables.h5.
-
-    '''
+    Returns:
+        None
+    """
     if type_traj == 'col':branch = 'Column_Trajectories' # sub-sub branch inside the Earth/traj_idepth branch
     elif type_traj == 'water':branch = 'Water_Trajectories'
 
@@ -198,29 +156,23 @@ def add_trajs(type_traj, idepth, traj_table):
     return print("%s lookup table successfully created for idepth = %s" % (branch,str(idepth)))
 
 def get_trajs(type_traj, angle, idepth, out=False):
-    '''
+    """get trajectory values
 
-    Parameters
-    ----------
-    type_traj : str
-        Type of trajectory. Can be col (for column depth) or water (for water depth).
-    angle : float
-        Earth emergence angle in degrees.
-    idepth : int
-        Depth of water layer in km.
-    out : boolean, optional
-        Set this to True to write output to file. The default is False.
+    Args:
+        type_traj (str): type of trajectory; can be col (for column depth) or water (for water depth)
+        angle (float): earth emergence angle, in degrees
+        idepth (int): depth of water layer, in km
+        out (bool, optional): saves the data as an ascii ecsv file if set to True; returns the array
+            value if set to False. Defaults to False.
 
-    Returns
-    -------
-    tuple
-        tuple of 1D arrays - (xalong,cdalong) [for col] and (chord,water) [for water].
-        xalong - distance in water, in km.
-        cdalong - column depth at xalong, in g/cm^2.
-        chord - chord length, in km.
-        water - final water layer distance, in km.
-
-    '''
+    Returns:
+        None/tuple: None if out=False or tuple containing:
+            xalong (ndarray): 1D array of distance in water, in km
+            cdalong (ndarray): 1D array of column depth at xalong, in g/cm^2
+            or
+            chord (ndarray): 1D array of chord length, in km
+            water (ndarray): 1D array of final water layer distance, in km
+    """
     if type_traj == 'col':
         with importlib_resources.as_file(ref) as lookup_tables:
             traj_table = Table.read(lookup_tables,path='Earth/Column_Trajectories/%skm' % str(idepth))
@@ -249,7 +201,21 @@ def get_trajs(type_traj, angle, idepth, out=False):
         return chord, water
     return "Error in get_trajs in Data"
 
-def add_xc(part_type, xc_table, *arg):
+def add_xc(part_type, xc_table, arg):
+    """adds cross-section lookup tables to lookup_tables.h5
+
+    Args:
+        part_type (str): type of particle; can be nu for neutrinos or tau for tau leptons or muon for muons
+        xc_table (`~astropy.table.Table`): astropy table containing the cross-section values
+            Each table will need the following columns:
+            - ``beta``: Earth emergence angle, in degrees [``beta``]
+            - ``xalong``: Distance in water, in km [`xalong``]
+            - ``cdalong``: Column depth at xalong, in g/cm^2 [``cdalong``]
+        arg (str): type of neutrino for part_type=nu or the material for part_type=tau and part_type=muon
+
+    Returns:
+        None
+    """
     '''
 
     Parameters
@@ -271,12 +237,12 @@ def add_xc(part_type, xc_table, *arg):
 
     '''
     if part_type=='nu':
-        nu_type = arg[0]
+        nu_type = arg
         with importlib_resources.as_file(ref) as lookup_tables:
             xc_table.write(lookup_tables, path='Neutrinos/%s/xc' % nu_type, append=True, overwrite=True)
         return print("%s_sigma CC & NC lookup tables successfully created" % part_type)
     else: # lepton energy loss XC
-        material = arg[0]
+        material = arg
         with importlib_resources.as_file(ref) as lookup_tables:
             xc_table.write(lookup_tables, path='Charged_Leptons/%s/%s/xc' % (part_type,material), append=True, overwrite=True)
         return print("%s_sigma lookup table successfully created in %s" % (part_type, material))
@@ -652,7 +618,9 @@ def add_pexit(nu_type, lepton, energy, idepth, cross_section_model, pn_model, pr
     log_energy = np.log10(energy)
     energy_str = str(log_energy)
 
-    pexit_table.write(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg), path='Exit_Probability/%s' % energy_str, append=True, overwrite=True)
+    out_file = output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg)
+
+    pexit_table.write(out_file, path='Exit_Probability/%s' % energy_str, append=True, overwrite=True)
 
     return None
 
@@ -689,7 +657,9 @@ def get_pexit(nu_type, lepton, energy, idepth, cross_section_model, pn_model, pr
     log_energy = np.log10(energy)
     energy_str = str(log_energy)
 
-    pexit_table = Table.read(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg),path='Exit_Probability/%s' % energy_str)
+    in_file = output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg)
+
+    pexit_table = Table.read(in_file, path='Exit_Probability/%s' % energy_str)
 
     no_regen = pexit_table['no_regen']
     regen = pexit_table['regen']
@@ -737,7 +707,9 @@ def add_lep_out(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_
     log_energy = np.log10(energy)
     energy_str = str(log_energy)
 
-    lep_table.write(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg), path='Lep_out_energies/%s/%d' % (energy_str,angle), append=True, overwrite=True)
+    out_file = output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg)
+
+    lep_table.write(out_file, path='Lep_out_energies/%s/%d' % (energy_str,angle), append=True, overwrite=True)
     return None
 
 def get_lep_out(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, out=False, arg=None):
@@ -775,7 +747,9 @@ def get_lep_out(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_
     log_energy = np.log10(energy)
     energy_str = str(log_energy)
 
-    e_out = Table.read(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg),'Lep_out_energies/%s/%s' % (energy_str,angle))
+    in_file = output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg)
+
+    e_out = Table.read(in_file, 'Lep_out_energies/%s/%s' % (energy_str,angle))
     out_lep = 10**(np.asarray(e_out['lep_energy'])) # changed 13/7/21
 
     if out:
@@ -787,6 +761,7 @@ def get_lep_out(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_
 
 def add_cdf(nu_type, lepton, idepth, cross_section_model, pn_model, prop_type, stats, arg=None):
     out_file = output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg)
+
     bins = np.logspace(-5,0,51) # Default binning for use with nuSpaceSim. Change if different binning required.
     cdf_meta = OrderedDict({'Description':'Outgoing %s energy CDF' % lepton,
                             'z':'z=E_tau/E_nu',
@@ -848,7 +823,9 @@ def get_cdf(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_mode
     log_energy = np.log10(energy)
     energy_str = str(log_energy)
 
-    cdf_table = Table.read(output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg),'Lep_out_cdf/%s' % (energy_str))
+    in_file = output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg)
+
+    cdf_table = Table.read(in_file, 'Lep_out_cdf/%s' % energy_str)
 
     if out:
         fnm = "cdf_%s_%s_%s_%skm_%s_%s_%s_%s.ecsv" % (nu_type, lepton, energy_str, idepth, cross_section_model, pn_model, prop_type, sci_str(stats))
@@ -906,6 +883,8 @@ def sort_htc_files(nu_type, lepton, energy, idepth, cross_section_model, pn_mode
 
     add_pexit(nu_type, lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, pexit_table) # adds p_exit results to output file
     print("P_exit tables created successfully")
+
+    add_cdf(nu_type, lepton, idepth, cross_section_model, pn_model, prop_type, stats) # adds the binned cdf values for all neutrino energies and angles in an output file, to the output file.
     return None
 
 # =============================================================================
@@ -924,4 +903,3 @@ if __name__ == "__main__":
     pass
     # sort_htc_files(nu_type, lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, cdf_only)
     # pexit_no_regen = get_pexit(nu_type, lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats)[0] # without regen
-    # Data.add_cdf(nu_type, lepton, idepth, cross_section_model, pn_model, prop_type, stats) # adds the binned cdf values for all neutrino energies and angles in an output file, to the output file.

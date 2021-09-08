@@ -243,6 +243,7 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton,
         file_cleaner('p_exit')  # remove p_exit files
 
     # close of for loop for energy
+
     Data.add_cdf(nu_type, lepton, idepth, cross_section_model, pn_model, prop_type, stats) # adds the binned cdf values for all neutrino energies and angles in an output file, to the output file.
 
     end_time = time.time()
@@ -334,7 +335,7 @@ if __name__ == "__main__":
     # for i in range(10):
     # random.seed(30)
     start_time = time.time()
-    angles = np.array([1])
+    angles = np.array([1,2,3,4,5])
     # angles = np.arange(1,36)
     # angles = np.array([1,2,3,4,5])
     # angles = np.array([1,2,3,5,7,10,12,15,17,20,25,30,35])
@@ -349,7 +350,7 @@ if __name__ == "__main__":
     prop_type = 'stochastic'
     stat = int(1e7)
     nu_type = 'neutrino'
-    cdf_only = 'yes'
+    cdf_only = 'no'
 
     # nu_xc, xc_water, xc_rock, alpha_water, alpha_rock, beta_water, beta_rock = init_xc(lepton, cross_section_model, pn_model, prop_type)
 
