@@ -16,6 +16,7 @@ import glob
 import h5py
 import os
 from collections.abc import Iterable
+from scipy.interpolate import interpn
 
 # pwd = os.getcwd()
 
@@ -79,9 +80,8 @@ def get_custom_path(data_type, part_type, model, arg):
         data_type (str): type of data; can be xc for cross-section values, ixc for cross-section CDF
             values and beta for energy loss parameter values
         part_type (str): type of particle; can be nu for neutrinos or tau for tau leptons or muon for muons
-        model (str): name of the model; if the model is a photonuclear model, the model must be prefixed
-            with pn_
-        arg (str): type of neutrino for part_type=nu or the material for part_type=tau and part_type=muon
+        model (str): name of the model
+        arg (str): type of neutrino for part_type=nu or the propagation material for part_type=tau and part_type=muon
 
     Raises:
         ModelError: either an incorrectly formatted model file or file not found
@@ -134,7 +134,7 @@ def output_file(nu_type, lepton, idepth, cross_section_model, pn_model, prop_typ
     return fnm
 
 def add_trajs(type_traj, idepth, traj_table):
-    """adds trajectory lookup tables to lookup_tables.h5
+    """adds trajectory values to lookup_tables.h5
 
     Args:
         type_traj (str): type of trajectory; can be col (for column depth) or water (for water depth)
@@ -162,16 +162,16 @@ def get_trajs(type_traj, angle, idepth, out=False):
         type_traj (str): type of trajectory; can be col (for column depth) or water (for water depth)
         angle (float): earth emergence angle, in degrees
         idepth (int): depth of water layer, in km
-        out (bool, optional): saves the data as an ascii ecsv file if set to True; returns the array
+        out (bool, optional): saves the data as an ASCII ecsv file if set to True; returns the array
             value if set to False. Defaults to False.
 
     Returns:
         None/tuple: None if out=False or tuple containing:
-            xalong (ndarray): 1D array of distance in water, in km
-            cdalong (ndarray): 1D array of column depth at xalong, in g/cm^2
+            xalong (ndarray): 1D Fortran array of shape (100,) containing distance in water, in km
+            cdalong (ndarray): 1D Fortran array of shape (100,) containing column depth at xalong, in g/cm^2
             or
-            chord (ndarray): 1D array of chord length, in km
-            water (ndarray): 1D array of final water layer distance, in km
+            chord (float): Chord length, in km
+            water (float): Final water layer distance, in km
     """
     if type_traj == 'col':
         with importlib_resources.as_file(ref) as lookup_tables:
@@ -202,40 +202,29 @@ def get_trajs(type_traj, angle, idepth, out=False):
     return "Error in get_trajs in Data"
 
 def add_xc(part_type, xc_table, arg):
-    """adds cross-section lookup tables to lookup_tables.h5
+    """adds cross-section values to lookup_tables.h5
 
     Args:
         part_type (str): type of particle; can be nu for neutrinos or tau for tau leptons or muon for muons
-        xc_table (`~astropy.table.Table`): astropy table containing the cross-section values
+        xc_table (`~astropy.table.Table`): astropy table containing cross-section values
             Each table will need the following columns:
-            - ``beta``: Earth emergence angle, in degrees [``beta``]
-            - ``xalong``: Distance in water, in km [`xalong``]
-            - ``cdalong``: Column depth at xalong, in g/cm^2 [``cdalong``]
-        arg (str): type of neutrino for part_type=nu or the material for part_type=tau and part_type=muon
+            - if part_type=nu:
+                - ``energy``: Neutrino (or anti-neutrino) energy, in GeV [``energy``]
+                - ``sigma_cc_x``: Charged current cross-section for x model, in cm^2; x is the name
+                    of the model [`sigma_cc_x``]
+                - ``sigma_nc_x``: Neutral current cross-section for x model, in cm^2; x is the name
+                    of the model [``sigma_nc_x``]
+            - if part_type=tau or part_type=muon:
+                - ``energy``: Charged lepton energy, in GeV [``energy``]
+                - ``sigma_brem``: N_A/A * cross-section for bremmstrahlung in material, in cm^2/g [`sigma_brem``]
+                - ``sigma_pair``: N_A/A * cross-section for pair production in material, in cm^2/g [``sigma_pair``]
+                - ``sigma_pn_x``: N_A/A * cross-section for x model in material, in cm^2/g; x is the name of the
+                    photonuclear energy loss model [``sigma_pn_x``]
+        arg (str): type of neutrino for part_type=nu or the propagation material for part_type=tau and part_type=muon
 
     Returns:
         None
     """
-    '''
-
-    Parameters
-    ----------
-    part_type : str
-        Neutrino or lepton? Can be nu or tau or muon.
-    xc_table : dict or ndarray
-        1D containing neutrino cross-section values or 1D array containing lepton cross-section values, in cm^2.
-    model : str
-        Neutrino cross section model.
-    **kwargs
-        nu_type: Type of neutrino particle. Can be neutrino or anti_neutrino.
-        material: Material of propagation, for leptons.
-
-    Returns
-    -------
-    None
-        Creates neutrino/lepton cross-section lookup entries in lookup_tables.h5.
-
-    '''
     if part_type=='nu':
         nu_type = arg
         with importlib_resources.as_file(ref) as lookup_tables:
@@ -248,30 +237,26 @@ def add_xc(part_type, xc_table, arg):
         return print("%s_sigma lookup table successfully created in %s" % (part_type, material))
     return None
 
-def get_xc(part_type, model, *arg, out=False):
-    '''
+def get_xc(part_type, model, arg, out=False):
+    """get cross-section values; works with custom PN models
 
-    Parameters
-    ----------
-    part_type : str
-        Neutrino or lepton? Can be nu or tau or muon.
-    model : str
-        Neutrino cross-section/lepton photonuclear energy loss model.
-    out : boolean, optional
-        Set this to True to write output to file. The default is False.
-    **kwargs
-        nu_type: Type of neutrino particle. Can be neutrino or anti_neutrino, for neutrinos.
-        material: Material of propagation, for leptons.
+    Args:
+        part_type (str): type of particle; can be nu for neutrinos or tau for tau leptons or muon for muons
+        model (str): name of the model
+        arg (str): type of neutrino for part_type=nu or the propagation material for part_type=tau and part_type=muon
+        out (bool, optional): saves the data as an ASCII ecsv file if set to True; returns the array
+            value if set to False. Defaults to False.
 
-    Returns
-    -------
-    ndarray - 2D (neutrino) or 1D (lepton) cross-section array.
-    if part_type = nu; cscc/csnc = neutrino-nucleon charged/neutral current cross sections, in cm^2.
-    if part_type = tau/muon; out_arr = lepton-nucleon cross section, in cm^2.
-
-    '''
+    Returns:
+        None/ndarray: None if out=False or otherwise:
+            2D Fortran array of shape (91,2) containing charged current and neutral
+            current neutrino (or anti-neutrino) cross-section values, in cm^2, or
+            3D Fortran array of shape (121,3) containing Bremmstrahlung, pair-production
+            and photonuclear cross-section values for charged lepton, all multiplied by N_A/A,
+            in g/cm^2
+    """
     if part_type=='nu':
-        nu_type = arg[0]
+        nu_type = arg
         if model in nu_models: # default nu_xc model selection
             with importlib_resources.as_file(ref) as lookup_tables:
                 xc_table = Table.read(lookup_tables,path='Neutrinos/%s/xc' % nu_type)
@@ -297,7 +282,7 @@ def get_xc(part_type, model, *arg, out=False):
         return np.asfortranarray(xc_arr.T)
 
     else: # energy loss; part_type == 'tau' or 'muon'
-        material = arg[0]
+        material = arg
         with importlib_resources.as_file(ref) as lookup_tables:
             xc_table = Table.read(lookup_tables,path='Charged_Leptons/%s/%s/xc' % (part_type,material))
 
@@ -328,36 +313,41 @@ def get_xc(part_type, model, *arg, out=False):
 
         return np.asfortranarray(xc_arr.T)
 
-def add_ixc(part_type, ixc_table, *arg):
-    '''
+def add_ixc(part_type, ixc_table, arg):
+    """adds cross-section CDF values to lookup_tables.h5
 
-    Parameters
-    ----------
-    part_type : str
-        Neutrino or lepton? Can be nu or tau or muon.
-    ixc_dict : dict
-        Integrated cross-section CDF value dictionary for neutrinos/anti_neutrinos or leptons.
-    model : str
-        Neutrino cross-section/lepton photonuclear energy loss model.
-    **kwargs
-        nu_type: Type of neutrino particle. Can be neutrino or anti_neutrino, for neutrinos.
-        material: Material of propagation, for leptons.
+    Args:
+        part_type (str): type of particle; can be nu for neutrinos or tau for tau leptons or muon for muons
+        xc_table (`~astropy.table.Table`): astropy table containing cross-section CDF values
+            Each table will need the following columns:
+            - if part_type=nu:
+                - ``energy``: Neutrino (or anti-neutrino) energy, in GeV [``energy``]
+                - ``y``: Inelasticity, y = (E_init-E_final)/E_initial [``y``]
+                - ``cc_cdf_x``: Charged current cross-section CDF values for x model; x is the name
+                    of the model [`cc_cdf_x``]
+                - ``nc_cdf_x``: Neutral current cross-section CDF values for x model; x is the name
+                    of the model [``nc_cdf_x``]
+            - if part_type=tau or part_type=muon:
+                - ``energy``: Charged lepton energy, in GeV [``energy``]
+                - ``y``: Inelasticity, y = (E_init-E_final)/E_initial [``y``]
+                - ``cdf_brem``: Cross-section CDF values for Bremmstrahlung in material, in cm^2 [`cdf_brem``]
+                - ``cdf_pair``: Cross-section CDF values for pair-production in material, in cm^2 [`cdf_pair``]
+                - ``cdf_pn_x``: Cross-section CDF values for x model in material, in cm^2/g; x is the name
+                    of the photonuclear energy loss model [`cdf_pn_x``]
+        arg (str): type of neutrino for part_type=nu or the propagation material for part_type=tau and part_type=muon
 
-    Returns
-    -------
-    None
-        Creates neutrino/lepton integrated cross-section lookup entries in lookup_tables.h5.
-
-    '''
+    Returns:
+        None
+    """
     if part_type == 'nu':
-        nu_type = arg[0]
+        nu_type = arg
         with importlib_resources.as_file(ref) as lookup_tables:
             ixc_table.write(lookup_tables, path='Neutrinos/%s/ixc' % nu_type, append=True, overwrite=True)
 
         return print("%s_sigma CDF CC & NC lookup tables successfully created for" % nu_type)
 
     else: # energy_loss; part_type == 'muon' or 'tau'
-        material = arg[0]
+        material = arg
 
         with importlib_resources.as_file(ref) as lookup_tables:
             ixc_table.write(lookup_tables, path='Charged_Leptons/%s/%s/ixc' % (part_type,material), append=True, overwrite=True)
@@ -365,34 +355,25 @@ def add_ixc(part_type, ixc_table, *arg):
         return print("%s_sigma CDF lookup table successfully created in %s" % (part_type, material))
     return None
 
-def get_ixc(part_type, model, *arg, out=False):
-    '''
+def get_ixc(part_type, model, arg, out=False):
+    """get integrated cross-section CDF values; works with custom PN models
 
-    Parameters
-    ----------
-    part_type : str
-        Neutrino or lepton? Can be nu or tau or muon.
-    model : str
-        Neutrino cross-section/lepton photonuclear energy loss model.
-    out : boolean, optional
-        Set this to True to write output to file. The default is False.
-    **kwargs
-        nu_type: Type of neutrino particle. Can be neutrino or anti_neutrino.
-        material: Material of propagation, for leptons.
+    Args:
+        part_type (str): type of particle; can be nu for neutrinos or tau for tau leptons or muon for muons
+        model (str): name of the model
+        arg (str): type of neutrino for part_type=nu or the propagation material for part_type=tau and part_type=muon
+        out (bool, optional): saves the data as an ASCII ecsv file if set to True; returns the array
+            value if set to False. Defaults to False.
 
-    Returns
-    -------
-    ndarray - 2D (neutrino) or 1D (lepton) integrated cross-section CDF array.
-    if part_type = nu; cscc/csnc = neutrino-nucleon charged/neutral current integrated cross section CDF values.
-    if part_type = tau/muon; out_arr = lepton-nucleon integrated cross section CDF values.
-
-    '''
-    # v2 = -np.linspace(0.1,3,num=30)
-    # yvals = 10**v2 # The integrated cross-section values should go from y = 0, 10^(-0.1),..., 10^(-3). This is a convention we chose to adopt.
-    # yvals = np.insert(yvals,0,0)
-
+    Returns:
+        None/ndarray: None if out=False or otherwise:
+            3D Fortran array of shape (31,91,2) containing integrated charged current and neutral
+            current neutrino (or anti-neutrino) cross-section CDF values, or
+            3D Fortran array of shape (31,121,3) containing integrated Bremmstrahlung, pair-production
+            and photonuclear cross-section CDF values for charged lepton
+    """
     if part_type == 'nu':
-        nu_type = arg[0]
+        nu_type = arg
         if model in nu_models: # default nu_ixc model selection
             with importlib_resources.as_file(ref) as lookup_tables:
                 ixc_table = Table.read(lookup_tables,path='Neutrinos/%s/ixc' % nu_type)
@@ -421,7 +402,7 @@ def get_ixc(part_type, model, *arg, out=False):
 
 
     else: # energy loss; ixc_type == 'tau' or 'muon'
-        material = arg[0]
+        material = arg
 
         with importlib_resources.as_file(ref) as lookup_tables:
             ixc_table = Table.read(lookup_tables,path='Charged_Leptons/%s/%s/ixc' % (part_type,material))
@@ -456,46 +437,37 @@ def get_ixc(part_type, model, *arg, out=False):
 
 
 def add_alpha(lepton, material, alpha_table):
-    '''
+    """adds charged lepton ionization energy loss values to lookup_tables.h5
 
-    Parameters
-    ----------
-    alpha : dict
-        Ionization energy loss dictionary.
-    lepton : str
-        Lepton. Can be tau or muon.
-    material : str
-        Material of propagation.
+    Args:
+        lepton (str): type of lepton; can be tau or muon
+        material (str): material of propagation for charged lepton
+        alpha_table (`~astropy.table.Table`): ionization energy loss values
+            Each table will need the following columns:
+            - ``energy``: Charged lepton energy, in GeV [``energy``]
+            - ``alpha``: Ionization energy loss value in material, in (GeV*cm^2)/g [``alpha``]
 
-    Returns
-    -------
-    None
-        Creates lepton ionization energy loss lookup entries in lookup_tables.h5.
-
-    '''
-
+    Returns:
+        None
+    """
     with importlib_resources.as_file(ref) as lookup_tables:
         alpha_table.write(lookup_tables, path='Charged_Leptons/%s/%s/alpha' % (lepton,material), append=True, overwrite=True)
     return print("%s_alpha lookup table successfully created for %s" % (lepton,material))
 
 def get_alpha(lepton, material, out=False):
-    '''
+    """get charged lepton ionization energy loss values
 
-    Parameters
-    ----------
-    lepton : str
-        Lepton. Can be tau or muon.
-    material : str
-        Material of propagation.
-    out : boolean, optional
-        Set this to True to write output to file. The default is False.
+    Args:
+        lepton (str): type of lepton; can be tau or muon
+        material (str): material of propagation for charged lepton
+        out (bool, optional): saves the data as an ASCII ecsv file if set to True; returns the array
+            value if set to False. Defaults to False.
 
-    Returns
-    -------
-    ndarray
-        1D array of lepton ionization energy loss, in (GeV*cm^2)/g.
-
-    '''
+    Returns:
+        None/ndarray: None if out=False or otherwise:
+            1D Fortran array of shape (121,) containing charged lepton ionization energy loss values in material,
+            in (GeV*cm^2)/g
+    """
     with importlib_resources.as_file(ref) as lookup_tables:
         alpha_table = Table.read(lookup_tables,path='Charged_Leptons/%s/%s/alpha' % (lepton,material))
     alpha_arr = alpha_table['alpha']
@@ -508,52 +480,50 @@ def get_alpha(lepton, material, out=False):
     return np.asfortranarray(alpha_arr.T)
 
 def add_beta(lepton, material, beta_table):
-    '''
+    """adds charged lepton energy loss parameter values to lookup_tables.h5
 
-    Parameters
-    ----------
-    beta_arr : ndarray
-        1D array containing energy loss parameter (beta), in cm^2/g.
-    lepton : str
-        Lepton. Can be tau or muon.
-    material : str
-        Material of propagation.
-    # model : str
-    #     Lepton energy loss model/process.
+    Args:
+        lepton (str): type of lepton; can be tau or muon
+        material (str): material of propagation for charged lepton
+        beta_table (`~astropy.table.Table`): energy loss parameter values
+            Each table will need the following columns:
+            - ``energy``: Charged lepton energy, in GeV [``energy``]
+            - ``beta_brem_cut``: Energy loss parameter value for Bremmstrahlung in material (cut value),
+            in cm^2/g [``beta_brem_cut``]
+            - ``beta_brem_total``: Energy loss parameter value for Bremmstrahlung in material (total value),
+            in cm^2/g [``beta_brem_total``]
+            - ``beta_pair_cut``: Energy loss parameter value for pair-production in material (cut value),
+            in cm^2/g [``beta_pair_cut``]
+            - ``beta_pair_total``: Energy loss parameter value for pair-production in material (total value),
+            in cm^2/g [``beta_pair_total``]
+            - ``beta_pn_x_cut``: Energy loss parameter value in material (cut value), in cm^2/g;
+            x is the name of the photonuclear energy loss model  [``beta_pn_x_cut``]
+            - ``beta_pn_x_total``: Energy loss parameter value in material (total value), in cm^2/g;
+            x is the name of the photonuclear energy loss model  [``beta_pn_x_total``]
 
-    Returns
-    -------
-    None
-        Creates lepton (non-ionization) energy loss lookup entries in lookup_tables.h5.
-
-    '''
+    Returns:
+        None
+    """
     with importlib_resources.as_file(ref) as lookup_tables:
         beta_table.write(lookup_tables, path='Charged_Leptons/%s/%s/beta' % (lepton,material), append=True, overwrite=True)
     return print("%s_beta in %s lookup table successfully created" % (lepton,material))
 
-def get_beta(lepton, model, material, *arg, out=False):
-    '''
+def get_beta(lepton, model, material, arg, out=False):
+    """get charged lepton ionization energy loss values; works with custom PN models
 
-    Parameters
-    ----------
-    lepton : str
-        Lepton. Can be tau or muon.
-    material : str
-        Material of propagation.
-    model : str
-        Lepton energy loss model/process.
-    beta_type : str
-        Can be cut (for stochastic energy loss) or full (for continuous energy loss).
-    out : boolean, optional
-        Set this to True to write output to file. The default is False.
+    Args:
+        lepton (str): type of lepton; can be tau or muon
+        material (str): material of propagation for charged lepton
+        arg (str): type of beta parameter; can be cut or total
+        out (bool, optional): saves the data as an ASCII ecsv file if set to True; returns the array
+            value if set to False. Defaults to False.
 
-    Returns
-    -------
-    ndarray
-        1D array containing lepton energy loss model/process beta value, in cm^2/g.
-
-    '''
-    beta_type = arg[0]
+    Returns:
+        None/ndarray: None if out=False or otherwise:
+            2D Fortran array of shape (121,3) containing charged lepton energy loss parameter values in material,
+            for Bremmstrahlung, pair-production and photonuclear energy loss model, in cm^2/g
+    """
+    beta_type = arg
 
     if beta_type=='cut':beta_type_str = 'y_max=1e-3'
     elif beta_type=='total':beta_type_str = 'y_max'
@@ -587,34 +557,27 @@ def get_beta(lepton, model, material, *arg, out=False):
 
 
 def add_pexit(nu_type, lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, pexit_table, arg=None):
-    '''
+    """adds exit probability values to output file
 
-    Parameters
-    ----------
-    nu_type : str
-        Type of neutrino particle. Can be neutrino or anti_neutrino.
-    lepton : str
-        Type of lepton. Can be tau or muon.
-    energy : float
-        Neutrino energy, in GeV.
-    prob_dict : dict
-        Exit probability dictionary.
-    idepth : int
-        Depth of water layer in km.
-    cross_section_model : str
-        Neutrino cross-section model.
-    pn_model : str
-        Photonuclear energy loss model.
-    prop_type : str
-        Type of energy loss mechanism. Can be stochastic or continuous.
-    stats : float
-        Statistics or number of neutrinos injected.
+    Args:
+        nu_type (str): type of neutrino particle; can be neutrino or anti_neutrino
+        lepton (str): type of lepton; can be tau or muon
+        energy (float): ingoing neutrino (or anti-neutrino) energy, in GeV
+        idepth (int): depth of water layer, in km
+        cross_section_model (str): neutrino cross-section model
+        pn_model (str): photonuclear energy loss model
+        prop_type (str): type of energy loss mechanism; can be stochastic or continuous
+        stats (int): statistics or number of neutrinos injected
+        pexit_table (`~astropy.table.Table`): charged lepton exit probability values
+            Each table will need the following columns:
+            - ``angle``: Earth emergence angle, in degrees [``angle``]
+            - ``no_regen``: Exit probability value without any regeneration [``no_regen``]
+            - ``regen``: Exit probability value including regeneration (max. of 6 rounds of regen) [``regen``]
+        arg (str, optional): additional arguments at the end of the file name. Defaults to None.
 
-    Returns
-    -------
-    Adds exit probability table to output_x.h5.
-
-    '''
+    Returns:
+        None
+    """
     log_energy = np.log10(energy)
     energy_str = str(log_energy)
 
@@ -625,35 +588,26 @@ def add_pexit(nu_type, lepton, energy, idepth, cross_section_model, pn_model, pr
     return None
 
 def get_pexit(nu_type, lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, out=False, arg=None):
-    '''
+    """get charged lepton exit probability values
 
-    Parameters
-    ----------
-    nu_type : str
-        Type of neutrino particle. Can be neutrino or anti_neutrino.
-    lepton : str
-        Type of lepton. Can be tau or muon.
-    energy : float
-        Neutrino energy, in GeV.
-    idepth : int
-        Depth of water layer in km.
-    cross_section_model : str
-        Neutrino cross-section model.
-    pn_model : str
-        Photonuclear energy loss model.
-    prop_type : str
-        Type of energy loss mechanism. Can be stochastic or continuous.
-    stats : float
-        Statistics or number of neutrinos injected.
-    out : boolean, optional
-        Set this to True to write output to file. The default is False.
+    Args:
+        nu_type (str): type of neutrino particle; can be neutrino or anti_neutrino
+        lepton (str): type of lepton; can be tau or muon
+        energy (float): ingoing neutrino (or anti-neutrino) energy, in GeV
+        idepth (int): depth of water layer, in km
+        cross_section_model (str): neutrino cross-section model
+        pn_model (str): photonuclear energy loss model
+        prop_type (str): type of energy loss mechanism; can be stochastic or continuous
+        stats (int): statistics or number of neutrinos injected
+        out (bool, optional): saves the data as an ascii ecsv file if set to True; returns the array
+        value if set to False. Defaults to False.
+        arg (str, optional): additional arguments at the end of the file name. Defaults to None.
 
-    Returns
-    -------
-    ndarray
-        2D array containing no_regen and with_regen exit probabilities.
-
-    '''
+    Returns:
+        None/ndarray: None if out=False or otherwise:
+            2D numpy array of shape (2,x) containing charged lepton exit probability values without
+            regeneration and including regeneration; x is the number of Earth emergence angles.
+    """
     log_energy = np.log10(energy)
     energy_str = str(log_energy)
 
@@ -666,44 +620,35 @@ def get_pexit(nu_type, lepton, energy, idepth, cross_section_model, pn_model, pr
     out_arr = np.asarray([no_regen, regen])
 
     if out:
-        fnm = "pexit_%s_%s_%s_%skm_%s_%s_%s_%s.ecsv" % (nu_type, lepton, energy_str, idepth, cross_section_model, pn_model, prop_type, sci_str(stats))
+        if nu_type=='neutrino':nu_type='nu'
+        else:nu_type='anu'
+        fnm = "pexit_%s_%s_%sGeV_%skm_%s_%s_%s_%s.ecsv" % (nu_type, lepton, energy_str, idepth, cross_section_model, pn_model, prop_type, sci_str(stats))
         ascii.write(pexit_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
         return print('Exit probability data saved to file %s' % fnm)
 
     return out_arr
 
 def add_lep_out(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, lep_table, arg=None):
-    '''
+    """adds outgoing charged lepton energy values to output file
 
-    Parameters
-    ----------
-    nu_type : str
-        Type of neutrino particle. Can be neutrino or anti_neutrino.
-    lepton : str
-        Type of lepton. Can be tau or muon.
-    energy : float
-        Neutrino energy, in GeV.
-    angle : float
-        Earth emergence angle (beta), in degrees.
-    lep_dict : dict
-        Lepton out energy dictionary, with energy in log10(GeV).
-    idepth : int
-        Depth of water layer in km.
-    cross_section_model : str
-        Neutrino cross-section model.
-    pn_model : str
-        Photonuclear energy loss model.
-    prop_type : str
-        Type of energy loss mechanism. Can be stochastic or continuous.
-    stats : float
-        Statistics or number of neutrinos injected.
+    Args:
+        nu_type (str): type of neutrino particle; can be neutrino or anti_neutrino
+        lepton (str): type of lepton; can be tau or muon
+        energy (float): ingoing neutrino (or anti-neutrino) energy, in GeV
+        angle (float): earth emergence angle, in degrees
+        idepth (int): depth of water layer, in km
+        cross_section_model (str): neutrino cross-section model
+        pn_model (str): photonuclear energy loss model
+        prop_type (str): type of energy loss mechanism; can be stochastic or continuous
+        stats (int): statistics or number of neutrinos injected
+        lep_table (`~astropy.table.Table`): charged lepton outgoing energy values
+            Each table will need the following column:
+            - ``lep_energy``: Outgoing charged lepton energy, in log_10(E) GeV [``lep_energy``]
+        arg (str, optional): additional arguments at the end of the file name. Defaults to None.
 
-    Returns
-    -------
-    None
-        Adds lepton out energy tables to output_x.h5
-
-    '''
+    Returns:
+        None
+    """
     log_energy = np.log10(energy)
     energy_str = str(log_energy)
 
@@ -713,37 +658,27 @@ def add_lep_out(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_
     return None
 
 def get_lep_out(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, out=False, arg=None):
-    '''
+    """get charged lepton outgoing energy values
 
-    Parameters
-    ----------
-    nu_type : str
-        Type of neutrino particle. Can be neutrino or anti_neutrino.
-    lepton : str
-        Type of lepton. Can be tau or muon.
-    energy : float
-        Neutrino energy, in GeV.
-    angle : float
-        Earth emergence angle (beta), in degrees.
-    idepth : int
-        Depth of water layer in km.
-    cross_section_model : str
-        Neutrino cross-section model.
-    pn_model : str
-        Photonuclear energy loss model.
-    prop_type : str
-        Type of energy loss mechanism. Can be stochastic or continuous.
-    stats : float
-        Statistics or number of neutrinos injected.
-    out : boolean, optional
-        Set this to True to write output to file. The default is False.
+    Args:
+        nu_type (str): type of neutrino particle; can be neutrino or anti_neutrino
+        lepton (str): type of lepton; can be tau or muon
+        energy (float): ingoing neutrino (or anti-neutrino) energy, in GeV
+        angle (float): earth emergence angle, in degrees
+        idepth (int): depth of water layer, in km
+        cross_section_model (str): neutrino cross-section model
+        pn_model (str): photonuclear energy loss model
+        prop_type (str): type of energy loss mechanism; can be stochastic or continuous
+        stats (int): statistics or number of neutrinos injected
+        out (bool, optional): saves the data as an ascii ecsv file if set to True; returns the array
+        value if set to False. Defaults to False.
+        arg (str, optional): additional arguments at the end of the file name. Defaults to None.
 
-    Returns
-    -------
-    out_lep : ndarray
-        1D array containing lepton out energies, in GeV.
-
-    '''
+    Returns:
+        None/ndarray: None if out=False or otherwise:
+            1D numpy array of shape (x,) containing outgoing charged lepton energy values, in GeV;
+            x is the number of outgoing charged leptons
+    """
     log_energy = np.log10(energy)
     energy_str = str(log_energy)
 
@@ -753,13 +688,33 @@ def get_lep_out(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_
     out_lep = 10**(np.asarray(e_out['lep_energy'])) # changed 13/7/21
 
     if out:
-        fnm = "lep_out_%s_%s_%s_%sdeg_%skm_%s_%s_%s_%s.ecsv" % (nu_type, lepton, energy_str, angle, idepth, cross_section_model, pn_model, prop_type, sci_str(stats))
-        ascii.write(10**e_out['lep_energy'], fnm, format='ecsv', fast_writer=True, overwrite=True)
+        if nu_type=='neutrino':nu_type='nu'
+        else:nu_type='anu'
+        lep_meta = OrderedDict({'Description':'Outgoing %s energies' % lepton,
+                                'lep_energy':'Outgoing %s energy, in GeV'})
+        lep_table = Table([out_lep], names=('lep_energy',), meta=lep_meta)
+        fnm = "lep_out_%s_%s_%sGeV_%sdeg_%skm_%s_%s_%s_%s.ecsv" % (nu_type, lepton, energy_str, angle, idepth, cross_section_model, pn_model, prop_type, sci_str(stats))
+        ascii.write(lep_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
         return print('Lepton outgoing energy data saved to file %s' % fnm)
 
     return out_lep
 
 def add_cdf(nu_type, lepton, idepth, cross_section_model, pn_model, prop_type, stats, arg=None):
+    """adds outgoing charged lepton energy CDF values to output file
+
+    Args:
+        nu_type (str): type of neutrino particle; can be neutrino or anti_neutrino
+        lepton (str): type of lepton; can be tau or muon
+        idepth (int): depth of water layer, in km
+        cross_section_model (str): neutrino cross-section model
+        pn_model (str): photonuclear energy loss model
+        prop_type (str): type of energy loss mechanism; can be stochastic or continuous
+        stats (int): statistics or number of neutrinos injected
+        arg (str, optional): additional arguments at the end of the file name. Defaults to None.
+
+    Returns:
+        None
+    """
     out_file = output_file(nu_type,lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg)
 
     bins = np.logspace(-5,0,51) # Default binning for use with nuSpaceSim. Change if different binning required.
@@ -787,7 +742,26 @@ def add_cdf(nu_type, lepton, idepth, cross_section_model, pn_model, prop_type, s
         print('CDF tables created!')
     return None
 
-def get_cdf(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, out=False, arg=None):
+def get_cdf(nu_type, lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, out=False, arg=None):
+    """get charged lepton outgoing energy CDF values
+
+    Args:
+        nu_type (str): type of neutrino particle; can be neutrino or anti_neutrino
+        lepton (str): type of lepton; can be tau or muon
+        energy (float): ingoing neutrino (or anti-neutrino) energy, in GeV
+        idepth (int): depth of water layer, in km
+        cross_section_model (str): neutrino cross-section model
+        pn_model (str): photonuclear energy loss model
+        prop_type (str): type of energy loss mechanism; can be stochastic or continuous
+        stats (int): statistics or number of neutrinos injected
+        out (bool, optional): saves the data as an ascii ecsv file if set to True; returns the array
+        value if set to False. Defaults to False.
+        arg (str): type of neutrino for part_type=nu or the material for part_type=tau and part_type=muon
+
+    Returns:
+        None/`~astropy.table.Table`: None if out=False or otherwise:
+            Astropy table containing binned outgoing charged lepton energy CDF values
+    """
     '''
 
     Parameters
@@ -834,6 +808,23 @@ def get_cdf(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_mode
     return cdf_table
 
 def sort_htc_files(nu_type, lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, cdf_only='no'):
+    """processes files created when the code is run with HTC mode on
+
+    Args:
+        nu_type (str): type of neutrino particle; can be neutrino or anti_neutrino
+        lepton (str): type of lepton; can be tau or muon
+        energy (float): ingoing neutrino (or anti-neutrino) energy, in GeV
+        idepth (int): depth of water layer, in km
+        cross_section_model (str): neutrino cross-section model
+        pn_model (str): photonuclear energy loss model
+        prop_type (str): type of energy loss mechanism; can be stochastic or continuous
+        stats (int): statistics or number of neutrinos injected
+        cdf_only (str, optional): if set to yes, outgoing lepton energy values will not be added
+        to output file. Defaults to 'no'.
+
+    Returns:
+        None
+    """
 
     files_path = "osg_out/" # my output folder from OSG is osg_out/energy/*
 
@@ -868,7 +859,7 @@ def sort_htc_files(nu_type, lepton, energy, idepth, cross_section_model, pn_mode
 
         if cdf_only == 'no': # adds lep_out energies to output file
             add_lep_out(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, lep_table)
-            print("Lep_out tables created successfully")
+            print("Lep_out processed successfully")
 
     pexit_angle = patch_for_astropy(np.asarray(p_angle_lst))
     pexit_noregen = patch_for_astropy(np.asarray(p_noregen_lst))
@@ -882,7 +873,7 @@ def sort_htc_files(nu_type, lepton, energy, idepth, cross_section_model, pn_mode
     pexit_table = Table([pexit_angle, pexit_noregen, pexit_regen], names=('angle','no_regen','regen'), meta=pexit_meta)
 
     add_pexit(nu_type, lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, pexit_table) # adds p_exit results to output file
-    print("P_exit tables created successfully")
+    print("P_exit processed successfully")
 
     add_cdf(nu_type, lepton, idepth, cross_section_model, pn_model, prop_type, stats) # adds the binned cdf values for all neutrino energies and angles in an output file, to the output file.
     return None

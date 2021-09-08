@@ -219,9 +219,9 @@ def ctw_ixc(): # CTW parameterization (eqs. 12, 13)
     return None
 
 # =============================================================================
-# BDHM F2 Structure Function
+# F2 Structure Functions
 # =============================================================================
-def f2(q2, y, E, z, A, model): # BDHM parameterization for f2; PhysRevD.89.094027
+def f2(q2, y, E, z, A, model):
     '''
 
     Parameters
