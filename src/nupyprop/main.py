@@ -47,15 +47,15 @@ def file_cleaner(output_type):
             os.remove(file)
     return None
 
-def init_xc(nu_type, lepton, nu_model, pn_model, prop_type):
+def init_xc(nu_type, ch_lepton, nu_model, pn_model, prop_type):
     '''
 
     Parameters
     ----------
     nu_type : str
         Type of neutrino particle. Can be neutrino or anti_neutrino.
-    lepton : str
-        Type of lepton. Can be tau or muon.
+    ch_lepton : str
+        Type of charged lepton. Can be tau or muon.
     nu_model : str
         Neutrino cross-section model.
     pn_model : str
@@ -81,32 +81,30 @@ def init_xc(nu_type, lepton, nu_model, pn_model, prop_type):
         2D array containing bremmstrahlung, pair production & photonuclear energy loss values for rock, in cm^2/g.
 
     '''
-    # pn_model = 'pn_' + pn_model
-
     if prop_type == 'stochastic':beta_type = 'cut'
     elif prop_type == 'continuous':beta_type = 'total'
 
     nu_xc = Data.get_xc('nu', nu_model, nu_type)
 
-    xc_water = Data.get_xc(lepton, pn_model, 'water')
-    alpha_water = Data.get_alpha(lepton, 'water')
-    beta_water = Data.get_beta(lepton, pn_model, 'water', beta_type)
+    xc_water = Data.get_xc(ch_lepton, pn_model, 'water')
+    alpha_water = Data.get_alpha(ch_lepton, 'water')
+    beta_water = Data.get_beta(ch_lepton, pn_model, 'water', beta_type)
 
-    xc_rock = Data.get_xc(lepton, pn_model, 'rock')
-    alpha_rock = Data.get_alpha(lepton, 'rock')
-    beta_rock = Data.get_beta(lepton, pn_model, 'rock', beta_type)
+    xc_rock = Data.get_xc(ch_lepton, pn_model, 'rock')
+    alpha_rock = Data.get_alpha(ch_lepton, 'rock')
+    beta_rock = Data.get_beta(ch_lepton, pn_model, 'rock', beta_type)
 
     return nu_xc,xc_water,xc_rock,alpha_water,alpha_rock,beta_water,beta_rock
 
-def init_ixc(nu_type, lepton, nu_model, pn_model):
+def init_ixc(nu_type, ch_lepton, nu_model, pn_model):
     '''
 
     Parameters
     ----------
     nu_type : str
         Type of neutrino particle. Can be neutrino or anti-neutrino.
-    lepton : str
-        Type of lepton. Can be tau or muon.
+    ch_lepton : str
+        Type of charged lepton. Can be tau or muon.
     nu_model : str
         Neutrino cross-section model.
     pn_model : str
@@ -122,18 +120,16 @@ def init_ixc(nu_type, lepton, nu_model, pn_model):
         3D array containing lepton integrated cross-section CDF values for rock.
 
     '''
-    # pn_model = 'pn_' + pn_model
-
     nu_ixc = Data.get_ixc('nu', nu_model, nu_type)
 
-    lep_ixc_water = Data.get_ixc(lepton, pn_model, 'water')
+    lep_ixc_water = Data.get_ixc(ch_lepton, pn_model, 'water')
 
-    lep_ixc_rock = Data.get_ixc(lepton, pn_model, 'rock')
+    lep_ixc_rock = Data.get_ixc(ch_lepton, pn_model, 'rock')
 
     return nu_ixc, lep_ixc_water, lep_ixc_rock
 
 
-def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton, fac_nu, stats, prop_type, cdf_only):
+def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, ch_lepton, fac_nu, stats, cdf_bins, prop_type):
     '''
 
     Parameters
@@ -150,16 +146,14 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton,
         Photonuclear energy loss model.
     idepth : int
         Depth of water layer in km.
-    lepton : str
-        Type of lepton. Can be tau or muon.
+    ch_lepton : str
+        Type of charged lepton. Can be tau or muon.
     fac_nu : float
         Rescaling factor for BSM cross-sections.
     stats : float
         Statistics; no. of ingoing neutrinos.
     prop_type : str
         Energy loss propagation type. Can be stochastic or continuous.
-    cdf_only : str
-        If set to yes, the output file will NOT contain outgoing lepton energies.
 
     Returns
     -------
@@ -170,10 +164,10 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton,
 
     make_array = lambda x : x if isinstance(x, Iterable) else np.array([x]) # to avoid errors with single or no columns
 
-    nu_xc, xc_water, xc_rock, alpha_water, alpha_rock, beta_water, beta_rock = init_xc(nu_type, lepton, cross_section_model, pn_model, prop_type)
+    nu_xc, xc_water, xc_rock, alpha_water, alpha_rock, beta_water, beta_rock = init_xc(nu_type, ch_lepton, cross_section_model, pn_model, prop_type)
 
 
-    nu_ixc, lep_ixc_water, lep_ixc_rock = init_ixc(nu_type, lepton, cross_section_model, pn_model)
+    nu_ixc, lep_ixc_water, lep_ixc_rock = init_ixc(nu_type, ch_lepton, cross_section_model, pn_model)
 
     ithird = 0 # use dn/dy in tau to neutrino
 
@@ -182,9 +176,9 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton,
     else:
         prop_type_int = 2
 
-    if lepton == 'tau':
+    if ch_lepton == 'tau':
         lepton_int = 1
-    else:
+    else: # muon
         lepton_int = 2
 
     start_time = time.time()
@@ -213,16 +207,14 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton,
             e_out = make_array(np.genfromtxt(str("eout_%.2E_%.2f.dat" % (energy, angle))))
             e_out = Data.patch_for_astropy(e_out)
 
-            lep_meta = OrderedDict({'Description':'Outgoing %s energies' % lepton,
+            clep_meta = OrderedDict({'Description':'Outgoing %s energies' % ch_lepton,
                                     'lep_energy':'Outgoing %s energy, in log_10(E) GeV'})
 
-            lep_table = Table([e_out], names=('lep_energy',), meta=lep_meta)
+            clep_table = Table([e_out], names=('lep_energy',), meta=clep_meta)
             
             file_cleaner('e_out') # remove e_out files
 
-            if cdf_only == 'no': # adds lep_out energies to output file
-                Data.add_lep_out(nu_type, lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, lep_table)
-
+            Data.add_clep_out(nu_type, ch_lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, clep_table)
 
         # end of for loop for angles
         p_angle, p_noregen, p_regen = np.genfromtxt("pexit_%.2f.dat" % np.log10(energy), usecols=(1,2,3), unpack=True)
@@ -231,20 +223,20 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton,
         p_noregen = Data.patch_for_astropy(p_noregen)
         p_regen = Data.patch_for_astropy(p_regen)
 
-        pexit_meta = OrderedDict({'Description':'Exit probability for %s' % lepton,
+        pexit_meta = OrderedDict({'Description':'Exit probability for %s' % ch_lepton,
                                   'angle':'Earth emergence angle, in degrees',
-                                  'no_regen':'Exit probability without including any %s regeneration' % lepton,
-                                  'regen':'Exit probability including %s regeneration' % lepton})
+                                  'no_regen':'Exit probability without including any %s regeneration' % ch_lepton,
+                                  'regen':'Exit probability including %s regeneration' % ch_lepton})
 
         pexit_table = Table([p_angle, p_noregen, p_regen], names=('angle','no_regen','regen'), meta=pexit_meta)
 
-        Data.add_pexit(nu_type, lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, pexit_table) # adds p_exit results to output file
+        Data.add_pexit(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, pexit_table) # adds p_exit results to output file
 
         file_cleaner('p_exit')  # remove p_exit files
 
     # close of for loop for energy
 
-    Data.add_cdf(nu_type, lepton, idepth, cross_section_model, pn_model, prop_type, stats) # adds the binned cdf values for all neutrino energies and angles in an output file, to the output file.
+    Data.add_cdf(nu_type, ch_lepton, idepth, cross_section_model, pn_model, prop_type, stats, cdf_bins) # adds the binned cdf values for all neutrino energies and angles in an output file, to the output file.
 
     end_time = time.time()
     print(f"It took {end_time-start_time:.2f} seconds to compute")
@@ -252,7 +244,7 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton,
 
     return None
 
-def main_htc(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton, fac_nu, stats, prop_type):
+def main_htc(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, ch_lepton, fac_nu, stats, prop_type):
     '''
 
     Parameters
@@ -269,16 +261,14 @@ def main_htc(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lep
         Photonuclear energy loss model.
     idepth : int
         Depth of water layer in km.
-    lepton : str
-        Type of lepton. Can be tau or muon.
+    ch_lepton : str
+        Type of charged lepton. Can be tau or muon.
     fac_nu : float
         Rescaling factor for BSM cross-sections.
     stats : float
         Statistics; no. of ingoing neutrinos.
     prop_type : str
         Energy loss propagation type. Can be stochastic or continuous.
-    cdf_only : str
-        If set to yes, the output file will NOT contain outgoing lepton energies.
 
     Returns
     -------
@@ -287,9 +277,9 @@ def main_htc(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lep
 
     '''
 
-    nu_xc, xc_water, xc_rock, alpha_water, alpha_rock, beta_water, beta_rock = init_xc(nu_type, lepton, cross_section_model, pn_model, prop_type)
+    nu_xc, xc_water, xc_rock, alpha_water, alpha_rock, beta_water, beta_rock = init_xc(nu_type, ch_lepton, cross_section_model, pn_model, prop_type)
 
-    nu_ixc, lep_ixc_water, lep_ixc_rock = init_ixc(nu_type, lepton, cross_section_model, pn_model)
+    nu_ixc, lep_ixc_water, lep_ixc_rock = init_ixc(nu_type, ch_lepton, cross_section_model, pn_model)
 
     ithird = 0 # use dn/dy in tau to neutrino
 
@@ -298,9 +288,9 @@ def main_htc(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lep
     else:
         prop_type_int = 2
 
-    if lepton == 'tau':
+    if ch_lepton == 'tau':
         lepton_int = 1
-    else:
+    else: # muon
         lepton_int = 2
 
     print("The water -> rock transition occurs at %.2f degrees" % Geometry.find_interface(idepth)[0])
@@ -344,20 +334,20 @@ if __name__ == "__main__":
 
     idepth = 4
     fac_nu = 1
-    lepton = 'tau'
+    ch_lepton = 'tau'
     cross_section_model = 'ct18nlo'
     pn_model = 'allm' # do not need to give the 'pn_' prefix if using run.py
     prop_type = 'stochastic'
     stat = int(1e7)
     nu_type = 'neutrino'
-    cdf_only = 'no'
+    cdf_bins = np.logspace(-5,0,51)
 
     # nu_xc, xc_water, xc_rock, alpha_water, alpha_rock, beta_water, beta_rock = init_xc(lepton, cross_section_model, pn_model, prop_type)
 
     # nu_ixc, lep_ixc_water, lep_ixc_rock = init_ixc(lepton, cross_section_model, pn_model)
 
     # prob_dict, lep_dict = main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton, fac_nu, stat, prop_type)
-    main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton, fac_nu, stat, prop_type, cdf_only)
+    main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, ch_lepton, fac_nu, stat, cdf_bins, prop_type)
 
     # print(prob_dict)
 

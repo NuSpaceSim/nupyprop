@@ -22,8 +22,7 @@ def get_parser():
         nargs="?",
         const=f"{np.array2string(np.linspace(7, 11, 17), separator=',')}"[1:-1],
         default=f"{np.array2string(np.linspace(7, 11, 17), separator=',')}"[1:-1],
-        help="log_10 value of incoming neutrino energy; defaults are 7-11 GeV in quarter"
-        " decades",
+        help="log_10 value of incoming neutrino energy; defaults are 7-11 GeV in quarter decades",
     )
 
     parser.add_argument(
@@ -33,7 +32,7 @@ def get_parser():
         nargs="?",
         const=f"{np.array2string(np.arange(1, 36), separator=',')}"[1:-1],
         default=f"{np.array2string(np.arange(1, 36), separator=',')}"[1:-1],
-        help="value of Earth emergence angle; defaults are 1-35 degrees, in steps of 1 degree.",
+        help="value of Earth emergence angle; defaults are 1-35 degrees, in steps of 1 degree",
     )
 
     parser.add_argument(
@@ -48,8 +47,8 @@ def get_parser():
     )
 
     parser.add_argument(
-        "-l",
-        "--lepton",
+        "-cl",
+        "--charged_lepton",
         dest="lepton_id",
         nargs="?",
         type=str,
@@ -125,14 +124,13 @@ def get_parser():
     )
 
     parser.add_argument(
-        "-c",
-        "--cdf_only",
-        dest="cdf_id",
+        "-cb",
+        "--cdf_bins",
+        dest="cdf_bins_arr",
         nargs="?",
-        type=str,
-        const="no",
-        default="no",
-        help="CDF only; default is no. If set to yes, the output file will NOT contain outgoing lepton energies.",
+        const=f"{np.array2string(np.logspace(-5,0,51), separator=',')}"[1:-1],
+        default=f"{np.array2string(np.logspace(-5,0,51), separator=',')}"[1:-1],
+        help="bins for calculating outgoing charged lepton CDF values; nuSpaceSim default is logspace(-5,0,51)",
     )
 
     parser.add_argument(
@@ -158,7 +156,7 @@ def main():
     angles = np.fromstring(args.angle_val, dtype=int, sep=",")
 
     idepth = int(args.idepth_val)
-    lepton = str(args.lepton_id)
+    ch_lepton = str(args.lepton_id)
     nu_type = str(args.nu_type_id)
     if nu_type=='anti-neutrino':nu_type='anti_neutrino' # change here globally
     type_loss = str(args.loss_type)
@@ -166,26 +164,29 @@ def main():
     pn_model = str(args.pn_model_id)
     fac_nu = float(args.fac_nu_val)
     stats = int(args.stats_val)
-    cdf_only = str(args.cdf_id)
+    cdf_bins = np.fromstring(args.cdf_bins_arr, dtype=float, sep=",")
     htc_mode = str(args.htc_id)
-
-    param_data = [["Parameter Name", "Value"],
-              ["Charged Lepton", lepton.capitalize()],
-              ["Neutrino Matter/Type", nu_type.capitalize()],
-              ["Depth of Water Layer [km]", idepth],
-              ["Energy Loss Propagation", type_loss.capitalize()],
-              ["Neutrino Cross Section Model", str.upper(cross_section_model)],
-              ["Charged Lepton Photonuclear Energy Loss Model", str.upper(pn_model)],
-              ["SM Neutrino Cross Section Scaling Factor", fac_nu],
-              ["Statistics", '{:.0e}'.format(stats)],
-              ["CDF Only", cdf_only.capitalize()],
-              ["HTC Mode", htc_mode.capitalize()]]
-
-    print(tabulate(param_data, headers='firstrow', showindex='always',tablefmt='fancy_grid'))
+    if np.array_equal(cdf_bins,np.logspace(-5,0,51)):bins_str='nuSpaceSim default z bins'
+    else:bins_str='Using custom defined bins'
 
 
-    if htc_mode == 'yes':
 
+
+    if htc_mode == 'yes': # HTC mode on
+
+        param_data = [["Parameter Name", "Value"],
+        ["Charged Lepton", ch_lepton.capitalize()],
+        ["Neutrino Matter/Type", nu_type.capitalize()],
+        ["Depth of Water Layer [km]", idepth],
+        ["Energy Loss Propagation", type_loss.capitalize()],
+        ["Neutrino Cross Section Model", str.upper(cross_section_model)],
+        ["Charged Lepton Photonuclear Energy Loss Model", str.upper(pn_model)],
+        ["SM Neutrino Cross Section Scaling Factor", fac_nu],
+        ["Statistics", '{:.0e}'.format(stats)],
+        ["HTC Mode", htc_mode.capitalize()]]
+
+        print(tabulate(param_data, headers='firstrow', showindex='always',tablefmt='fancy_grid'))
+        
         Main.main_htc(
             energies,
             angles,
@@ -193,13 +194,27 @@ def main():
             cross_section_model,
             pn_model,
             idepth,
-            lepton,
+            ch_lepton,
             fac_nu,
             stats,
             type_loss,
         )
 
-    else:
+    else: # HTC mode off
+
+        param_data = [["Parameter Name", "Value"],
+        ["Charged Lepton", ch_lepton.capitalize()],
+        ["Neutrino Matter/Type", nu_type.capitalize()],
+        ["Depth of Water Layer [km]", idepth],
+        ["Energy Loss Propagation", type_loss.capitalize()],
+        ["Neutrino Cross Section Model", str.upper(cross_section_model)],
+        ["Charged Lepton Photonuclear Energy Loss Model", str.upper(pn_model)],
+        ["SM Neutrino Cross Section Scaling Factor", fac_nu],
+        ["Statistics", '{:.0e}'.format(stats)],
+        ["CDF Bins", bins_str],
+        ["HTC Mode", htc_mode.capitalize()]]
+
+        print(tabulate(param_data, headers='firstrow', showindex='always',tablefmt='fancy_grid'))
 
         Main.main(
             energies,
@@ -208,10 +223,9 @@ def main():
             cross_section_model,
             pn_model,
             idepth,
-            lepton,
+            ch_lepton,
             fac_nu,
             stats,
-            type_loss,
-            cdf_only,
-
+            cdf_bins,
+            type_loss
         )
