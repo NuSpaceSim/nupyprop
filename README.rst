@@ -59,7 +59,7 @@ described as follows:
 
 3. ``-i`` or ``--idepth``: depth of ice/water in km. Default value is 4 km.
 
-4. ``-cl`` or ``--lepton``: flavor of charged lepton used to propagate. Can be either
+4. ``-cl`` or ``--charged_lepton``: flavor of charged lepton used to propagate. Can be either
    muon or tau. Default is tau.
 
 5. ``-n`` or ``--nu_type``: type of neutrino matter. Can be either neutrino or
