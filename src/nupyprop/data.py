@@ -253,7 +253,7 @@ def get_xc(part_type, model, arg, out=False):
             current neutrino (or anti-neutrino) cross-section values, in cm^2, or
             3D Fortran array of shape (121,3) containing Bremmstrahlung, pair-production
             and photonuclear cross-section values for charged lepton, all multiplied by N_A/A,
-            in g/cm^2
+            in cm^2/g
     """
     if part_type=='nu':
         nu_type = arg

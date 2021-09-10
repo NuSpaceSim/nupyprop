@@ -3,13 +3,14 @@ module constants
 implicit none
 integer, parameter :: dp=kind(0.d0)
 real(dp), parameter :: pi = 3.1415927_dp
-real(dp), parameter :: N_A = 6.0221409e+23_dp
+
+real(dp), parameter :: N_A = 6.0221409e+23_dp ! 1/mole
 real(dp), parameter :: rho_water = 1.02_dp ! g/cm^3
 real(dp), parameter :: rho_rock = 2.65_dp ! g/cm^3
 real(dp), parameter :: rho_iron = 7.87_dp ! g/cm^3
-real(dp), parameter :: R_earth = 6371.0_dp ! radius of the earth in km
+real(dp), parameter :: R_earth = 6371.0_dp ! radius of the Earth, in km
 real(dp), parameter :: step_size = 4500.0_dp ! step size for continuous energy loss, in cm
-real(dp), parameter :: E_nu(91) = (/1.00000000e+03, 1.25892541e+03, 1.58489319e+03, 1.99526231e+03,&
+real(dp), parameter :: E_nu(91) = (/1.00000000e+03, 1.25892541e+03, 1.58489319e+03, 1.99526231e+03,& ! bins for neutrino energies
        & 2.51188643e+03, 3.16227766e+03, 3.98107171e+03, 5.01187234e+03,&
        & 6.30957344e+03, 7.94328235e+03, 1.00000000e+04, 1.25892541e+04,&
        & 1.58489319e+04, 1.99526231e+04, 2.51188643e+04, 3.16227766e+04,&
@@ -32,7 +33,7 @@ real(dp), parameter :: E_nu(91) = (/1.00000000e+03, 1.25892541e+03, 1.58489319e+
        & 1.00000000e+11, 1.25892541e+11, 1.58489319e+11, 1.99526231e+11,&
        & 2.51188643e+11, 3.16227766e+11, 3.98107171e+11, 5.01187234e+11,&
        & 6.30957344e+11, 7.94328235e+11, 1.00000000e+12/)
-real(dp), parameter :: E_lep(121) = (/1.00000000e+00, 1.25892541e+00, 1.58489319e+00, 1.99526231e+00,&
+real(dp), parameter :: E_lep(121) = (/1.00000000e+00, 1.25892541e+00, 1.58489319e+00, 1.99526231e+00,& ! bins for charged lepton energies
        & 2.51188643e+00, 3.16227766e+00, 3.98107171e+00, 5.01187234e+00,&
        & 6.30957344e+00, 7.94328235e+00, 1.00000000e+01, 1.25892541e+01,&
        & 1.58489319e+01, 1.99526231e+01, 2.51188643e+01, 3.16227766e+01,&
@@ -66,21 +67,6 @@ real(dp), parameter :: E_lep(121) = (/1.00000000e+00, 1.25892541e+00, 1.58489319
 real(dp), parameter, dimension(31) :: v2 = (/0.,-0.1, -0.2, -0.3, -0.4, -0.5, -0.6, -0.7, -0.8, -0.9, -1. ,&
        & -1.1, -1.2, -1.3, -1.4, -1.5, -1.6, -1.7, -1.8, -1.9, -2. , -2.1,&
        & -2.2, -2.3, -2.4, -2.5, -2.6, -2.7, -2.8, -2.9, -3./) ! x (interpolating arr for find_y)
-!real(dp), parameter, dimension(2) :: E_nu = (/1.,2./)
-
-!real(dp), parameter, dimension(10) :: A=(/(j,j=1,10)/)
-
-!real(dp) :: E_nu(:)
-!real(dp):: E_lep(:)
-!integer :: i, j
-!
-!do i = 0, 90
-!    E_nu(i) = 10.**(3 + i*(12 - 3)/dble(91-1))
-!end do
-!
-!do j = 0, 120
-!    E_lep(i) = 10.**(0 + i*(12 - 0)/dble(121-1))
-!end do
 
 end module constants
 
@@ -155,7 +141,7 @@ subroutine densityatx(x, beta_deg, idepth, r, rho_at_x)
     !! Earth emergence angle, in degrees.
 
     real(dp), intent(out) :: r
-    !! Radial distance from the center of the Earth, at x, in km.
+    !! Radial distance from the center of the Earth to x, in km.
     real(dp), intent(out) :: rho_at_x
     !! Density at x, in g/cm^3
 
@@ -295,7 +281,33 @@ subroutine cd2distd(xalong, cdalong, col_depth, out_val)
 
 end subroutine cd2distd
 
-subroutine int_xc_nu(energy, nu_xc, sig_cc, sig_nc)
+subroutine get_rho_frac(rho, frac, frac_pn)
+    !! Calculate the correction/scaling fraction for material density between rock & iron.
+
+    implicit none
+
+    real(dp), intent(in) :: rho
+    !! Density of material, in g/cm^3.
+
+    real(dp), intent(out) :: frac
+    !! Scaling factor for density change between rock & iron (for Bremmstrahlung & pair production).
+    real(dp), intent(out) :: frac_pn
+    !! Scaling factor for density change between rock & iron (for photonuclear).
+
+    real(dp) :: f_rock
+
+    if (rho > rho_rock .and. rho < rho_iron) then
+        f_rock = (rho_iron - rho)/(rho_iron - rho)
+        frac = 1.97_dp - 0.97_dp * f_rock
+        frac_pn = 0.91_dp + 0.09_dp * f_rock
+    else ! for rho <= rho_water or rho>=iron (that shouldn't happen!) 
+        frac = 1._dp
+        frac_pn = 1._dp
+    end if
+
+end subroutine get_rho_frac
+
+subroutine int_xc_nu(energy, nu_xc, fac_nu, sig_cc, sig_nc)
     !! Interpolate between neutrino energy & cross-section values.
 
     implicit none
@@ -304,34 +316,40 @@ subroutine int_xc_nu(energy, nu_xc, sig_cc, sig_nc)
     !! 2D array of neutrino cross-section values.
     real(dp), intent(in) :: energy
     !! Energy value to interpolate at, in GeV.
+    real(dp), intent(in) :: fac_nu
+    !! Rescaling factor for SM neutrino cross-sections.
 
     real(dp), intent(out) :: sig_cc, sig_nc
     !! Interpolated CC & NC cross-section values, in cm^2.
 
     call interpol(energy, E_nu, nu_xc(:,1), sig_cc)
-    sig_cc = N_A * sig_cc
     call interpol(energy, E_nu, nu_xc(:,2), sig_nc)
-    sig_nc = N_A * sig_nc
+
+    sig_cc = fac_nu * sig_cc
+    sig_nc = fac_nu * sig_nc
 
 end subroutine int_xc_nu
 
-subroutine int_xc_lep(energy, xc_arr, frac, frac_pn, sig_brem, sig_pair, sig_pn)
+subroutine int_xc_lep(energy, xc_arr, rho, sig_brem, sig_pair, sig_pn)
     !! Interpolate between lepton energy & cross-section values.
 
     implicit none
 
     real(dp), intent(in) :: xc_arr(:,:)
-    !! 2D array of lepton cross-section values, in cm^2.
+    !! 2D array of N_A/A*charged lepton cross-section values, in cm^2/g.
     real(dp), intent(in) :: energy
     !! Energy value to interpolate at, in GeV.
-    real(dp), intent(in) :: frac
-    !! Scaling factor for density change between rock & iron (for bremmstrahlung & pair production).
-    real(dp), intent(in) :: frac_pn
-    !! Scaling factor for density change between rock & iron (for photonuclear).
+    real(dp), intent(in) :: rho
+    !! Desnity of the material, in g/cm^3.
 
     real(dp), intent(out) :: sig_brem, sig_pair, sig_pn
-    !! Interpolated cross-section values of lepton for energy losses, in cm^2.
+    !! Interpolated cross-section values of charged lepton for energy losses, in cm^2/g.
 
+    real(dp) :: frac, frac_pn
+
+    call get_rho_frac(rho, frac, frac_pn)
+
+    ! Note: The lookup tables already have N_A multiplied by lep_xc!
     call interpol(energy, E_lep, xc_arr(:,1), sig_brem)
     call interpol(energy, E_lep, xc_arr(:,2), sig_pair)
     call interpol(energy, E_lep, xc_arr(:,3), sig_pn)
@@ -343,7 +361,7 @@ subroutine int_xc_lep(energy, xc_arr, frac, frac_pn, sig_brem, sig_pair, sig_pn)
 end subroutine int_xc_lep
 
 subroutine int_alpha(energy, alpha_sig, alpha)
-    !! Interpolate between lepton energy & ionization energy loss values.
+    !! Interpolate between charged lepton energy & ionization energy loss values.
 
     implicit none
 
@@ -359,24 +377,24 @@ subroutine int_alpha(energy, alpha_sig, alpha)
 
 end subroutine int_alpha
 
-subroutine int_beta(energy, beta_arr, frac, frac_pn, tot)
-    !! Interpolate between lepton energy & beta (energy loss parameter) values.
+subroutine int_beta(energy, beta_arr, rho, tot)
+    !! Interpolate between charged lepton energy & beta (energy loss parameter) values.
 
     implicit none
 
     real(dp), intent(in):: energy
     !! Energy value to interpolate at, in GeV.
-    real(dp), intent(in):: frac
-    !! Scaling factor for density change between rock & iron (for bremmstrahlung & pair production).
-    real(dp), intent(in):: frac_pn
-    !! Scaling factor for density change between rock & iron (for photonuclear).
     real(dp), intent(in) :: beta_arr(:,:)
     !! 2D array of beta values, in cm^2/g.
+    real(dp), intent(in) :: rho
+    !! Density of material, in g/cm^3.
 
     real(dp), intent(out) :: tot
     !! Interpolated (& summed) value of beta, in cm^2/g.
 
-    real(dp) :: brem, pair, pn
+    real(dp) :: brem, pair, pn, frac, frac_pn
+
+    call get_rho_frac(rho, frac, frac_pn) ! get the density scaling fractions
 
     call interpol(energy, E_lep, beta_arr(:,1), brem)
     call interpol(energy, E_lep, beta_arr(:,2), pair)
@@ -466,16 +484,16 @@ subroutine idecay(energy, distance, m_le, c_tau, decay)
     implicit none
 
     real(dp), intent(in) :: energy
-    !! Lepton energy, in GeV.
+    !! Charged lepton energy, in GeV.
     real(dp), intent(in) :: distance
-    !! Distance of lepton travel, in cm.
+    !! Distance of charged lepton travel, in cm.
     real(dp), intent(in) :: m_le
-    !! Mass of lepton, in GeV.
+    !! Mass of charged lepton, in GeV.
     real(dp), intent(in) :: c_tau
-    !! Decay length of lepton, in cm.
+    !! Decay length of charged lepton, in cm.
 
     integer, intent(out) :: decay
-    !! Decay = 1 means the lepton decayed.
+    !! Decay = 1 means the charged lepton decayed.
 
     real(dp) :: gamma_val, prob_decay, dy
 
@@ -492,24 +510,24 @@ subroutine idecay(energy, distance, m_le, c_tau, decay)
 end subroutine idecay
 
 subroutine em_cont_part(E_init, alpha_val, beta_val, x, m_le, E_fin)
-    !! Calculate the lepton electromagnetic energy loss (continuous part) a la MUSIC.
+    !! Calculate the charged lepton electromagnetic energy loss (continuous part) a la MUSIC.
 
     implicit none
 
     real(dp), intent(in) :: E_init
-    !! Initial lepton energy, in GeV.
+    !! Initial charged lepton energy, in GeV.
     real(dp), intent(in) :: alpha_val
     !! Ionization energy loss value, in (GeV*cm^2)/g.
     real(dp), intent(in) :: beta_val
     !! Energy loss parameter (brem + pair + pn), in cm^2/g.
     real(dp), intent(in) :: x
-    !! Distance (column depth) of lepton travel, in g/cm^2.
+    !! Distance (column depth) of charged lepton travel, in g/cm^2.
     real(dp), intent(in) :: m_le
-    !! Mass of lepton, in GeV.
+    !! Mass of charged lepton, in GeV.
 
 
     real(dp), intent(out) :: E_fin
-    !! Final lepton energy, in GeV.
+    !! Final charged lepton energy, in GeV.
 
     if (beta_val * x < 1e-6_dp) then
         E_fin = E_init * (1._dp-beta_val*x) - alpha_val*x
@@ -523,61 +541,67 @@ subroutine em_cont_part(E_init, alpha_val, beta_val, x, m_le, E_fin)
 
 end subroutine em_cont_part
 
-subroutine int_length_nu(energy, nu_xc, fac_nu, x_int)
-    !! Calculate neutrino interaction length.
-    ! int_length_nu = 1/(N_A * sigma) = 1/((1/cm^3)*cm) = cm
+subroutine int_depth_nu(energy, nu_xc, fac_nu, x_int)
+    !! Calculate neutrino interaction depth.
+    ! int_depth = M/(N_A*sigma_tot)
 
     implicit none
 
     real(dp), intent(in) :: energy
     !! Neutrino energy, in GeV.
     real(dp), intent(in) :: fac_nu
-    !! Rescaling factor for BSM cross-sections.
+    !! Rescaling factor for SM neutrino cross-sections.
     real(dp), intent(in) :: nu_xc(:,:)
     !! 2D array containing neutrino CC & NC cross-section values, in cm^2.
 
     real(dp), intent(out) :: x_int
-    !! Neutrino interaction length, in cm.
+    !! Neutrino interaction depth, in cm^2/g.
 
-    real(dp) :: sig_cc, sig_nc
+    real(dp) :: sig_cc, sig_nc, sig_weak
 
-    call int_xc_nu(energy, nu_xc, sig_cc, sig_nc) ! initialize CC & NC xc interpolations
-    x_int = 1/(((sig_cc + sig_nc))*fac_nu)
+    call int_xc_nu(energy, nu_xc, fac_nu, sig_cc, sig_nc) ! initialize CC & NC xc interpolations; moved fac_nu to here
+    sig_weak = sig_cc + sig_nc ! weak interactions
+    x_int = 1/(N_A*sig_weak)
 
-end subroutine int_length_nu
+end subroutine int_depth_nu
 
-subroutine int_length_lep(energy, xc_arr, rho, m_le, c_tau, frac, frac_pn, x_int)
-    !! Calculate lepton interaction length.
+subroutine int_depth_lep(energy, xc_arr, rho, m_le, c_tau, x_int)
+    !! Calculate charged lepton interaction depth.
+    ! int_depth = M/((N_A/A)*sigma_tot + 1/(gamma*c*tau*rho)); here we need rho to convert decay distance to decay depth
 
     implicit none
 
     real(dp), intent(in) :: energy
-    !! Lepton energy, in  GeV.
+    !! Charged charged lepton energy, in GeV.
     real(dp), intent(in) :: rho
     !! Density of material, in g/cm^3.
     real(dp), intent(in) :: m_le
-    !! Mass of lepton, in GeV.
+    !! Mass of charged lepton, in GeV.
     real(dp), intent(in) :: c_tau
-    !! Decay length of lepton, in cm.
-    real(dp), intent(in) :: frac
-    !! Scaling factor for density change between rock & iron (for bremmstrahlung & pair production).
-    real(dp), intent(in) :: frac_pn
-    !! Scaling factor for density change between rock & iron (for photonuclear).
+    !! Decay length of charged lepton, in cm.
     real(dp), intent(in) :: xc_arr(:,:)
-    !! 2D array containing lepton-nucleon cross-section values.
+    !! 2D array containing N_A/A*charged lepton-nucleon cross-section values, in cm^2/g.
 
     real(dp), intent(out) :: x_int
-    !! Lepton interaction length, in cm.
+    !! Charged lepton interaction length, in g/cm^2.
 
-    real(8) :: sig_cc, sig_nc, gamma_val, sig_brem, sig_pair, sig_pn
+    real(dp) :: sig_cc, sig_nc, sig_brem, sig_pair, sig_pn, sig_em, sig_weak
+    real(dp) :: decay_length, decay_depth_inv
 
-    sig_cc = 0 ! placeholder for CC lepton interactions
-    sig_nc = 0 ! placeholder for NC lepton interactions
-    gamma_val = energy/m_le
-    call int_xc_lep(energy, xc_arr, frac, frac_pn, sig_brem, sig_pair, sig_pn) ! initialize brem, pair & pn xc interpolations
-    x_int = 1/((sig_brem + sig_pair + sig_pn + (1/(gamma_val*c_tau*rho)) + sig_cc + sig_nc))
+    sig_cc = 0 ! placeholder for CC (charged) lepton interactions; can be read in from the lookup table in the future
+    sig_nc = 0 ! placeholder for NC (charged) lepton interactions; can be read in from the lookup table in the future
 
-end subroutine int_length_lep
+    decay_length = (energy/m_le)*c_tau
+    decay_depth_inv = 1/(decay_length*rho)
+
+    call int_xc_lep(energy, xc_arr, rho, sig_brem, sig_pair, sig_pn) ! initialize Brem, pair & pn xc interpolations
+
+    sig_em = sig_brem + sig_pair + sig_pn ! EM interactions
+    sig_weak = sig_cc + sig_nc ! weak interactions
+    x_int = 1/(sig_em + sig_weak + decay_depth_inv)
+    ! Note: N_A has already been multiplied by xc's in the lookup tables for taus and muons!
+
+end subroutine int_depth_lep
 
 subroutine interaction_type_nu(energy, nu_xc, fac_nu, int_type)
     !! Determine/calculate the type of neutrino-nucleon interaction.
@@ -587,19 +611,18 @@ subroutine interaction_type_nu(energy, nu_xc, fac_nu, int_type)
     real(dp), intent(in) :: energy
     !! Neutrino energy, in GeV.
     real(dp), intent(in) :: fac_nu
-    !! Rescaling factor for BSM cross-sections.
+    !! Rescaling factor for SM neutrino cross-sections.
     real(dp), intent(in) :: nu_xc(:,:)
     !! 2D array containing neutrino CC & NC cross-section values, in cm^2.
 
     integer, intent(out) :: int_type
     !! Type of neutrino interaction. 0=CC; 1=NC.
 
-    real(dp) :: sig_cc, sig_nc, x, int_nu, tot_frac, cc_frac
+    real(dp) :: sig_cc, sig_nc, x, tot_frac, cc_frac
 
-    call int_xc_nu(energy, nu_xc, sig_cc, sig_nc)
-    call int_length_nu(energy, nu_xc, fac_nu, int_nu)
+    call int_xc_nu(energy, nu_xc, fac_nu, sig_cc, sig_nc) ! initialize CC & NC xc interpolations
 
-    tot_frac = 1/int_nu
+    tot_frac = sig_cc + sig_nc
     cc_frac = sig_cc/tot_frac
 
     call random_no(x)
@@ -612,58 +635,54 @@ subroutine interaction_type_nu(energy, nu_xc, fac_nu, int_type)
 
 end subroutine interaction_type_nu
 
-subroutine interaction_type_lep(energy, xc_arr, rho, m_le, c_tau, frac, frac_pn, int_type)
-    !! Determine/calculate the type of lepton-nucleon interaction.
+subroutine interaction_type_lep(energy, xc_arr, rho, m_le, c_tau, int_type)
+    !! Determine/calculate the type of charged lepton-nucleon interaction.
 
     implicit none
 
     real(dp), intent(in) :: energy
-    !! Lepton energy, in  GeV.
+    !! Charged lepton energy, in  GeV.
     real(dp), intent(in) :: rho
     !! Density of material, in g/cm^3.
     real(dp), intent(in) :: m_le
-    !! Mass of lepton, in GeV.
+    !! Mass of charged lepton, in GeV.
     real(dp), intent(in) :: c_tau
-    !! Decay length of lepton, in cm.
-    real(dp), intent(in) :: frac
-    !! Scaling factor for density change between rock & iron (for bremmstrahlung & pair production).
-    real(dp), intent(in) :: frac_pn
-    !! Scaling factor for density change between rock & iron (for photonuclear).
+    !! Decay length of charged lepton, in cm.
     real(dp), intent(in) :: xc_arr(:,:)
-    !! 2D array containing lepton-nucleon cross-section values.
+    !! 2D array containing N_A/A*charged lepton-nucleon cross-section values, in cm^2/g.
 
     integer, intent(out) :: int_type
-    !! Type of lepton interaction. 2=decay; 3=bremmstrahlung; 4=pair-production; 5=photonuclear; 6=CC/NC (placeholder).
+    !! Type of lepton interaction. 2=decay; 3=Bremmstrahlung; 4=pair-production; 5=photonuclear; 6=CC/NC (placeholder).
 
-    real(dp) :: sig_cc, sig_nc, sig_brem, sig_pair, sig_pn, gamma_val, int_lep
-    real(dp) :: tot_frac, decay_frac, cc_frac, nc_frac, brem_frac, pair_frac, pn_frac, x
+    real(dp) :: sig_cc, sig_nc, sig_brem, sig_pair, sig_pn, decay_length, decay_depth_inv, int_lep
+    real(dp) :: tot_frac, decay_frac, cc_frac, nc_frac, brem_frac, pair_frac, pn_frac, y
 
     sig_cc = 0 ! placeholder for CC lepton interactions
     sig_nc = 0 ! placeholder for NC lepton interactions
-    call int_xc_lep(energy, xc_arr, frac, frac_pn, sig_brem, sig_pair, sig_pn)
+    call int_xc_lep(energy, xc_arr, rho, sig_brem, sig_pair, sig_pn)
 
-    gamma_val = energy/m_le
-    call int_length_lep(energy, xc_arr, rho, m_le, c_tau, frac, frac_pn, int_lep)
+    decay_length = (energy/m_le)*c_tau
+    decay_depth_inv = 1/(decay_length*rho)
+    call int_depth_lep(energy, xc_arr, rho, m_le, c_tau, int_lep)
 
     tot_frac = 1/int_lep
-    decay_frac = (1/(gamma_val*c_tau*rho))/tot_frac
-    cc_frac = sig_cc/tot_frac ! placeholder for CC lepton interactions
-    nc_frac = sig_nc/tot_frac ! placeholder for NC lepton interactions
+    decay_frac = decay_depth_inv/tot_frac
+    cc_frac = sig_cc/tot_frac ! placeholder for CC (charged) lepton interactions
+    nc_frac = sig_nc/tot_frac ! placeholder for NC (charged) lepton interactions
     brem_frac = sig_brem/tot_frac
     pair_frac = sig_pair/tot_frac
     pn_frac = sig_pn/tot_frac
 
-    call random_no(x)
-!    x = 0.33 # for debugging only!
+    call random_no(y)
 
-    if (x < decay_frac) then
+    if (y <= decay_frac) then
         int_type = 2 ! decay
-    else if (decay_frac < x .and. x < decay_frac+brem_frac) then
-        int_type = 3 ! brem
-    else if (decay_frac+brem_frac < x .and. x < decay_frac+brem_frac+pair_frac) then
-        int_type = 4 ! pair
-    else if (decay_frac+brem_frac+pair_frac < x .and. x < decay_frac+brem_frac+pair_frac+pn_frac) then
-        int_type = 5 ! pn
+    else if (decay_frac < y .and. y <= decay_frac+brem_frac) then
+        int_type = 3 ! Bremmstrahlung
+    else if (decay_frac+brem_frac < y .and. y <= decay_frac+brem_frac+pair_frac) then
+        int_type = 4 ! pair-production
+    else if (decay_frac+brem_frac+pair_frac < y .and. y <= decay_frac+brem_frac+pair_frac+pn_frac) then
+        int_type = 5 ! photonuclear
     else
         int_type = 6 ! lep_nc => cc/nc (both need CDFs) - placeholder for now
     end if
@@ -676,9 +695,9 @@ subroutine find_y(energy, ixc_arr, ip, y)
     implicit none
 
     real(dp), intent(in) :: energy
-    !! Neutrino or lepton energy, in  GeV.
+    !! Neutrino or charged lepton energy, in GeV.
     real(dp), intent(in) :: ixc_arr(:,:,:)
-    !! Neutrino or lepton integrated cross-section CDF values.
+    !! Neutrino or charged lepton integrated cross-section CDF values.
     integer, intent(in) :: ip
     !! Type of neutrino-nucleon or lepton-nucleon interaction.
 
@@ -689,7 +708,6 @@ subroutine find_y(energy, ixc_arr, ip, y)
     integer :: ip_id, energy_index
 
     call random_no(dy)
-!    dy = 0.33 ! for debugging only!
 
     if (ip == 0 .or. ip == 1) then ! basically, for neutrinos
         call searchsorted(E_nu, energy, energy_index)
@@ -700,10 +718,10 @@ subroutine find_y(energy, ixc_arr, ip, y)
             ip_id = 2
         end if
 
-    else
+    else ! for charged leptons
         call searchsorted(E_lep, energy, energy_index)
 
-        if (ip == 3) then ! brem
+        if (ip == 3) then ! Brem
             ip_id = 1
         else if (ip == 4) then ! pair
             ip_id = 2
@@ -713,7 +731,6 @@ subroutine find_y(energy, ixc_arr, ip, y)
             ip_id = 4 ! shouldn't happen, for now
         end if
     end if
-
 
     search_arr = ixc_arr(:,energy_index,ip_id)
 
@@ -725,32 +742,6 @@ subroutine find_y(energy, ixc_arr, ip, y)
     end if
 
 end subroutine find_y
-
-subroutine get_frac(rho, frac, frac_pn)
-    !! Calculate the correction/scaling fraction for material density between rock & iron.
-
-    implicit none
-
-    real(dp), intent(in) :: rho
-    !! Density of material, in g/cm^3.
-
-    real(dp), intent(out) :: frac
-    !! Scaling factor for density change between rock & iron (for bremmstrahlung & pair production).
-    real(dp), intent(out) :: frac_pn
-    !! Scaling factor for density change between rock & iron (for photonuclear).
-
-    real(dp) :: f_rock
-
-    if (rho > rho_rock .and. rho < rho_iron) then
-        f_rock = (rho_iron - rho)/(rho_iron - rho)
-        frac = 1.97_dp - 0.97_dp * f_rock
-        frac_pn = 0.91_dp + 0.09_dp * f_rock
-    else
-        frac = 1._dp
-        frac_pn = 1._dp
-    end if
-
-end subroutine get_frac
 
 subroutine propagate_nu(e_init, nu_xc, nu_ixc, depth_max, fac_nu, part_type, d_travel, e_fin)
     !! Propagates a neutrino inside the Earth.
@@ -766,43 +757,38 @@ subroutine propagate_nu(e_init, nu_xc, nu_ixc, depth_max, fac_nu, part_type, d_t
     real(dp), intent(in) :: depth_max
     !! Maximum column depth for neutrino propagation, in kmwe.
     real(dp), intent(in) :: fac_nu
-    !! Rescaling factor for BSM cross-sections.
+    !! Rescaling factor for SM neutrino cross-sections.
 
     real(dp), intent(out) :: d_travel
-    !! Distance traveled until converted to lepton or total distance traveled by neutrino (if no conversion to lepton), in kmwe.
+    !! Distance traveled until converted to charged lepton or total distance traveled by neutrino (if no conversion to charged lepton), in kmwe.
     real(dp), intent(out) :: e_fin
     !! Final neutrino energy, in GeV.
     integer, intent(out) :: part_type
-    !! Type of outgoing particle. 0=neutrino; 1=lepton.
+    !! Type of outgoing particle. 0=neutrino; 1=charged lepton.
 
-    real(dp) :: e_nu, int_len, x, x_f, x_0, y, col_depth_total, dy
+    real(dp) :: e_nu, int_depth, x, x_f, x_0, y, col_depth_total, r
     integer :: int_type
 
     part_type = 0 ! starting off as a neutrino
-    col_depth_total = depth_max*1e5_dp
+    col_depth_total = depth_max*1e5_dp ! kmwe to cmwe
     e_nu = e_init
     e_fin = e_init
-    x_0 = 0.0_dp ! starting depth in cm
+    x_0 = 0.0_dp ! starting depth in g/cm^2
     d_travel = depth_max ! added this in case there is a problem and needed for breaking out when E<1e3
 
     do while (e_nu > 1e3_dp)
-        call random_no(dy)
-        call int_length_nu(e_nu, nu_xc, fac_nu, int_len)
-        x = -int_len*dlog(dy)
-        x_f = x_0 + x
+        call random_no(r)
 
-        if (x_f > col_depth_total) then
-            return
-        end if
+        call int_depth_nu(e_nu, nu_xc, fac_nu, int_depth)
+        x = -int_depth*dlog(r) ! prob of interaction=exp(-x/int_depth)
+        x_f = x_0 + x ! x_f is tracking total column depth traveled
 
-        if (x_f > col_depth_total) then
-            print *, 'This should never happen'
+        if (x_f > col_depth_total) then ! total col depth exceeded
+            return ! returns (depth_max, e_init, neutrino)
         end if
 
         x_0 = x_f
-        call interaction_type_nu(e_nu, nu_xc, fac_nu, int_type)
-
-!        print *,'int_type=',int_type
+        call interaction_type_nu(e_nu, nu_xc, fac_nu, int_type) ! CC or NC interaction?
 
         if (part_type == 0 .and. int_type == 1) then
             part_type = 0
@@ -812,74 +798,68 @@ subroutine propagate_nu(e_init, nu_xc, nu_ixc, depth_max, fac_nu, part_type, d_t
 
         call find_y(e_nu, nu_ixc, int_type, y)
 
-        e_fin = e_nu*(1-y)
+        e_fin = e_nu*(1._dp-y) ! energy transfer; y = (E_init-E_final)/E_initial
 
-        if (part_type == 1) then
-            d_travel = x_0*1e-5_dp
-            return
-            exit ! whoops! forgot this!
-        else
-            e_nu = e_fin
-            d_travel = x_0*1e-5_dp
+        if (part_type == 1) then ! converted to tau
+            d_travel = x_0*1e-5_dp ! cmwe to kmwe
+            return ! returns (d_travel, e_nu<=1e3, tau)
         end if
 
-        if (e_nu <= 1e3_dp) then
-            return
+        ! still a neutrino; keep going
+        e_nu = e_fin
+        d_travel = x_0*1e-5_dp ! cmwe to kmwe
+
+
+        if (e_nu <= 1e3_dp) then ! our E_nu lookup tables only go to 10^3 GeV
+            return ! returns (d_travel, e_nu<=1e3, neutrino)
         end if
     end do
 
-    if (e_nu<1e3_dp .or. part_type == 1) then
-        return
-    end if
 
 end subroutine propagate_nu
 
 subroutine propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in, lepton, prop_type, part_id, d_fin, e_fin)
-    !! Propagates a lepton in water inside the Earth.
+    !! Propagates a charged lepton in water inside the Earth.
 
     implicit none
 
     real(dp), intent(in) :: e_init
-    !! Initial energy of the lepton, in GeV.
+    !! Initial energy of the charged lepton, in GeV.
     real(dp), intent(in) :: xc_water(:,:)
-    !! 2D array containing lepton-nucleon cross-section values in water, in cm^2.
+    !! 2D array containing N_A/A*charged lepton-nucleon cross-section values in water, in cm^2/g.
     real(dp), intent(in) :: lep_ixc(:,:,:)
-    !! 3D array containing lepton integrated cross-section CDF values in water.
+    !! 3D array containing charged lepton integrated cross-section CDF values in water.
     real(dp), intent(in) :: alpha_water(:)
     !! 1D array containing ionization energy loss values in water, in (GeV*cm^2)/g.
     real(dp), intent(in) :: beta_water(:,:)
     !! 2D array of beta values in water, in cm^2/g.
     real(dp), intent(in) :: d_in
-    !! Maximum distance for lepton lepton to propagate in water, in kmwe.
+    !! Maximum distance for charged lepton to propagate in water, in kmwe.
     integer, intent(in) :: lepton
-    !! Type of lepton. 1=tau; 2=muon.
+    !! Type of charged lepton. 1=tau; 2=muon.
     integer, intent(in) :: prop_type
     !! Type of energy loss propagation. 1=stochastic, 2=continuous.
 
     integer, intent(out) :: part_id
-    !! Type of outgoing lepton. 0=decayed; 1=not decayed; 2=don't count.
+    !! Type of outgoing charged lepton. 0=decayed; 1=not decayed; 2=don't count.
     real(dp), intent(out) :: d_fin
-    !! Distance traveled before lepton decays or total distance traveled by lepton, in kmwe.
+    !! Distance traveled before charged lepton decays or total distance traveled by charged lepton, in kmwe.
     real(dp), intent(out) :: e_fin
-    !! Final energy of the lepton, in GeV.
+    !! Final energy of the charged lepton, in GeV.
 
-    real(dp) :: e_min, cd_left, e_lep, x_0, m_le, c_tau, dy, int_len, frac, frac_pn
-    real(dp) :: x, x_f, d_rem, alpha, beta, e_int, e_avg, y, d0, delta_d, delta_x
-    integer :: int_type
-    integer :: cnt, j_max, i
+    real(dp) :: e_min, x_total, e_lep, x_0, m_le, c_tau, r, int_depth
+    real(dp) :: x, x_f, x_step, alpha, beta, e_int, e_avg, y, delta_d, delta_x
+    integer :: int_type, j_max
+    integer(dp) :: cnt
 
     e_min = 1e3_dp ! minimum tau energy, in GeV
 
     part_id = 1 ! start with tau that's obviously not decayed
 
-    cd_left = d_in*1e5_dp ! how much to go, in cm.w.e
+    x_total = d_in*1e5_dp ! kmwe to cmwe
     e_lep = e_init
     e_fin = e_init ! in case the first interaction is too far
-    x_0 = 0._dp ! haven't gone anywhere yet
-    cnt = 0
-
-    frac = 1._dp
-    frac_pn = 1._dp
+    x_0 = 0._dp ! haven't gone anywhere yet; initiate tracker
 
     if (lepton == 1) then
         m_le = 1.77682_dp ! m_tau in GeV
@@ -889,138 +869,100 @@ subroutine propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_wate
         c_tau = 6.586384e4_dp ! c*lifetime, in cm, for muons (taken from PDB 2020)
     end if
 
-    if (prop_type == 1) then
+    if (prop_type == 1) then ! stochastic energy loss
 
-!        do while (e_lep > e_min)
+       do while (e_lep > e_min)
 
-        do i = 1,1000
             if (e_lep <= e_min) then
-                exit
+                exit ! taken care of outside the do while loop
             end if
-!            print *,'e_lep=',e_lep
-            cnt = cnt + 1
-!            print *,"cnt=",cnt
-            call random_no(dy)
-            call int_length_lep(e_lep, xc_water, rho_water, m_le, c_tau, frac, frac_pn, int_len)
-!            print *,'int_len=', int_len
-            x = -int_len*dlog(dy) ! t is rho*L and has units g/cm^2
-            x_f = x_0 + x ! going 1D; how far have we traveled here
-            d_fin = x_f/1e5_dp ! make sure it is not past the old number, in km.w.e
 
-            if (x_f >= cd_left) then ! already past maximum depth but still a tau; go to 30
-                d_rem = cd_left - x_0
+            call random_no(r)
+            call int_depth_lep(e_lep, xc_water, rho_water, m_le, c_tau, int_depth)
+            x = -int_depth*dlog(r) ! basically the step size
+            ! prob of interaction=exp(-x/int_depth)
+
+            x_f = x_0 + x ! how far have we traveled here
+            d_fin = x_f/1e5_dp ! make sure it is not past the old number, in kmwe
+
+            if (x_f >= x_total) then ! already past maximum depth but still a tau
+                x_step = x_total - x_0 ! backtrack one step
+
                 call int_alpha(e_lep, alpha_water, alpha) ! changed 12/9/2020
-                call int_beta(e_lep, beta_water, frac, frac_pn, beta) ! changed 12/9/2020
-                e_fin = e_lep - (e_lep*beta + alpha)*d_rem
-                d_fin = d_in
+                call int_beta(e_lep, beta_water, rho_water, beta) ! changed 12/9/2020
 
-                if (e_fin > e_init) then ! sanity check
-                    e_fin = e_init
-                end if
+                e_fin = e_lep - (e_lep*beta + alpha)*x_step
+                d_fin = d_in
 
                 if (e_fin <= e_min) then ! tau has decayed
                     d_fin = d_in ! just in case; added 12/9/2020
                     e_fin = e_min
-                    part_id = 2
+                    part_id = 2 ! don't count
                 end if
-!                print *,'x_f=',x_f
-                return
 
+                return ! d_fin = d_in
             end if
 
             x_0 = x_f ! update x_0 and keep going
             call int_alpha(e_lep, alpha_water, alpha)
-            call int_beta(e_lep, beta_water, frac, frac_pn, beta)
-!            if (cnt == 2) then
-!                print *,'e_lep=',e_lep
-!                print *,'x_0=',x_0
-!                print *,'alpha=', alpha
-!                print *,'beta=',beta
-!            end if
+            call int_beta(e_lep, beta_water, rho_water, beta)
+
             e_int = e_lep - (e_lep*beta + alpha)*x ! find some intermediate energy to get reasonable values of energy between initial and final energy, a la MUSIC
 
             if (e_int <= e_min) then
                 e_int = e_min
             end if
 
-            e_avg = 10._dp**((dlog10(e_lep)+dlog10(e_int))/2._dp) ! does this work?; changed 12/9/2020
+            e_avg = 10._dp**((dlog10(e_lep)+dlog10(e_int))/2._dp) ! avg. of 10^7 & 10^8 is 10^(7.5)
 
             call int_alpha(e_avg, alpha_water, alpha)
-            call int_beta(e_avg, beta_water, frac, frac_pn, beta)
+            call int_beta(e_avg, beta_water, rho_water, beta)
 
-            call em_cont_part(e_lep, alpha, beta, x, m_le, e_int) ! get the continuous energy loss
+            call em_cont_part(e_lep, alpha, beta, x, m_le, e_int) ! get the continuous energy loss for this average energy
 
-            if (e_int <= e_min) then ! below minimum energy; go to 20
-                ! 20 continue
-                d_fin = d_in ! changed 12/9/2020
-                e_fin = e_min
-                part_id = 2 ! don't count this
-                return
+            if (e_int <= e_min) then ! below minimum energy
+                exit ! taken care of outside the do while loop
             end if
 
-            call interaction_type_lep(e_int, xc_water, rho_water, m_le, c_tau, frac, frac_pn, int_type)
+            call interaction_type_lep(e_int, xc_water, rho_water, m_le, c_tau, int_type)
 
             if (int_type == 2) then ! tau has decayed
                 part_id = 0
                 e_fin = e_int
                 d_fin = x_f/1e5_dp
-                ! go to 50
-                ! 50 continue
                 return ! basically what d_fin does this return?
             end if
 
             ! tau didn't decay. Now how much energy does it have after interaction?
 
-            call find_y(e_int, lep_ixc, int_type, y)
+            call find_y(e_int, lep_ixc, int_type, y) ! stochastic energy loss sampling
 
-!            if (cnt == 1) then
-!                print *,'int_type=',int_type
-!                print *,'e_int=',e_int
-!                print *,'y=',y
-!!                print *,'x_0=',x_0
-!!                print *,'alpha=', alpha
-!!                print *,'beta=',beta
-!            end if
             ! outgoing tau energy is old e_lep*(1-y)
             e_lep = e_int*(1._dp-y) ! this is the energy for the next interaction
             e_fin = e_lep
-            ! go to 10
         end do
 
-        ! Outside the while loop, e_lep has to be < e_min
-        if (e_lep <= e_min) then ! only continuous energy loss; go to 20
-            d_fin = d_in
+        ! Outside the while loop, e_lep has to be <= e_min
+        if (e_lep <= e_min) then
+            d_fin = d_in ! max. distance in water
             e_fin = e_min
             part_id = 2 ! don't count this
             return
         end if
 
     else ! continuous energy loss
-!        print *,"continuous"
-        d0 = 0._dp
-        delta_d = step_size ! for now, not adaptive, distance into decay, cm
-!        delta_d = 5000._dp ! test
-        j_max = int(cd_left/(delta_d*rho_water)) ! we will get close to exit.
-!        print *,'j_max=',j_max
+        
+        j_max = int(x_total/(step_size*rho_water)) ! we will get close to exit.
 
-        do cnt = 1, j_max+1
+        do cnt = 1, j_max+1 ! takes care of the integer truncation issue
             if (e_lep < e_min) then
-                exit
+                exit ! taken care of outside the do while loop
             end if
 
-            d0 = d0 + delta_d ! where we are in xalong - use in rock to find rho
-            delta_x = delta_d * rho_water ! distance goes into decay
+            delta_x = step_size * rho_water ! distance goes into decay
             x_f = x_0 + delta_x
             ! does the particle decay over this distance?
-            call idecay(e_lep, delta_d, m_le, c_tau, part_id)
-
-!            if (cnt==1) then
-!                print *,'part_id=',part_id
-!                print *,'e_lep=',e_lep
-!                print *,'delta_d=',delta_d
-!                print *,'m_le=',m_le
-!                print *,'c_tau=',c_tau
-!            end if
+            call idecay(e_lep, step_size, m_le, c_tau, part_id)
 
             if (part_id == 0) then ! we are all done
                 e_fin = e_lep
@@ -1028,10 +970,10 @@ subroutine propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_wate
                 return
             else ! find the new energy; assume alpha and beta are total values, not cut values
                 call int_alpha(e_lep, alpha_water, alpha) ! changed 12/9/2020
-                call int_beta(e_lep, beta_water, frac, frac_pn, beta) ! changed 12/9/2020
+                call int_beta(e_lep, beta_water, rho_water, beta) ! changed 12/9/2020
 
                 e_fin = e_lep - (e_lep*beta + alpha)*delta_x
-                d_fin = x_f/1e+5_dp
+                d_fin = x_f/1e5_dp
                 x_0 = x_f
                 e_lep = e_fin
 
@@ -1044,9 +986,9 @@ subroutine propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_wate
         end do
 
         if (cnt >= j_max) then
-            delta_x = cd_left - x_f
-            if (delta_x > 0._dp) then !last little energy loss
-                e_fin = e_lep - (e_lep*beta + alpha)*delta_x
+            x_step = x_total - x_f ! backtrack a step
+            if (x_step > 0._dp) then !last little energy loss
+                e_fin = e_lep - (e_lep*beta + alpha)*x_step
                 d_fin = d_in ! take care of that last little delta-x
                 return
             else
@@ -1075,18 +1017,18 @@ end subroutine propagate_lep_water
 
 subroutine propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d_entry,&
 & d_in, xalong, cdalong, idepth, lepton, prop_type, part_id, d_fin, e_fin)
-    !! Propagates a lepton in rock (technically anything with rho>water) inside the Earth.
+    !! Propagates a charged lepton in rock & iron inside the Earth.
 
     implicit none
 
     real(dp), intent(in) :: angle
     !! Earth emergence angle (beta), in degrees.
     real(dp), intent(in) :: e_init
-    !! Initial energy of lepton, in GeV.
+    !! Initial energy of charged lepton, in GeV.
     real(dp), intent(in) :: xc_rock(:,:)
-    !! 2D array containing lepton-nucleon cross-section values in rock, in cm^2.
+    !! 2D array containing N_A/A*charged lepton-nucleon cross-section values in rock, in cm^2/g.
     real(dp), intent(in) :: lep_ixc(:,:,:)
-    !! 3D array containing lepton integrated cross-section CDF values in rock.
+    !! 3D array containing charged lepton integrated cross-section CDF values in rock.
     real(dp), intent(in) :: alpha_rock(:)
     !! 1D array containing ionization energy loss values in rock, in (GeV*cm^2)/g.
     real(dp), intent(in) :: beta_rock(:,:)
@@ -1094,7 +1036,7 @@ subroutine propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_
     real(dp), intent(in) :: d_entry
     !! Column depth along the chord for a given Earth emergence angle, in kmwe.
     real(dp), intent(in) :: d_in
-    !! How much distance in rock/iron the lepton is supposed to travel, in kmwe.
+    !! How much distance in rock/iron the charged lepton is supposed to travel, in kmwe.
     real(dp), intent(in) :: xalong(:)
     !! 1D array containing distance in water, in km.
     real(dp), intent(in) :: cdalong(:)
@@ -1102,18 +1044,18 @@ subroutine propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_
     integer, intent(in) :: idepth
     !! Depth of water layer in km.
     integer, intent(in) :: lepton
-    !! Type of lepton. 1=tau; 2=muon.
+    !! Type of charged lepton. 1=tau; 2=muon.
     integer, intent(in) :: prop_type
     !! Type of energy loss propagation. 1=stochastic, 2=continuous.
 
     integer, intent(out) :: part_id
-    !! Type of outgoing lepton. 0=decayed; 1=not decayed; 2=don't count.
+    !! Type of outgoing charged lepton. 0=decayed; 1=not decayed; 2=don't count.
     real(dp), intent(out) :: d_fin
-    !! Distance traveled before lepton decays or total distance traveled by lepton, in kmwe.
+    !! Distance traveled before charged lepton decays or total distance traveled by charged lepton, in kmwe.
     real(dp), intent(out) :: e_fin
-    !! Final lepton energy, in GeV.
+    !! Final charged lepton energy, in GeV.
 
-    real(dp) :: e_min, col_depth, d_max, e_lep, x_0, m_le, c_tau, x_interp, r, frac, frac_pn
+    real(dp) :: e_min, col_depth, d_max, e_lep, x_0, m_le, c_tau, x_interp, r
     real(dp) :: rho, dy, int_len, x, x_f, alpha, beta, e_int, e_avg, y, d_0, delta_x, d_rem, delta_d
     integer :: cnt, j_max
     integer :: int_type
@@ -1125,7 +1067,7 @@ subroutine propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_
     e_lep = e_init
     x_0 = 0._dp
     cnt = 0
-    ! cd_left = d_in*1e5
+    ! x_total = d_in*1e5
 
     if (lepton == 1) then
         m_le = 1.77682_dp ! m_tau in GeV
@@ -1140,16 +1082,12 @@ subroutine propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_
         do while (e_lep > e_min)
             cnt = cnt + 1
             call cd2distd(xalong, cdalong, col_depth, x_interp) ! find how far we are along the chord for given beta
-            call densityatx(x_interp, angle, idepth, r, rho) ! find the density at x
-
-            call get_frac(rho, frac, frac_pn)
+            call densityatx(x_interp, angle, idepth, r, rho) ! find rho at x
 
 !            rho = rho_rock ! USE FOR TESTING P_SURV FOR ROCK ONLY!
-!            frac = 1._dp
-!            frac_pn = 1._dp
 
             call random_no(dy)
-            call int_length_lep(e_lep, xc_rock, rho, m_le, c_tau, frac, frac_pn, int_len)
+            call int_depth_lep(e_lep, xc_rock, rho, m_le, c_tau, int_len)
 
             x = -int_len * dlog(dy)
             col_depth = col_depth + x ! update along trajectory, from the start of the chord
@@ -1160,7 +1098,7 @@ subroutine propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_
                 ! go to 30
                 d_rem = d_max - x_0
                 call int_alpha(e_lep, alpha_rock, alpha)
-                call int_beta(e_lep, beta_rock, frac, frac_pn, beta)
+                call int_beta(e_lep, beta_rock, rho, beta)
                 e_fin = e_lep - (e_lep*beta + alpha)*d_rem
                 d_fin = d_max/1e5_dp
                 if (e_fin > e_init) then
@@ -1172,7 +1110,7 @@ subroutine propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_
 
             x_0 = x_f ! update x_0 and keep going
             call int_alpha(e_lep, alpha_rock, alpha)
-            call int_beta(e_lep, beta_rock, frac, frac_pn, beta)
+            call int_beta(e_lep, beta_rock, rho, beta)
             e_int = e_lep - (e_lep*beta + alpha)*x ! find some intermediate energy to get reasonable values of energy between initial and final energy, a la MUSIC
 
             if (e_int <= e_min) then
@@ -1182,7 +1120,7 @@ subroutine propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_
             e_avg = 10._dp**((dlog10(e_lep)+dlog10(e_int))/2) ! does this work?
 
             call int_alpha(e_avg, alpha_rock, alpha)
-            call int_beta(e_avg, beta_rock, frac, frac_pn, beta)
+            call int_beta(e_avg, beta_rock, rho, beta)
 
             call em_cont_part(e_lep, alpha, beta, x, m_le, e_int) ! get the continuous energy
 
@@ -1196,7 +1134,7 @@ subroutine propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_
                 return
             end if
 
-            call interaction_type_lep(e_int, xc_rock, rho, m_le, c_tau, frac, frac_pn, int_type)
+            call interaction_type_lep(e_int, xc_rock, rho, m_le, c_tau, int_type)
 
             if (int_type == 2) then ! tau has decayed
 !                file.write(str("decayed; no. of stochastic interactions before decay = %d" % stoch_int) + "\n")
@@ -1234,12 +1172,9 @@ subroutine propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_
 !        delta_d = 5000._dp ! test
 
         call cd2distd(xalong, cdalong, col_depth, x_interp) ! find how far we are along the chord for given beta
-        call densityatx(x_interp, angle, idepth, r, rho) ! find the density at x
-        call get_frac(rho, frac, frac_pn)
+        call densityatx(x_interp, angle, idepth, r, rho) ! find rho at x
 
 !        rho = rho_rock ! FOR TESTING P_SURV ONLY!!
-!        frac = 1._dp
-!        frac_pn = 1._dp
 
         j_max = dint(d_max/(rho*delta_x))
 
@@ -1257,8 +1192,7 @@ subroutine propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_
 !            cnt += 1
 
             call cd2distd(xalong, cdalong, col_depth, x_interp) ! find how far we are along the chord for given beta
-            call densityatx(x_interp, angle, idepth, r, rho) ! find the density at x
-            call get_frac(rho, frac, frac_pn)
+            call densityatx(x_interp, angle, idepth, r, rho) ! find rho at x
 
             delta_d = delta_x * rho
 
@@ -1274,7 +1208,7 @@ subroutine propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_
                 return
             else ! find the new energy; assume alpha and beta are total values, not cut values
                 call int_alpha(e_lep, alpha_rock, alpha) ! changed 12/9/2020
-                call int_beta(e_lep, beta_rock, frac, frac_pn, beta) ! changed 12/9/2020
+                call int_beta(e_lep, beta_rock, rho, beta) ! changed 12/9/2020
                 e_lep = e_lep - (e_lep*beta + alpha)*delta_d
                 d_fin = d_0/1e5_dp ! updating the d_final
                 e_fin = e_lep
@@ -1332,18 +1266,18 @@ subroutine tau_thru_layers(angle, depth, d_water, depth_traj, e_lep_in, xc_water
     !! Total column depth of the chord, in kmwe.
     real(dp), intent(in) :: d_water
     !! Column depth of the final layer of water (or full distance in water if only water layer), in kmwe.
-    real(dp), intent(in) :: depth_traj
+    real(dp), intent(inout) :: depth_traj
     !! Column depth along the chord for a given Earth emergence angle, in kmwe.
     real(dp), intent(in) :: e_lep_in
-    !! Ingoing lepton energy, in GeV.
+    !! Ingoing charged lepton energy, in GeV.
     real(dp), intent(in) :: xc_water(:,:)
-    !! 2D array containing lepton-nucleon cross-section values in water, in cm^2.
+    !! 2D array containing N_A/A*charged lepton-nucleon cross-section values in water, in cm^2/g.
     real(dp), intent(in) :: xc_rock(:,:)
-    !! 2D array containing lepton-nucleon cross-section values in rock, in cm^2.
+    !! 2D array containing N_A/A*charged lepton-nucleon cross-section values in rock, in cm^2/g.
     real(dp), intent(in) :: lep_ixc_water(:,:,:)
-    !! 3D array containing lepton integrated cross-section CDF values in water.
+    !! 3D array containing charged lepton integrated cross-section CDF values in water.
     real(dp), intent(in) :: lep_ixc_rock(:,:,:)
-    !! 3D array containing lepton integrated cross-section CDF values in rock.
+    !! 3D array containing charged lepton integrated cross-section CDF values in rock.
     real(dp), intent(in) :: alpha_water(:)
     !! 1D array containing ionization energy loss values in water, in (GeV*cm^2)/g.
     real(dp), intent(in) :: alpha_rock(:)
@@ -1359,37 +1293,36 @@ subroutine tau_thru_layers(angle, depth, d_water, depth_traj, e_lep_in, xc_water
     integer, intent(in) :: idepth
     !! Depth of water layer in km.
     integer, intent(in) :: lepton
-    !! Type of lepton. 1=tau; 2=muon.
+    !! Type of charged lepton. 1=tau; 2=muon.
     integer, intent(in) :: prop_type
     !! Type of energy loss propagation. 1=stochastic, 2=continuous.
 
     integer, intent(out) :: part_type
-    !! Type of outgoing lepton. 0=decayed, 1=not decayed.
+    !! Type of outgoing charged lepton. 0=decayed, 1=not decayed.
     real(dp), intent(out) :: d_fin
-    !! Distance traveled before lepton decays or total distance traveled by lepton, in kmwe.
+    !! Distance traveled before charged lepton decays or total distance traveled by charged lepton, in kmwe.
     real(dp), intent(out) :: e_fin
-    !! Outgoing lepton energy, in GeV.
+    !! Outgoing charged lepton energy, in GeV.
 
-    real(dp) :: col_depth, rho, x, r, d_in, d_f, e_lep_ch, depth_traj_ch
+    real(dp) :: col_depth, rho, x, r, d_in, d_f, e_lep
 
-    depth_traj_ch = depth_traj ! so depth_traj doesn't change
-    d_fin = depth_traj_ch
-    col_depth = depth_traj_ch*1e5_dp ! g/cm^2
-    e_lep_ch = e_lep_in ! so e_lep_in doesn't change
-    e_fin = e_lep_ch
+    d_fin = depth_traj
+    col_depth = depth_traj*1e5_dp ! g/cm^2
+    e_lep = e_lep_in ! so e_lep_in doesn't change
+    e_fin = e_lep
     part_type = 1 ! tau going in
 
-    if (e_lep_ch < 1e3_dp) then ! just in case
+    if (e_lep < 1e3_dp) then ! just in case
         part_type = 0
         d_fin = depth
         return
     end if
 
-    if (angle <= 1.5_dp .or. depth-depth_traj_ch < d_water) then
+    if (angle <= 1.5_dp .or. depth-depth_traj < d_water) then
         rho = rho_water ! water
     else
         call cd2distd(xalong, cdalong, col_depth, x)
-        call densityatx(x, angle, idepth, r, rho)
+        call densityatx(x, angle, idepth, r, rho) ! find rho at x
 
         if (rho <= 0._dp) then ! round off error happening here; went too far
             print *,"col_depth = ", col_depth
@@ -1403,19 +1336,19 @@ subroutine tau_thru_layers(angle, depth, d_water, depth_traj, e_lep_in, xc_water
 
     if (rho > 1.5_dp) then ! we aren't in water yet
 !    if (rho > rho_water) then ! we aren't in water yet
-        d_in = depth - depth_traj_ch - d_water ! propagate this far in rock
+        d_in = depth - depth_traj - d_water ! propagate this far in rock
 
-        call propagate_lep_rock(angle, e_lep_ch, xc_rock, lep_ixc_rock, alpha_rock, beta_rock, depth_traj_ch,&
+        call propagate_lep_rock(angle, e_lep, xc_rock, lep_ixc_rock, alpha_rock, beta_rock, depth_traj,&
         & d_in, xalong, cdalong, idepth, lepton, prop_type, part_type, d_f, e_fin)
 
         if (part_type == 1 .and. idepth /= 0) then ! still a tau; added .and. clause on 3/18
 
-            e_lep_ch = e_fin
+            e_lep = e_fin
             d_in = d_water
-            depth_traj_ch = depth_traj_ch + d_f ! now propagate through final layer of water
-            d_fin = depth_traj_ch
+            depth_traj = depth_traj + d_f ! now propagate through final layer of water
+            d_fin = depth_traj
 
-            call propagate_lep_water(e_lep_ch, xc_water, lep_ixc_water, alpha_water, beta_water, d_in,&
+            call propagate_lep_water(e_lep, xc_water, lep_ixc_water, alpha_water, beta_water, d_in,&
             & lepton, prop_type, part_type, d_f, e_fin)
 
         else ! neutrino; or just make it out
@@ -1423,13 +1356,13 @@ subroutine tau_thru_layers(angle, depth, d_water, depth_traj, e_lep_in, xc_water
         end if
 
     else
-        d_in = depth - depth_traj_ch
+        d_in = depth - depth_traj
 
-        call propagate_lep_water(e_lep_ch, xc_water, lep_ixc_water, alpha_water, beta_water, d_in, lepton,&
+        call propagate_lep_water(e_lep, xc_water, lep_ixc_water, alpha_water, beta_water, d_in, lepton,&
         & prop_type, part_type, d_f, e_fin)
 
-        depth_traj_ch = depth_traj_ch + d_f
-        d_fin = depth_traj_ch ! needed to add this since return was depth_traj here
+        depth_traj = depth_traj + d_f
+        d_fin = depth_traj ! needed to add this since return was depth_traj here
         return
     end if
 
@@ -1441,27 +1374,18 @@ subroutine tau_thru_layers(angle, depth, d_water, depth_traj, e_lep_in, xc_water
 
 end subroutine tau_thru_layers
 
-!function fnu(y)
-!
-!    implicit none
-!    real(dp) :: fnu
-!    real(dp), intent(in) :: y
-!!    real(dp), intent(out) :: fnu_val
-!
-!    fnu = y/3 * (5 - 3* y**2 + y**3) - y/3 * (1 - 3 * y**2 + 2 * y**3)
-!end function fnu
-
 subroutine distnu(r, ithird, dist_val)
     !! Determines the neutrino energy from tau decay.
     ! The energy fraction is determined by tau energy CDF, approximated by leptonic decay channel.
     ! Approximated by left-handed leptonic decay channel.
+    ! Approximate (good enough) for taus; exact for muons
 
     implicit none
 
     real(dp), intent(in) :: r
     !! Random number.
     integer, intent(in) :: ithird
-    !! Choice for neutrino/lepton energy fraction selection.
+    !! Choice for neutrino -> charged lepton energy fraction selection.
 
     real(dp), intent(out) :: dist_val
     !! Energy fraction, y = E_nu_tau/E_tau.
@@ -1469,7 +1393,6 @@ subroutine distnu(r, ithird, dist_val)
     real(dp) :: fnu, y, fm, ff, y0, y1
     integer :: P = 1 ! 1 = fully polarized; 0 = fully unpolarized tau
 
-    ! fnu(y) = y/3._dp * (5._dp - 3._dp* y**2 + y**3) - y/3._dp * (1._dp - 3._dp * y**2 + 2._dp * y**3)
     fnu(y) = y/3._dp * (5._dp - 3._dp* y**2 + y**3) - P * (y/3._dp * (1._dp - 3._dp * y**2 + 2._dp * y**3))
 
     if (ithird /= 1) then
@@ -1504,27 +1427,27 @@ subroutine regen(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_
     real(dp), intent(in) :: angle
     !! Earth emergence angle (beta), in degrees.
     real(dp), intent(in) :: e_lep
-    !! Incoming lepton energy, in GeV.
+    !! Incoming charged lepton energy, in GeV.
     real(dp), intent(in) :: depth
     !! Total column depth of the chord, in kmwe.
     real(dp), intent(in) :: d_water
     !! Column depth of the final layer of water (or full distance in water if only water layer), in kmwe.
-    real(dp), intent(in) :: d_lep
+    real(dp), intent(inout) :: d_lep
     !! Column depth along the chord for a given Earth emergence angle, in kmwe.
     real(dp), intent(in) :: nu_xc(:,:)
     !! 2D array containing neutrino CC & NC cross-section values, in cm^2.
     real(dp), intent(in) :: nu_ixc(:,:,:)
     !! 3D array containing neutrino integrated cross-section CDF values.
     integer, intent(in) :: ithird
-    !! Choice for neutrino/lepton energy fraction selection.
+    !! Choice for neutrino -> charged lepton energy fraction selection.
     real(dp), intent(in) :: xc_water(:,:)
-    !! 2D array containing lepton-nucleon cross-section values in water, in cm^2.
+    !! 2D array containing N_A/A*charged lepton-nucleon cross-section values in water, in cm^2/g.
     real(dp), intent(in) :: xc_rock(:,:)
-    !! 2D array containing lepton-nucleon cross-section values in rock, in cm^2.
+    !! 2D array containing N_A/A*charged lepton-nucleon cross-section values in rock, in cm^2/g.
     real(dp), intent(in) :: ixc_water(:,:,:)
-    !! 3D array containing lepton integrated cross-section CDF values in water.
+    !! 3D array containing charged lepton integrated cross-section CDF values in water.
     real(dp), intent(in) :: ixc_rock(:,:,:)
-    !! 3D array containing lepton integrated cross-section CDF values in rock.
+    !! 3D array containing charged lepton integrated cross-section CDF values in rock.
     real(dp), intent(in) :: alpha_water(:)
     !! 1D array containing ionization energy loss values in water, in (GeV*cm^2)/g.
     real(dp), intent(in) :: alpha_rock(:)
@@ -1540,28 +1463,27 @@ subroutine regen(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_
     integer, intent(in) :: idepth
     !! Depth of water layer in km.
     integer, intent(in) :: lepton
-    !! Type of lepton. 1=tau; 2=muon.
+    !! Type of charged lepton. 1=tau; 2=muon.
     real(dp), intent(in) :: fac_nu
-    !! Rescaling factor for BSM cross-sections.
+    !! Rescaling factor for SM neutrino cross-sections.
     integer, intent(in) :: prop_type
     !! Type of energy loss propagation. 1=stochastic, 2=continuous.
 
     integer, intent(out) :: part_type
     !! Type of outgoing particle. 0=neutrino; 3=exit.
     real(dp), intent(out) :: d_exit
-    !! Distance traveled before lepton decays or total distance traveled by lepton, in kmwe.
+    !! Distance traveled before charged lepton decays or total distance traveled by charged lepton, in kmwe.
     real(dp), intent(out) :: e_fin
     !! Final particle energy, in GeV.
 
-    real(dp) :: r, frac, e_nu, d_left, dtr, etau2, d_lep_ch
+    real(dp) :: r, frac, e_nu, d_left, dtr, etau2
     integer :: int_part
 
     call random_no(r)
     call distnu(r, ithird, frac)
     e_nu = frac * e_lep
 
-    d_lep_ch = d_lep
-    d_left = depth-d_lep_ch ! this is how far the neutrino can go
+    d_left = depth-d_lep ! this is how far the neutrino can go
     e_fin = e_nu ! in case we need to exit
     part_type = 3 ! in case we need to exit
 
@@ -1572,7 +1494,7 @@ subroutine regen(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_
         return
     end if
 
-    d_exit = d_lep_ch ! we are starting this far into the Earth with a neutrino
+    d_exit = d_lep ! we are starting this far into the Earth with a neutrino
     int_part = 0 ! starting with a neutrino with energy e_nu; change later to string
 
     ! tnu follows NC to the end, or gives results if CC interactions
@@ -1588,7 +1510,7 @@ subroutine regen(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_
     end if
 
     ! otherwise we have a tau
-    d_lep_ch = d_lep_ch + dtr
+    d_lep = d_lep + dtr
     d_left = d_left - dtr
 
     if (d_left <= 0._dp) then
@@ -1602,7 +1524,7 @@ subroutine regen(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_
 
     ! we have a tau with room to travel for tauthrulayers
 
-    call tau_thru_layers(angle, depth, d_water, d_lep_ch, etau2, xc_water, xc_rock, ixc_water, ixc_rock,&
+    call tau_thru_layers(angle, depth, d_water, d_lep, etau2, xc_water, xc_rock, ixc_water, ixc_rock,&
     & alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, idepth, lepton, prop_type,&
     & part_type, d_exit, e_fin)
 
@@ -1769,7 +1691,7 @@ contains
 subroutine single_stat(energy, angle, nu_xc, nu_ixc, depth, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,&
 & alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu, prop_type,&
 & u, no_regen_tot, regen_tot)
-    !! Propagates a single neutrino.
+    !! Propagates a single ingoing neutrino event.
 
     implicit none
 
@@ -1788,13 +1710,13 @@ subroutine single_stat(energy, angle, nu_xc, nu_ixc, depth, depthE, dwater, xc_w
     real(dp), intent(in) :: dwater
     !! Column depth along the chord for a given Earth emergence angle, in kmwe.
     real(dp), intent(in) :: xc_water(:,:)
-    !! 2D array containing lepton-nucleon cross-section values in water, in cm^2.
+    !! 2D array containing N_A/A*charged lepton-nucleon cross-section values in water, in cm^2/g.
     real(dp), intent(in) :: xc_rock(:,:)
-    !! 2D array containing lepton-nucleon cross-section values in rock, in cm^2.
+    !! 2D array containing N_A/A*charged lepton-nucleon cross-section values in rock, in cm^2/g.
     real(dp), intent(in) :: lep_ixc_water(:,:,:)
-    !! 3D array containing lepton integrated cross-section CDF values in water.
+    !! 3D array containing charged lepton integrated cross-section CDF values in water.
     real(dp), intent(in) :: lep_ixc_rock(:,:,:)
-    !! 3D array containing lepton integrated cross-section CDF values in rock.
+    !! 3D array containing charged lepton integrated cross-section CDF values in rock.
     real(dp), intent(in) :: alpha_water(:)
     !! 1D array containing ionization energy loss values in water, in (GeV*cm^2)/g.
     real(dp), intent(in) :: alpha_rock(:)
@@ -1808,13 +1730,13 @@ subroutine single_stat(energy, angle, nu_xc, nu_ixc, depth, depthE, dwater, xc_w
     real(dp), intent(in) :: cdalong(:)
     !! 1D array containing column depth at xalong, in g/cm^2.
     integer, intent(in) :: ithird
-    !! Choice for neutrino/lepton energy fraction selection.
+    !! Choice for neutrino -> charged lepton energy fraction selection.
     integer, intent(in) :: idepth
     !! Depth of water layer in km.
     integer, intent(in) :: lepton
-    !! Type of lepton. 1=tau; 2=muon.
+    !! Type of charged lepton. 1=tau; 2=muon.
     real(dp), intent(in) :: fac_nu
-    !! Rescaling factor for BSM cross-sections.
+    !! Rescaling factor for SM cross-sections.
     integer, intent(in) :: prop_type
     !! Type of energy loss propagation. 1=stochastic, 2=continuous.
     integer(dp), intent(in) :: u
@@ -1869,7 +1791,7 @@ subroutine single_stat(energy, angle, nu_xc, nu_ixc, depth, depthE, dwater, xc_w
     if (ipp == 1 .and. dleft <= 0.0_dp) then ! a tau has emerged through column depth
         no_regen_tot = no_regen_tot + 1
         regen_tot = regen_tot + 1 ! update the regen tau array once
-        !e_out.append(etauf)
+
         write(u, *) dlog10(etauf)
         ! go to 10; we are done with the loop
         return ! break outside stat; continue is correct here
@@ -1887,14 +1809,11 @@ subroutine single_stat(energy, angle, nu_xc, nu_ixc, depth, depthE, dwater, xc_w
         call regen(angle, etauin, depth, dwater, dfinal, nu_xc, nu_ixc, ithird, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,&
         & alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, idepth, lepton, fac_nu, prop_type, ipp3, dtau2, ef2)
 
-!            print *,"After regen..."
-!            print *,ipp3, dtau2, ef2
-
         regen_cnt = regen_cnt + 1
 
         if (ipp3 == 1) then ! then we are back to a tau at the end of the road
             regen_tot = regen_tot + 1
-            ! e_out.append(ef2)
+            
             write(u, *) dlog10(ef2)
             ! go to 10; we are done with the loop
             return ! need to check if this breaks out of stat loop or not. Yes??
@@ -1932,11 +1851,11 @@ subroutine run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_wate
     real(dp), intent(in) :: dwater
     !! Column depth along the chord for a given Earth emergence angle, in kmwe.
     real(dp), intent(in) :: xc_water(:,:)
-    !! 2D array containing lepton-nucleon cross-section values in water, in cm^2.
+    !! 2D array containing N_A/A*charged lepton-nucleon cross-section values in water, in cm^2/g.
     real(dp), intent(in) :: xc_rock(:,:)
-    !! 2D array containing lepton-nucleon cross-section values in rock, in cm^2.
+    !! 2D array containing N_A/A*charged lepton-nucleon cross-section values in rock, in cm^2/g.
     real(dp), intent(in) :: lep_ixc_water(:,:,:)
-    !! 3D array containing lepton integrated cross-section CDF values in water.
+    !! 3D array containing charged lepton integrated cross-section CDF values in water.
     real(dp), intent(in) :: lep_ixc_rock(:,:,:)
     !! 3D array containing lepton integrated cross-section CDF values in rock.
     real(dp), intent(in) :: alpha_water(:)
@@ -1952,26 +1871,25 @@ subroutine run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_wate
     real(dp), intent(in) :: cdalong(:)
     !! 1D array containing column depth at xalong, in g/cm^2.
     integer, intent(in) :: ithird
-    !! Choice for neutrino/lepton energy fraction selection.
+    !! Choice for neutrino -> charged lepton energy fraction selection.
     integer, intent(in) :: idepth
     !! Depth of water layer in km.
     integer, intent(in) :: lepton
-    !! Type of lepton. 1=tau; 2=muon.
+    !! Type of charged lepton. 1=tau; 2=muon.
     real(dp), intent(in) :: fac_nu
-    !! Rescaling factor for BSM cross-sections.
+    !! Rescaling factor for SM neutrino cross-sections.
     integer(kind=8), intent(in) :: stats
     !! Statistics or no. of ingoing neutrinos.
     integer, intent(in) :: prop_type
     !! Type of energy loss propagation. 1=stochastic, 2=continuous.
 
     integer(kind=8), intent(out) :: no_regen_tot
-    !! No. of outgoing leptons without regeneration.
+    !! No. of outgoing charged leptons without regeneration.
     integer(kind=8), intent(out) :: regen_tot
-    !! No. of outgoing leptons with regeneration.
+    !! No. of outgoing charged leptons with regeneration.
 
-    real(dp) :: depth, depth0, dtr, ef, etauin, dfinal, etauf, dleft, dtau2, ef2
+    real(dp) :: depth
     integer(kind=8):: regen_cnt, i
-    integer :: ip, ipp, ipp3
     integer(kind=8) :: u
     character(25) filename
 
@@ -1984,13 +1902,12 @@ subroutine run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_wate
     end if
 
     open(newunit=u, file=trim(filename), status="replace")
-!    call omp_set_nested(.false.)
 
     depth = depthE
     regen_cnt = 0
     no_regen_tot = 0
     regen_tot = 0
-!    e_out = 0.0_dp ! initialize e_out
+    
 !$OMP PARALLEL DO
     do i = 1, stats
         call single_stat(energy, angle, nu_xc, nu_ixc, depth, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,&
@@ -2002,64 +1919,13 @@ subroutine run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_wate
     return
 end subroutine run_stat_single
 
-
-!subroutine init_main(E_prop, angles, nu_xc, xc_water, xc_rock, alpha_water, alpha_rock, beta_water, beta_rock, nu_ixc, lep_ixc_water, lep_ixc_rock, idepth, lepton, fac_nu, stats, prop_type)
-!
-!    implicit none
-!
-!
-!    real(dp), intent(in) :: E_prop(:), angles(:), nu_xc(:,:), nu_ixc(:,:,:), xc_water(:,:), xc_rock(:,:)
-!    real(dp), intent(in) :: lep_ixc_water(:,:,:), lep_ixc_rock(:,:,:), alpha_water(:), alpha_rock(:)
-!    real(dp), intent(in) :: beta_water(:,:), beta_rock(:,:), xalong(:), cdalong(:), fac_nu
-!    integer, intent(in) :: idepth, lepton, stats, prop_type
-!
-!    real(dp) ::
-!    integer :: ithird
-!
-!    ithird = 0
-!
-!end subroutine init_main
-
 end module run
 
-!module data
-!use constants
-!!use h5fortran
-!implicit none
-!contains
-!
-!subroutine get_col_traj()
-!
-!    implicit none
-!
-!    integer :: idepth
-!    character(16) :: filename
-!    character(35) :: group
-!
-!    filename = 'lookup_tables.h5'
-!    idepth = 4
-!    write(group,'(a,i0,a)') 'Earth/traj_',idepth',/Column_Trajectories'
-!    print *,filename
-!    print *,group
-!
-!end subroutine get_col_traj
-!
-!end module data
-
-module test
+module tests
 use constants
 use interpolation
 implicit none
 contains
-
-!subroutine multidim_test(ixc_arr, a)
-!
-!    implicit none
-!    real(dp), intent(in) :: ixc_arr(:,:,:)
-!    real(dp), intent(out):: a(121)
-!
-!    a =  xc_arr(:,3)
-!end subroutine multidim_test
 
 subroutine test_y(energy, ixc_arr, ip, search_arr)
 
@@ -2127,7 +1993,7 @@ subroutine test_format()
     print *, filename
 end subroutine test_format
 
-end module test
+end module tests
 
 module OTmod
   !$ use omp_lib
