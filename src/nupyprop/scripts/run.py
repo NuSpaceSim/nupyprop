@@ -13,6 +13,7 @@ import numpy as np
 from tabulate import tabulate
 
 def get_parser():
+
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
@@ -124,7 +125,7 @@ def get_parser():
     )
 
     parser.add_argument(
-        "-cb",
+        "-bins",
         "--cdf_bins",
         dest="cdf_bins_arr",
         nargs="?",
@@ -141,7 +142,7 @@ def get_parser():
         type=str,
         const="no",
         default="no",
-        help="HTC mode; default is no. If set to yes, the code will be optimized to run in high throughput computing mode.",
+        help="HTC mode; default is no. If set to yes, the code will be optimized to run in high throughput computing mode",
     )
 
     return parser
@@ -166,15 +167,9 @@ def main():
     stats = int(args.stats_val)
     cdf_bins = np.fromstring(args.cdf_bins_arr, dtype=float, sep=",")
     htc_mode = str(args.htc_id)
-    if np.array_equal(cdf_bins,np.logspace(-5,0,51)):bins_str='nuSpaceSim default z bins'
-    else:bins_str='Using custom defined bins'
+    
 
-
-
-
-    if htc_mode == 'yes': # HTC mode on
-
-        param_data = [["Parameter Name", "Value"],
+    param_data = [["Parameter Name", "Value"],
         ["Charged Lepton", ch_lepton.capitalize()],
         ["Neutrino Matter/Type", nu_type.capitalize()],
         ["Depth of Water Layer [km]", idepth],
@@ -185,47 +180,20 @@ def main():
         ["Statistics", '{:.0e}'.format(stats)],
         ["HTC Mode", htc_mode.capitalize()]]
 
-        print(tabulate(param_data, headers='firstrow', showindex='always',tablefmt='fancy_grid'))
-        
-        Main.main_htc(
-            energies,
-            angles,
-            nu_type,
-            cross_section_model,
-            pn_model,
-            idepth,
-            ch_lepton,
-            fac_nu,
-            stats,
-            type_loss,
-        )
+    print(tabulate(param_data, headers='firstrow', showindex='always',tablefmt='fancy_grid'))
 
-    else: # HTC mode off
+    Main.main(
+        energies,
+        angles,
+        nu_type,
+        cross_section_model,
+        pn_model,
+        idepth,
+        ch_lepton,
+        fac_nu,
+        stats,
+        cdf_bins,
+        type_loss,
+        htc_mode
+    )
 
-        param_data = [["Parameter Name", "Value"],
-        ["Charged Lepton", ch_lepton.capitalize()],
-        ["Neutrino Matter/Type", nu_type.capitalize()],
-        ["Depth of Water Layer [km]", idepth],
-        ["Energy Loss Propagation", type_loss.capitalize()],
-        ["Neutrino Cross Section Model", str.upper(cross_section_model)],
-        ["Charged Lepton Photonuclear Energy Loss Model", str.upper(pn_model)],
-        ["SM Neutrino Cross Section Scaling Factor", fac_nu],
-        ["Statistics", '{:.0e}'.format(stats)],
-        ["CDF Bins", bins_str],
-        ["HTC Mode", htc_mode.capitalize()]]
-
-        print(tabulate(param_data, headers='firstrow', showindex='always',tablefmt='fancy_grid'))
-
-        Main.main(
-            energies,
-            angles,
-            nu_type,
-            cross_section_model,
-            pn_model,
-            idepth,
-            ch_lepton,
-            fac_nu,
-            stats,
-            cdf_bins,
-            type_loss
-        )

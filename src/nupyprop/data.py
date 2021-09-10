@@ -699,7 +699,7 @@ def get_clep_out(nu_type, ch_lepton, energy, angle, idepth, cross_section_model,
 
     return out_lep
 
-def add_cdf(nu_type, ch_lepton, idepth, cross_section_model, pn_model, prop_type, stats, bins=np.logspace(-5,0,51), arg=None):
+def add_cdf(nu_type, ch_lepton, idepth, cross_section_model, pn_model, prop_type, stats, bins, arg=None):
     """adds outgoing charged lepton energy CDF values to output file
 
     Args:
@@ -731,16 +731,13 @@ def add_cdf(nu_type, ch_lepton, idepth, cross_section_model, pn_model, prop_type
             cdf_angles.append(bins)
             for angle in angles:
                 e_out = get_clep_out(nu_type, ch_lepton, 10**energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, arg=arg)
-                if np.array_equal(bins,np.logspace(-5,0,51)):count, bins_count = np.histogram(e_out/10**energy, bins) # bcause for nuSpaceSim, z=E_tau(or E_mu)/E_nu
+                if np.array_equal(bins,np.logspace(-5,0,51)):count, bins_count = np.histogram(e_out/10**energy, bins) # because for nuSpaceSim, z=E_tau(or E_mu)/E_nu
                 else:count, bins_count = np.histogram(e_out, bins) # for user defined bins
                 pdf = count / sum(count)
                 cdf = np.insert(np.cumsum(pdf),0,0) # pad at the beginning with 0 because np.histogram 'eats' the first index/value
                 cdf_angles.append(cdf)
             cdf_table = Table(cdf_angles, names=('z',*angles), meta=cdf_meta)
             cdf_table.write(out_file, path='CLep_out_cdf/%s' % (energy_str), append=True, overwrite=True)
-
-    if np.array_equal(bins,np.logspace(-5,0,51)):print('CDF tables created with default nuSpaceSim bins')
-    else:print('CDF tables created with custom bins')
 
     return None
 
@@ -909,7 +906,7 @@ if __name__ == "__main__":
     cross_section_model = 'ct18nlo'
     pn_model = 'allm'
     prop_type = 'stochastic'
-    stats = 1e9
+    stats = 1e7
     cdf_only = 'no'
     cdf_bins = np.logspace(-5,0,51) # nuSpaceSim binning
     pass
