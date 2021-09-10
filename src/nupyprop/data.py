@@ -699,7 +699,7 @@ def get_clep_out(nu_type, ch_lepton, energy, angle, idepth, cross_section_model,
 
     return out_lep
 
-def add_cdf(nu_type, ch_lepton, idepth, cross_section_model, pn_model, prop_type, stats, bins, arg=None):
+def add_cdf(nu_type, ch_lepton, idepth, cross_section_model, pn_model, prop_type, stats, bins=np.logspace(-5,0,51), arg=None):
     """adds outgoing charged lepton energy CDF values to output file
 
     Args:
@@ -739,6 +739,7 @@ def add_cdf(nu_type, ch_lepton, idepth, cross_section_model, pn_model, prop_type
             cdf_table = Table(cdf_angles, names=('z',*angles), meta=cdf_meta)
             cdf_table.write(out_file, path='CLep_out_cdf/%s' % (energy_str), append=True, overwrite=True)
 
+    print("CDF tables created!")
     return None
 
 def get_cdf(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, out=False, arg=None):

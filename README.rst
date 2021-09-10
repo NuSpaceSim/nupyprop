@@ -80,11 +80,8 @@ described as follows:
 
 10. ``-s`` or ``--stats``: statistics or no. of injected neutrinos. Default is 1e7
     neutrinos.
-
-11. ``-bins`` or ``--cdf_bins``: bins for calculating outgoing charged lepton CDF values;
-   nuSpaceSim default is logspace(-5,0,51)
     
-12. ``-htc`` or ``--htc_mode``: High throughput computing mode. If set to yes,
+11. ``-htc`` or ``--htc_mode``: High throughput computing mode. If set to yes,
     the code will be optimized to run in high throughput computing mode.
     Default is no.
 

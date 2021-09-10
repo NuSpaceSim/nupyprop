@@ -129,7 +129,7 @@ def init_ixc(nu_type, ch_lepton, nu_model, pn_model):
     return nu_ixc, lep_ixc_water, lep_ixc_rock
 
 
-def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, ch_lepton, fac_nu, stats, cdf_bins, prop_type, htc_mode):
+def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, ch_lepton, fac_nu, stats, prop_type, htc_mode):
     '''
 
     Parameters
@@ -245,7 +245,7 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, ch_lept
     # close of for loop for energy
 
     if htc_mode == 'no':
-        Data.add_cdf(nu_type, ch_lepton, idepth, cross_section_model, pn_model, prop_type, stats, cdf_bins) # adds the binned cdf values for all neutrino energies and angles in an output file, to the output file.
+        Data.add_cdf(nu_type, ch_lepton, idepth, cross_section_model, pn_model, prop_type, stats) # adds the binned cdf values for all neutrino energies and angles in an output file, to the output file.
         end_time = time.time()
         print(f"It took {end_time-start_time:.2f} seconds to compute")
         print("Done!")

@@ -125,16 +125,6 @@ def get_parser():
     )
 
     parser.add_argument(
-        "-bins",
-        "--cdf_bins",
-        dest="cdf_bins_arr",
-        nargs="?",
-        const=f"{np.array2string(np.logspace(-5,0,51), separator=',')}"[1:-1],
-        default=f"{np.array2string(np.logspace(-5,0,51), separator=',')}"[1:-1],
-        help="bins for calculating outgoing charged lepton CDF values; nuSpaceSim default is logspace(-5,0,51)",
-    )
-
-    parser.add_argument(
         "-htc",
         "--htc_mode",
         dest="htc_id",
@@ -165,7 +155,6 @@ def main():
     pn_model = str(args.pn_model_id)
     fac_nu = float(args.fac_nu_val)
     stats = int(args.stats_val)
-    cdf_bins = np.fromstring(args.cdf_bins_arr, dtype=float, sep=",")
     htc_mode = str(args.htc_id)
     
 
@@ -192,7 +181,6 @@ def main():
         ch_lepton,
         fac_nu,
         stats,
-        cdf_bins,
         type_loss,
         htc_mode
     )
