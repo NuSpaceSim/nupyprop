@@ -82,7 +82,7 @@ described as follows:
     neutrinos.
 
 11. ``-bins`` or ``--cdf_bins``: bins for calculating outgoing charged lepton CDF values;
-   nuSpaceSim default is logspace(-5,0,51)
+    nuSpaceSim default is logspace(-5,0,51)
     
 12. ``-htc`` or ``--htc_mode``: High throughput computing mode. If set to yes,
     the code will be optimized to run in high throughput computing mode.
