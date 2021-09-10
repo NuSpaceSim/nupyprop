@@ -59,8 +59,8 @@ described as follows:
 
 3. ``-i`` or ``--idepth``: depth of ice/water in km. Default value is 4 km.
 
-4. ``-l`` or ``--lepton``: flavor of lepton used to propagate. Can be either muon
-   or tau. Default is tau.
+4. ``-cl`` or ``--lepton``: flavor of charged lepton used to propagate. Can be either
+   muon or tau. Default is tau.
 
 5. ``-n`` or ``--nu_type``: type of neutrino matter. Can be either neutrino or
    anti-neutrino. Default is neutrino.
@@ -81,9 +81,8 @@ described as follows:
 10. ``-s`` or ``--stats``: statistics or no. of injected neutrinos. Default is 1e7
     neutrinos.
 
-11. ``-c`` or ``--cdf_only``: If set to yes, the output file will **not** contain
-    outgoing lepton energies, and will only contain exit probabilities
-    and binned outgoing energy CDF values. Default is no.
+11. ``-bins`` or ``--cdf_bins``: bins for calculating outgoing charged lepton CDF values;
+   nuSpaceSim default is logspace(-5,0,51)
     
 12. ``-htc`` or ``--htc_mode``: High throughput computing mode. If set to yes,
     the code will be optimized to run in high throughput computing mode.
