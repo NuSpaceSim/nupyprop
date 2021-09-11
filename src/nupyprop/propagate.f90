@@ -149,8 +149,9 @@ subroutine densityatx(x, beta_deg, idepth, r, rho_at_x)
     real(dp) :: chord_length, r2
 
     chord_length = 2*R_earth*dsin(beta_deg*(pi/180.0_dp)) ! 2 R_E sin(beta)
-    r2 = x**2 + R_earth**2 - (chord_length*x)
-    ! r2 = (chord_length-x)**2 + R_earth**2 - 2*R_earth**(chord_length-x)*dsin(beta_deg*(pi/180.0_dp))
+    ! r2 = x**2 + R_earth**2 - (chord_length*x)
+    ! r2 = (chord_length-x)**2 + R_earth**2 - chord_length*(chord_length - x)
+    r2 = (chord_length-x)**2 + R_earth**2 - 2*R_earth*(chord_length-x)*dsin(beta_deg*(pi/180.0_dp))
 
     if (beta_deg < 5.0_dp) then
         r = R_earth*(1.0_dp + 0.5_dp*(x**2-chord_length*x)/R_earth**2)
