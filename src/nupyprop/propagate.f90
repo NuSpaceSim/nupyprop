@@ -77,7 +77,8 @@ implicit none
 contains
 
 subroutine PREMdensity(Rin, idepth, edens)
-    !! Calculates the density at a radius inside the Earth.
+    !! Calculates the density at a radius inside the Earth according the PREM model.
+    ! hep-ph/9512364v1 eq. 25
 
     implicit none
 
@@ -94,7 +95,7 @@ subroutine PREMdensity(Rin, idepth, edens)
 
     Rlay = (/1221.5, 3480.0, 5701.0, 5771.0, 5971.0, 6151.0, 6346.6, 6356.0, 6368.0, 6371.0/) ! # PREM layers based on R_earth
 !    print *, E_nu
-    Rlay(9) = 6368.0_dp + (3.0_dp-dble(idepth))
+    Rlay(9) = 6368.0_dp + (3.0_dp-dble(idepth)) ! sets the last layer as water layer
 !    print *,'Rlay=',Rlay
     x = Rin
     y = x/R_earth
@@ -130,7 +131,7 @@ end subroutine
 
 subroutine densityatx(x, beta_deg, idepth, r, rho_at_x)
     !! Calculates the density at a distance x, for a given Earth emergence angle.
-
+    ! 1905.13223v2 fig. 2 for chord length
     implicit none
 
     integer, intent(in) :: idepth
@@ -145,14 +146,14 @@ subroutine densityatx(x, beta_deg, idepth, r, rho_at_x)
     real(dp), intent(out) :: rho_at_x
     !! Density at x, in g/cm^3
 
-    real(dp) :: tnadir, ell, r2
+    real(dp) :: chord_length, r2
 
-    tnadir = (90.0_dp-beta_deg)*(pi/180.0_dp)
-    ell = R_earth*dcos(tnadir)*2
-    r2 = x**2 - (ell*x) + R_earth**2
+    chord_length = 2*R_earth*dsin(beta_deg*(pi/180.0_dp)) ! 2 R_E sin(beta)
+    ! r2 = x**2 + R_earth**2 - (chord_length*x)
+    r2 = (chord_length-x)**2 + R_earth**2 - 2*R_earth**(chord_length-x)*dsin(beta_deg*(pi/180.0_dp))
 
     if (beta_deg < 5.0_dp) then
-        r = R_earth*(1.0_dp + 0.5_dp*(x**2-ell*x)/R_earth**2)
+        r = R_earth*(1.0_dp + 0.5_dp*(x**2-chord_length*x)/R_earth**2)
     else
         r = dsqrt(r2)
     end if
