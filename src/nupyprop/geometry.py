@@ -79,27 +79,26 @@ def trajlength(beta_deg):
     traj_length = Re*np.cos(tnadir)*2
     return float(traj_length)
 
-def PREMgramVSang(z, idepth):
+def PREMgramVSang(beta, idepth):
     '''
 
     Parameters
     ----------
-    z : float
-        Angle of trajectory (relative to tangent to surface), in degrees.
+    beta : float
+        Earth emergence angle, in degrees.
     idepth : int
         Depth of water layer in km.
 
     Returns
     -------
     gramlen : float
-        The "grammage" or column density, in g/cm^2.
+        The "grammage" or column depth, in g/cm^2.
 
     '''
     Rlay_3 = np.copy(Rlay)
     Rlay_3[8] = 6368.0+(3.0-float(idepth))
-    y = z*(np.pi/180)
-    Chord = 2.0*Re*np.sin(y)
-    Depth = Re-(0.5*np.sqrt(4.0*Re**2-Chord**2))
+    chord_length = 2.0*Re*np.sin(beta*(np.pi/180))
+    Depth = Re-(0.5*np.sqrt(4.0*Re**2-chord_length**2))
     Rdep = Re-Depth
 
     Rlen = np.zeros(10)
@@ -155,7 +154,7 @@ def columndepth(beta_deg, idepth):
     Returns
     -------
     columndepth_val : float
-        Column density, in g/cm^2.
+        Column depth, in g/cm^2.
 
     '''
     z = beta_deg
@@ -182,7 +181,7 @@ def cdtot(x_v, beta_deg, idepth):
     Returns
     -------
     cdtot_val : float
-        Integrated column density.
+        Integrated column depth.
 
     '''
     r, rho = Geometry.densityatx(x_v, beta_deg, idepth)
