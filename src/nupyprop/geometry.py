@@ -79,67 +79,74 @@ def trajlength(beta_deg):
     traj_length = Re*np.cos(tnadir)*2
     return float(traj_length)
 
-def PREMgramVSang(beta, idepth):
-    '''
+# def PREMgramVSang(beta, idepth):
+#     '''
 
-    Parameters
-    ----------
-    beta : float
-        Earth emergence angle, in degrees.
-    idepth : int
-        Depth of water layer in km.
+#     Parameters
+#     ----------
+#     beta : float
+#         Earth emergence angle, in degrees.
+#     idepth : int
+#         Depth of water layer in km.
 
-    Returns
-    -------
-    gramlen : float
-        The "grammage" or column depth, in g/cm^2.
+#     Returns
+#     -------
+#     gramlen : float
+#         The "grammage" or column depth, in g/cm^2.
 
-    '''
-    Rlay_3 = np.copy(Rlay)
-    Rlay_3[8] = 6368.0+(3.0-float(idepth))
-    chord_length = 2.0*Re*np.sin(beta*(np.pi/180))
-    Depth = Re-(0.5*np.sqrt(4.0*Re**2-chord_length**2))
-    Rdep = Re-Depth
+#     '''
+#     Rlay_3 = np.copy(Rlay)
+#     Rlay_3[8] = 6368.0+(3.0-float(idepth))
+#     chord_length = 2.0*Re*np.sin(beta*(np.pi/180))
+#     Depth = Re-(0.5*np.sqrt(4.0*Re**2-chord_length**2))
+#     Rdep = Re-Depth
 
-    Rlen = np.zeros(10)
-    RlenS = np.zeros(10)
-    clen = np.zeros(10)
-    glen = np.zeros(10)
+#     Rlen = np.zeros(10)
+#     RlenS = np.zeros(10)
+#     clen = np.zeros(10)
+#     glen = np.zeros(10)
 
-    ilay = np.asarray([1 if Rdep<Rlay_3[i] else 0 for i in range(len(Rlay_3))])
-    gramlen = 0
+#     ilay = np.asarray([1 if Rdep<Rlay_3[i] else 0 for i in range(len(Rlay_3))])
+#     gramlen = 0
 
-    first_non_zero = np.nonzero(ilay)[0][0]
+#     first_non_zero = np.nonzero(ilay)[0][0]
 
-    for i in range(first_non_zero, len(ilay)):
-        if i == first_non_zero:
-            ifirst = i
-            Rlen[i] = Rlay_3[i]-Rdep
-            clen[i] = 2*np.sqrt(Rlay_3[i]**2 - (Rlay_3[i] - Rlen[i])**2)
-            Rin = Rlay_3[i] - (Rlen[i]/2.0)
-            rho = Geometry.premdensity(Rin, idepth)
-            glen[i] = clen[i]*1e5*rho
+#     for i in range(first_non_zero, len(ilay)):
+#         if i == first_non_zero:
+#             ifirst = i
+#             Rlen[i] = Rlay_3[i]-Rdep
+#             clen[i] = 2*np.sqrt(Rlay_3[i]**2 - (Rlay_3[i] - Rlen[i])**2)
+#             Rin = Rlay_3[i] - (Rlen[i]/2.0)
+#             rho = Geometry.premdensity(Rin, idepth)
+#             glen[i] = clen[i]*1e5*rho
 
-        elif ilay[i] > 0:
-            Rlen[i] = Rlay_3[i] - Rlay_3[i-1]
-            RlenS[i] = Rlay_3[i] - Rlay_3[i-1]
+#         elif ilay[i] > 0:
+#             Rlen[i] = Rlay_3[i] - Rlay_3[i-1]
+#             RlenS[i] = Rlay_3[i] - Rlay_3[i-1]
 
-            for j in range(ifirst,i):
-                RlenS[i] = RlenS[i] + Rlen[j]
+#             for j in range(ifirst,i):
+#                 RlenS[i] = RlenS[i] + Rlen[j]
 
-            clen[i] = 2.0*np.sqrt(Rlay_3[i]**2 - (Rlay_3[i] - RlenS[i])**2)
-            # print(clen[i])
+#             clen[i] = 2.0*np.sqrt(Rlay_3[i]**2 - (Rlay_3[i] - RlenS[i])**2)
+#             # print(clen[i])
 
-            for j in range(ifirst,i):
-                clen[i] = clen[i] - clen[j]
+#             for j in range(ifirst,i):
+#                 clen[i] = clen[i] - clen[j]
 
-            Rin = Rlay_3[i] - (Rlen[i]/2.0)
-            rhoOUT = Geometry.premdensity(Rin, idepth)
-            glen[i] = clen[i]*1e5*rhoOUT
+#             Rin = Rlay_3[i] - (Rlen[i]/2.0)
+#             rhoOUT = Geometry.premdensity(Rin, idepth)
+#             glen[i] = clen[i]*1e5*rhoOUT
 
-        gramlen += glen[i]
+#         gramlen += glen[i]
 
-    return gramlen
+#     return gramlen
+
+def PREMgramVSang(beta_deg, idepth):
+    chord_length = 2*R_earth*np.sin(beta_deg*(np.pi/180.))
+
+    col_depth = integrate.quad(lambda x: Geometry.densityatx(x, beta_deg, idepth), 0, chord_length, epsabs=1.49e-8, epsrel=1.49e-8, maxp1=1000, limit=1000)
+
+    return col_depth[0]*1e5
 
 def columndepth(beta_deg, idepth):
     '''
@@ -157,13 +164,11 @@ def columndepth(beta_deg, idepth):
         Column depth, in g/cm^2.
 
     '''
-    z = beta_deg
-    if z<0.5:
-        z1 = 1.0
-        c = PREMgramVSang(z1, idepth)
-        columndepth_val = c*(z/z1-1.0/6.0*(z/z1)**3)
+    if beta_deg<0.5:
+        total_col_depth = PREMgramVSang(1.0, idepth)
+        columndepth_val = total_col_depth*(beta_deg - (1.0/6.0)*(beta_deg**3))
     else:
-        columndepth_val = PREMgramVSang(z, idepth)
+        columndepth_val = PREMgramVSang(beta_deg, idepth)
     return columndepth_val
 
 def cdtot(x_v, beta_deg, idepth):
