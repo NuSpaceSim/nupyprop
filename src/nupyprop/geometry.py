@@ -144,7 +144,7 @@ def trajlength(beta_deg):
 def PREMgramVSang(beta_deg, idepth):
     chord_length = 2*Re*np.sin(beta_deg*(np.pi/180.))
 
-    col_depth = integrate.quad(lambda x: Geometry.densityatx(x, beta_deg, idepth), 0, chord_length, epsabs=1.49e-8, epsrel=1.49e-8, maxp1=1000, limit=1000)
+    col_depth = integrate.quad(lambda x: Geometry.densityatx(x, beta_deg, idepth)[1], 0, chord_length, epsabs=1.49e-8, epsrel=1.49e-8, maxp1=1000, limit=1000)
 
     return col_depth[0]*1e5
 
