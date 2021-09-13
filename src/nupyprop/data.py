@@ -802,8 +802,8 @@ def interp_cdf(nu_type, ch_lepton, energy, angle, idepth, cross_section_model, p
         arg (str, optional): additional arguments at the end of the file name. Defaults to None
 
     Returns:
-        float/ndarray: interpolated cdf value at z if z is provided, or
-        interpolated cdf array at z array if z is None
+        float/ndarray: interpolated cdf value (float) at z if z is provided, or
+        interpolated cdf array (ndarray) of size (len(z_vals)) at z array if z is None
     """
     in_file = output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg=arg)
 
@@ -828,7 +828,7 @@ def interp_cdf(nu_type, ch_lepton, energy, angle, idepth, cross_section_model, p
 
     return interp_arr
 
-def sort_htc_files(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, cdf_bins):
+def sort_htc_files(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, cdf_bins=None):
     """processes files created when the code is run with HTC mode on
 
     Args:
@@ -893,7 +893,8 @@ def sort_htc_files(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_m
     add_pexit(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, pexit_table) # adds p_exit results to output file
     print("P_exit processed successfully")
 
-    add_cdf(nu_type, ch_lepton, idepth, cross_section_model, pn_model, prop_type, stats) # adds the binned cdf values for all neutrino energies and angles in an output file, to the output file.
+    if cdf_bins is None:add_cdf(nu_type, ch_lepton, idepth, cross_section_model, pn_model, prop_type, stats) # adds the binned cdf values for all neutrino energies and angles in an output file, to the output file.
+    else:add_cdf(nu_type, ch_lepton, idepth, cross_section_model, pn_model, prop_type, stats, bins=cdf_bins) # adds the binned cdf values for all neutrino energies and angles in an output file, to the output file.
     return None
 
 # =============================================================================
@@ -911,4 +912,4 @@ if __name__ == "__main__":
     cdf_only = 'no'
     cdf_bins = np.logspace(-5,0,51) # nuSpaceSim binning
     pass
-    # sort_htc_files(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, cdf_bins, cdf_only)
+    # sort_htc_files(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, cdf_only)
