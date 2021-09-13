@@ -261,9 +261,9 @@ def get_xc(part_type, model, arg, out=False):
             with importlib_resources.as_file(ref) as lookup_tables:
                 xc_table = Table.read(lookup_tables,path='Neutrinos/%s/xc' % nu_type)
         else: # custom nu_xc model selection
-           file = get_custom_path('xc', part_type, model, nu_type)
-           with importlib_resources.as_file(file) as lookup_table:
-               xc_table = Table.read(lookup_table, format='ascii.ecsv')
+            file = get_custom_path('xc', part_type, model, nu_type)
+            with importlib_resources.as_file(file) as lookup_table:
+                xc_table = Table.read(lookup_table, format='ascii.ecsv')
 
         cscc = xc_table['sigma_cc_%s' % model]
         csnc = xc_table['sigma_nc_%s' % model]
