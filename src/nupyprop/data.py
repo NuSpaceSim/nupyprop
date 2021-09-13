@@ -783,19 +783,19 @@ def get_cdf(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, p
         return print('Outgoing %s energy CDF data saved to file %s' % (ch_lepton,fnm))
     return z_vals, cdf_arr
 
-def interp_cdf(nu_type, ch_lepton, idepth, cross_section_model, pn_model, prop_type, stats, energy, angle, z=None, arg=None):
+def interp_cdf(nu_type, ch_lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, z=None, arg=None):
     """interpolates CDF values at given energy, angle and z (bin) value
 
     Args:
         nu_type (str): type of neutrino particle; can be neutrino or anti_neutrino
         ch_lepton (str): type of charged lepton; can be tau or muon
+        energy (float): energy to be interpolated at, in GeV
+        angle (float): earth emergence angle to be interpolated at, in degrees
         idepth (int): depth of water layer, in km
         cross_section_model (str): neutrino cross-section model
         pn_model (str): photonuclear energy loss model
         prop_type (str): type of energy loss mechanism; can be stochastic or continuous
         stats (int): statistics or number of neutrinos injected
-        energy (float): energy to be interpolated at, in GeV
-        angle (float): earth emergence angle to be interpolated at, in degrees
         z (float, optional): z value to be interpolated at; z=E_tau (or E_muon)/E_nu
         If None, it will be the array in the output file -> CLep_out_cdf
         Defaults to None
