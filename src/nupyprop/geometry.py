@@ -24,7 +24,8 @@ Rlay = np.array([1221.5, 3480.0, 5701.0, 5771.0, 5971.0, 6151.0, 6346.6, 6356.0,
 
 rho_water = 1.02 # density of water in g/cm^3
 # beta_arr = np.asarray([float('{:.1f}'.format(i)) for i in np.concatenate((np.linspace(0.1,5,50), np.linspace(6,90,85)))])
-beta_arr = np.asarray([float('{:.1f}'.format(i)) for i in np.arange(0.1,90.1,step=0.1)]) # finer steps of 0.1 deg
+
+beta_arr = np.asarray([float('{:.1f}'.format(i)) for i in np.arange(0.1,90.01,step=0.01)]) # finer steps of 0.1 deg
 
 def sagitta_deg(beta_deg):
     '''
@@ -80,7 +81,7 @@ def trajlength(beta_deg):
     traj_length = Re*np.cos(tnadir)*2
     return float(traj_length)
 
-# def PREMgramVSang(beta, idepth):
+# def PREMgramVSang_old(beta, idepth):
 #     '''
 
 #     Parameters
@@ -257,11 +258,21 @@ def gen_water_trajs(idepth):
         1D array containing Earth emergence angles from 0.1 deg to 90 deg.
     chord : ndarray
         1D array containing chord length, in km.
-    water : ndarrayidepths = np.arange(0,11)
-    # input_list = [[i] for i in idepths]
-    # p = Pool(mp.cpu_count()) # use all available cores
-    # p.starmap(create_traj_table, input_list)
-    # p.close()
+    water : ndarray
+        1D array containing final water layer distance, in km.
+
+    '''
+    dw = idepth
+    Rrock = Re-dw
+    chord = np.asarray([trajlength(i) for i in beta_arr])
+    water = np.asarray([0.5*(i - np.sqrt(i**2 - 4.0 * (dw**2 + 2.0*Rrock*dw))) if sagitta_deg(j)>dw else i for i,j in zip(chord, beta_arr)])
+    return beta_arr, chord, water
+
+def find_interface(idepth):
+    '''
+
+
+    Parameters
     ----------
     idepth : int
         Depth of water layer in km.
