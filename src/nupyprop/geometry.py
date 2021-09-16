@@ -25,7 +25,7 @@ Rlay = np.array([1221.5, 3480.0, 5701.0, 5771.0, 5971.0, 6151.0, 6346.6, 6356.0,
 rho_water = 1.02 # density of water in g/cm^3
 # beta_arr = np.asarray([float('{:.1f}'.format(i)) for i in np.concatenate((np.linspace(0.1,5,50), np.linspace(6,90,85)))])
 
-beta_arr = np.asarray([float('{:.1f}'.format(i)) for i in np.arange(0.1,90.01,step=0.01)]) # finer steps of 0.1 deg
+beta_arr = np.asarray([float('{:.1f}'.format(i)) for i in np.arange(0.1,90.1,step=0.1)]) # finer steps of 0.1 deg
 
 def sagitta_deg(beta_deg):
     '''
