@@ -49,12 +49,12 @@ described as follows:
 
 1. ``-e`` or ``--energy``: incoming neutrino energy in log_10(GeV). Works for
    single energy or multiple energies. For multiple energies, separate
-   energies with commas eg. 7,8,9,10,11. Default energies are
-   10\ :sup:`7`,10\ :sup:`7.25`,10\ :sup:`7.5`,…10\ :sup:`11` GeV.
+   energies with commas eg. 6,7,8,9,10,11. Default energies are
+   10\ :sup:`6`,10\ :sup:`6.25`,10\ :sup:`6.5`,…10\ :sup:`11` GeV.
 
 2. ``-a`` or ``--angle``: slant Earth angles in degrees. Works for single angle
    or multiple angles. For multiple angles, separate angles with commas
-   eg. 1,3,5,7,10. Default angles are 1->35 degrees, in steps of 1
+   eg. 1,3,5,7,10. Default angles are 1->42 degrees, in steps of 1
    degree.
 
 3. ``-i`` or ``--idepth``: depth of ice/water in km. Default value is 4 km.

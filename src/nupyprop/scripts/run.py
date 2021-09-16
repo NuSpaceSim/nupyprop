@@ -21,9 +21,9 @@ def get_parser():
         "--energy",
         dest="energy_val",
         nargs="?",
-        const=f"{np.array2string(np.linspace(7, 11, 17), separator=',')}"[1:-1],
-        default=f"{np.array2string(np.linspace(7, 11, 17), separator=',')}"[1:-1],
-        help="log_10 value of incoming neutrino energy; defaults are 7-11 GeV in quarter decades",
+        const=f"{np.array2string(np.linspace(6, 11, 17), separator=',')}"[1:-1],
+        default=f"{np.array2string(np.linspace(6, 11, 17), separator=',')}"[1:-1],
+        help="log_10 value of incoming neutrino energy; defaults are 6-11 GeV in quarter decades",
     )
 
     parser.add_argument(
@@ -31,9 +31,9 @@ def get_parser():
         "--angle",
         dest="angle_val",
         nargs="?",
-        const=f"{np.array2string(np.arange(1, 36), separator=',')}"[1:-1],
-        default=f"{np.array2string(np.arange(1, 36), separator=',')}"[1:-1],
-        help="value of Earth emergence angle; defaults are 1-35 degrees, in steps of 1 degree",
+        const=f"{np.array2string(np.arange(1, 43), separator=',')}"[1:-1],
+        default=f"{np.array2string(np.arange(1, 43), separator=',')}"[1:-1],
+        help="value of Earth emergence angle; defaults are 1-42 degrees, in steps of 1 degree",
     )
 
     parser.add_argument(
