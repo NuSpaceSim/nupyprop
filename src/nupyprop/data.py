@@ -773,7 +773,7 @@ def get_cdf(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, p
     z_vals = cdf_table['z'].data
     nn = cols.pop('z')
     angles = np.asarray([float(i) for i in cols])
-    cdf_arr = np.asarray([cdf_table[str(i)].data for i in angles])
+    cdf_arr = np.asarray([cdf_table["{:.2f}".format(i)].data for i in angles])
 
     if out:
         fnm = "cdf_%s_%s_%s_%skm_%s_%s_%s_%s.ecsv" % (nu_type, ch_lepton, energy_str, idepth, cross_section_model, pn_model, prop_type, sci_str(stats))
