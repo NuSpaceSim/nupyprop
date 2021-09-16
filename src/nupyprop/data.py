@@ -180,7 +180,7 @@ def get_trajs(type_traj, angle, idepth, out=False):
         cdalong = np.asfortranarray(sliced_table['cdalong'].T)
 
         if out:
-            fnm = "%s_%sdeg_%.2fkm.ecsv" % (type_traj,angle,idepth)
+            fnm = "%s_%.2fdeg_%skm.ecsv" % (type_traj,angle,idepth)
             ascii.write(traj_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
             return print('Column trajectory data saved to file %s' % fnm)
         return xalong, cdalong
@@ -193,7 +193,7 @@ def get_trajs(type_traj, angle, idepth, out=False):
         water = float(traj_table['water'][traj_table['beta']==angle])
 
         if out:
-            fnm = "%s_%sdeg_%.2fkm.ecsv" % (type_traj,angle,idepth)
+            fnm = "%s_%.2fdeg_%skm.ecsv" % (type_traj,angle,idepth)
             ascii.write(traj_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
             return print('Water trajectory data saved to file %s' % fnm)
         return chord, water
