@@ -10,10 +10,6 @@ import nupyprop.data as Data
 import nupyprop.geometry as Geometry
 from nupyprop.propagate import run as Run
 
-# import data as Data
-# import geometry as Geometry
-# from propagate import run as Run
-
 import numpy as np
 from astropy.table import Table
 from collections import OrderedDict
@@ -191,7 +187,7 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, ch_lept
 
             xalong, cdalong = Data.get_trajs('col', angle, idepth) # initialize arrays here for each angle, to reduce a ton of overhead when tauthrulayers & regen are called
 
-            print("Energy = %.2e, Angle = %.1f" % (energy, angle), flush=True)
+            print("Energy = %.2e, Angle = %.2f" % (energy, angle), flush=True)
 
             chord, water = Data.get_trajs('water', angle, idepth)
             dwater = water*rho_water # depth in water [kmwe] in last or only section

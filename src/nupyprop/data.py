@@ -18,8 +18,6 @@ import os
 from collections.abc import Iterable
 from scipy.interpolate import interpn
 
-# pwd = os.getcwd()
-
 E_nu = np.logspace(3,12,91,base=10).astype(np.float64)
 E_lep = np.logspace(0,12,121,base=10).astype(np.float64)
 
@@ -182,7 +180,7 @@ def get_trajs(type_traj, angle, idepth, out=False):
         cdalong = np.asfortranarray(sliced_table['cdalong'].T)
 
         if out:
-            fnm = "%s_%sdeg_%skm.ecsv" % (type_traj,angle,idepth)
+            fnm = "%s_%sdeg_%.2fkm.ecsv" % (type_traj,angle,idepth)
             ascii.write(traj_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
             return print('Column trajectory data saved to file %s' % fnm)
         return xalong, cdalong
@@ -195,7 +193,7 @@ def get_trajs(type_traj, angle, idepth, out=False):
         water = float(traj_table['water'][traj_table['beta']==angle])
 
         if out:
-            fnm = "%s_%sdeg_%skm.ecsv" % (type_traj,angle,idepth)
+            fnm = "%s_%sdeg_%.2fkm.ecsv" % (type_traj,angle,idepth)
             ascii.write(traj_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
             return print('Water trajectory data saved to file %s' % fnm)
         return chord, water
@@ -654,7 +652,7 @@ def add_clep_out(nu_type, ch_lepton, energy, angle, idepth, cross_section_model,
 
     out_file = output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg)
 
-    clep_table.write(out_file, path='CLep_out_energies/%s/%d' % (energy_str,angle), append=True, overwrite=True)
+    clep_table.write(out_file, path='CLep_out_energies/%s/%.2f' % (energy_str,angle), append=True, overwrite=True)
     return None
 
 def get_clep_out(nu_type, ch_lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, out=False, arg=None):
@@ -684,7 +682,7 @@ def get_clep_out(nu_type, ch_lepton, energy, angle, idepth, cross_section_model,
 
     in_file = output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg)
 
-    e_out = Table.read(in_file, 'CLep_out_energies/%s/%s' % (energy_str,angle))
+    e_out = Table.read(in_file, 'CLep_out_energies/%s/%.2f' % (energy_str,angle))
     out_lep = 10**(np.asarray(e_out['lep_energy'])) # changed 13/7/21
 
     if out:
@@ -693,7 +691,7 @@ def get_clep_out(nu_type, ch_lepton, energy, angle, idepth, cross_section_model,
         clep_meta = OrderedDict({'Description':'Outgoing %s energies' % ch_lepton,
                                 'lep_energy':'Outgoing %s energy, in GeV'})
         clep_table = Table([out_lep], names=('lep_energy',), meta=clep_meta)
-        fnm = "CLep_out_%s_%s_%sGeV_%sdeg_%skm_%s_%s_%s_%s.ecsv" % (nu_type, ch_lepton, energy_str, angle, idepth, cross_section_model, pn_model, prop_type, sci_str(stats))
+        fnm = "CLep_out_%s_%s_%sGeV_%.2fdeg_%skm_%s_%s_%s_%s.ecsv" % (nu_type, ch_lepton, energy_str, angle, idepth, cross_section_model, pn_model, prop_type, sci_str(stats))
         ascii.write(clep_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
         return print('Outgoing %s energy data saved to file %s' % (ch_lepton,fnm))
 
@@ -726,7 +724,7 @@ def add_cdf(nu_type, ch_lepton, idepth, cross_section_model, pn_model, prop_type
 
         for energy in energies: # these are log_10(GeV)
             energy_str = str(energy)
-            angles = sorted([int(i) for i in hf['CLep_out_energies'][energy_str].keys()])
+            angles = sorted([float(i) for i in hf['CLep_out_energies'][energy_str].keys()])
             cdf_angles = []
             cdf_angles.append(bins)
             for angle in angles:
@@ -774,7 +772,7 @@ def get_cdf(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, p
     cols = cdf_table.columns
     z_vals = cdf_table['z'].data
     nn = cols.pop('z')
-    angles = np.asarray([int(i) for i in cols])
+    angles = np.asarray([float(i) for i in cols])
     cdf_arr = np.asarray([cdf_table[str(i)].data for i in angles])
 
     if out:
@@ -806,7 +804,7 @@ def interp_pexit(nu_type, ch_lepton, energy, angle, idepth, cross_section_model,
 
     with h5py.File(in_file, 'r') as hf:
         energies = 10**np.asarray(sorted([float(i) for i in hf['CLep_out_energies'].keys()])) # these energies are in GeV
-        angles = np.asarray(sorted([int(i) for i in hf['CLep_out_energies'][str(np.log10(energies[0]))].keys()])) # get Earth emergence angles
+        angles = np.asarray(sorted([float(i) for i in hf['CLep_out_energies'][str(np.log10(energies[0]))].keys()])) # get Earth emergence angles
 
     p_exit = np.asarray([get_pexit(nu_type, ch_lepton, i, idepth, cross_section_model, pn_model, prop_type, stats)[1] for i in energies]).reshape(len(energies),len(angles)) # p_exit[i,j] = [energy,angle]
 
@@ -842,7 +840,7 @@ def interp_cdf(nu_type, ch_lepton, energy, angle, idepth, cross_section_model, p
 
     with h5py.File(in_file, 'r') as hf:
         energies = 10**np.asarray(sorted([float(i) for i in hf['CLep_out_energies'].keys()])) # these energies are in GeV
-        angles = np.asarray(sorted([int(i) for i in hf['CLep_out_energies'][str(np.log10(energies[0]))].keys()])) # get Earth emergence angles
+        angles = np.asarray(sorted([float(i) for i in hf['CLep_out_energies'][str(np.log10(energies[0]))].keys()])) # get Earth emergence angles
         z_vals = get_cdf(nu_type, ch_lepton, energies[0], idepth, cross_section_model, pn_model, prop_type, stats)[0] # get whatever z_vals are in the output file
 
     cdf_vals = np.asarray([get_cdf(nu_type, ch_lepton, i, idepth, cross_section_model, pn_model, prop_type, stats)[1] for i in energies]).reshape(len(energies),len(angles),len(z_vals)) # cdf_vals[i,j,k] = [energy,angle,cdf_val]
