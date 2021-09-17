@@ -21,8 +21,8 @@ def get_parser():
         "--energy",
         dest="energy_val",
         nargs="?",
-        const=f"{np.array2string(np.linspace(6, 11, 17), separator=',')}"[1:-1],
-        default=f"{np.array2string(np.linspace(6, 11, 17), separator=',')}"[1:-1],
+        const=f"{np.array2string(np.linspace(6, 11, 21), separator=',')}"[1:-1],
+        default=f"{np.array2string(np.linspace(6, 11, 21), separator=',')}"[1:-1],
         help="log_10 value of incoming neutrino energy; defaults are 6-11 GeV in quarter decades",
     )
 
