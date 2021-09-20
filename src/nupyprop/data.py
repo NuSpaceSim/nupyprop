@@ -759,6 +759,7 @@ def get_cdf(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, p
     Returns:
         None/tuple: None if out=True otherwise tuple containing:
             z_vals (ndarray): 1D array of shape (n,) containing bins from the output file -> CLep_out_cdf table
+            angles (ndarray): 1D array of shape (n,) containing earth emergence angles in the output file
             cdf_arr (ndarray): 1D array of shape (n,) containing CDF values of outgoing charged lepton energies,
             binned according to the output file -> CLep_out_cdf table
     """
@@ -779,7 +780,7 @@ def get_cdf(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, p
         fnm = "cdf_%s_%s_%s_%skm_%s_%s_%s_%s.ecsv" % (nu_type, ch_lepton, energy_str, idepth, cross_section_model, pn_model, prop_type, sci_str(stats))
         ascii.write(cdf_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
         return print('Outgoing %s energy CDF data saved to file %s' % (ch_lepton,fnm))
-    return z_vals, cdf_arr
+    return z_vals, angles, cdf_arr
 
 def interp_pexit(nu_type, ch_lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, method='linear', arg=None):
     """interpolates exit probability value at a given energy & angle
@@ -840,10 +841,11 @@ def interp_cdf(nu_type, ch_lepton, energy, angle, idepth, cross_section_model, p
 
     with h5py.File(in_file, 'r') as hf:
         energies = 10**np.asarray(sorted([float(i) for i in hf['CLep_out_energies'].keys()])) # these energies are in GeV
-        angles = np.asarray(sorted([float(i) for i in hf['CLep_out_energies'][str(np.log10(energies[0]))].keys()])) # get Earth emergence angles
+        # angles = np.asarray(sorted([float(i) for i in hf['CLep_out_energies'][str(np.log10(energies[0]))].keys()])) # get Earth emergence angles
         z_vals = get_cdf(nu_type, ch_lepton, energies[0], idepth, cross_section_model, pn_model, prop_type, stats)[0] # get whatever z_vals are in the output file
+        angles = get_cdf(nu_type, ch_lepton, energies[0], idepth, cross_section_model, pn_model, prop_type, stats)[1] # get Earth emergence angles
 
-    cdf_vals = np.asarray([get_cdf(nu_type, ch_lepton, i, idepth, cross_section_model, pn_model, prop_type, stats)[1] for i in energies]).reshape(len(energies),len(angles),len(z_vals)) # cdf_vals[i,j,k] = [energy,angle,cdf_val]
+    cdf_vals = np.asarray([get_cdf(nu_type, ch_lepton, i, idepth, cross_section_model, pn_model, prop_type, stats)[2] for i in energies]).reshape(len(energies),len(angles),len(z_vals)) # cdf_vals[i,j,k] = [energy,angle,cdf_val]
 
     points = (energies, angles, z_vals) # 3D 'coordinates' or grid
 
