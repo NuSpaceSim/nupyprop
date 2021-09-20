@@ -652,7 +652,7 @@ def add_clep_out(nu_type, ch_lepton, energy, angle, idepth, cross_section_model,
 
     out_file = output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg)
 
-    clep_table.write(out_file, path='CLep_out_energies/%s/%.2f' % (energy_str,angle), append=True, overwrite=True)
+    clep_table.write(out_file, path='CLep_out_energies/%s/%s' % (energy_str,angle), append=True, overwrite=True)
     return None
 
 def get_clep_out(nu_type, ch_lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, out=False, arg=None):
@@ -682,7 +682,7 @@ def get_clep_out(nu_type, ch_lepton, energy, angle, idepth, cross_section_model,
 
     in_file = output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg)
 
-    e_out = Table.read(in_file, 'CLep_out_energies/%s/%.2f' % (energy_str,angle))
+    e_out = Table.read(in_file, 'CLep_out_energies/%s/%s' % (energy_str,angle))
     out_lep = 10**(np.asarray(e_out['lep_energy'])) # changed 13/7/21
 
     if out:
