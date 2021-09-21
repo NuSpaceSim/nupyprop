@@ -1,14 +1,14 @@
-# %ECSV 0.9
+# %ECSV 1.0
 # ---
 # datatype:
 # - {name: energy, datatype: float64}
 # - {name: beta_pn_ckmt_cut, datatype: float64}
 # - {name: beta_pn_ckmt_total, datatype: float64}
 # meta: !!omap
-# - {Description: Model/parameterization dependent energy loss lookup table for tau in rock}
-# - {energy: 'tau energy, in GeV'}
-# - {beta_pn_ckmt_cut: 'Photonuclear ckmt energy loss model beta value integrated from y_min to y_max=1e-3, in cm^2/g'}
-# - {beta_pn_ckmt_total: 'Photonuclear ckmt energy loss model beta value integrated from y_min to y_max, in cm^2/g'}
+# - {Description: Model/parameterization dependent photonuclear energy loss lookup table for Tau in rock}
+# - {energy: 'Tau energy, in GeV'}
+# - {beta_pn_ckmt_cut: 'Photonuclear CKMT energy loss model beta values integrated from y_min to y_max=1e-3, in cm^2/g'}
+# - {beta_pn_ckmt_total: 'Photonuclear CKMT energy loss model beta values integrated from y_min to y_max, in cm^2/g'}
 # schema: astropy-2.0
 energy beta_pn_ckmt_cut beta_pn_ckmt_total
 1.0 0.0 0.0

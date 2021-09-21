@@ -160,7 +160,7 @@ def ctw_ixc(): # CTW parameterization (eqs. 12, 13)
     ixc_high = lambda y,E,A_0,A_1,A_2,A_3,ymin,ymax:(np.log((y - (A_0 - A_1 * np.exp(-(np.log10(E) - A_2)/A_3)))/(ymin - (A_0 - A_1 * np.exp(-(np.log10(E) - A_2)/A_3)))))/(np.log((ymax - (A_0 - A_1 * np.exp(-(np.log10(E) - A_2)/A_3)))/(ymin - (A_0 - A_1 * np.exp(-(np.log10(E) - A_2)/A_3))))) # eq. 13
 
     v2 = -np.linspace(0.1,3,num=30)
-    yvals = 10**v2 # The integrated cross-section values should go from y = 0, 10^(-0.1),...,10^(-3). This is a convention we chose to adopt. (This is also why we don't use the CTW ixc_low)
+    yvals = 10**v2 # The integrated cross-section values should go from y = 1, 10^(-0.1),...,10^(-3). This is a convention we chose to adopt. (This is also why we don't use the CTW ixc_low)
 
 
     ymin = 1e-3 # high y region only
@@ -170,7 +170,7 @@ def ctw_ixc(): # CTW parameterization (eqs. 12, 13)
 
     for E in E_nu:
 
-        nu_cc, nu_nc, anu_cc, anu_nc = np.zeros(1),np.zeros(1),np.zeros(1),np.zeros(1) # pad all arrays with 0 at the beginning
+        nu_cc, nu_nc, anu_cc, anu_nc = np.ones(1),np.ones(1),np.ones(1),np.ones(1) # pad all arrays with 1 at the beginning
 
         for i in range(1,31):
             nu_cc = np.concatenate((nu_cc, np.asarray([1-ixc_high(yvals[i-1],E,A_high_n_cc[0],A_high_n_cc[1],A_high_n_cc[2],A_high_n_cc[3],ymin,ymax)])))
@@ -192,14 +192,14 @@ def ctw_ixc(): # CTW parameterization (eqs. 12, 13)
     C_an_cc = np.asarray(C_an_cc).flatten()
     C_an_nc = np.asarray(C_an_nc).flatten()
 
-    yvals_padded= np.insert(yvals,0,0)
+    yvals_padded= np.insert(yvals,0,1.0)
 
     nu_ixc_meta = OrderedDict({'Description':'Neutrino-nucleon cross-section CDF values for CTW',
                             'energy':'Neutrino energy, in GeV',
                             'y':'Inelasticity; y = (E_initial-E_final)/E_initial',
                             'cc_cdf_ctw':'Charged current cross-section CDF values for CTW',
                             'nc_cdf_ctw':'Neutral current cross-section CDF values for CTW',
-                            'Note':'The integrated cross-section CDF values should be integrated from y = 0, 10^(-0.1),...,10^(-3). This is a convention we chose to adopt'})
+                            'Note':'The integrated cross-section CDF values should be integrated from y = 1, 10^(-0.1),...,10^(-3). This is a convention we chose to adopt'})
 
     nu_ixc_table = Table([np.repeat(E_nu,31), np.tile(yvals_padded,len(E_nu)), C_n_cc, C_n_nc], names=('energy','y','cc_cdf_ctw','nc_cdf_ctw'), meta=nu_ixc_meta)
     fnm_nu = "ixc_neutrino_ctw.ecsv"
@@ -210,7 +210,7 @@ def ctw_ixc(): # CTW parameterization (eqs. 12, 13)
                             'y':'Inelasticity; y = (E_initial-E_final)/E_initial',
                             'cc_cdf_ctw':'Charged current cross-section CDF values for CTW',
                             'nc_cdf_ctw':'Neutral current cross-section CDF values for CTW',
-                            'Note':'The integrated cross-section CDF values should be integrated from y = 0, 10^(-0.1),...,10^(-3). This is a convention we chose to adopt'})
+                            'Note':'The integrated cross-section CDF values should be integrated from y = 1, 10^(-0.1),...,10^(-3). This is a convention we chose to adopt'})
 
     anu_ixc_table = Table([np.repeat(E_nu,31), np.tile(yvals_padded,len(E_nu)), C_an_cc, C_an_nc], names=('energy','y','cc_cdf_ctw','nc_cdf_ctw'), meta=anu_ixc_meta)
     fnm_anu = "ixc_anti_neutrino_ctw.ecsv"
@@ -444,9 +444,9 @@ def calc_beta(lepton, material, model):
 
 def calc_xc(lepton, material, model):
 
-    yvals = 10**(-np.linspace(0.1,3,num=30)) # The integrated cross-section values should go from y = 0, 10^(-0.1),...,10^(-3). This is a convention we chose to adopt.
+    yvals = 10**(-np.linspace(0.1,3,num=30)) # The integrated cross-section values should go from y = 1, 10^(-0.1),...,10^(-3). This is a convention we chose to adopt.
 
-    yvals_padded = np.insert(yvals, 0, 0)
+    yvals_padded = np.insert(yvals,0,1.0)
 
     if lepton=='tau':m_le = m_tau
     elif lepton=='muon':m_le=m_mu
@@ -475,7 +475,7 @@ def calc_xc(lepton, material, model):
         pn_int = np.asarray([i/pn_int[-1] if pn_int[-1]!=0 else i for i in pn_int]) # normalize to CDF values
         # pn_int = pn_int/np.max(pn_int) # normalize to CDF values
 
-        pn_int = np.insert(pn_int, 0, 0) # pad with 0 at the beginning of the array
+        pn_int = np.insert(pn_int, 0, 1.0) # pad with 1 at the beginning of the array
 
         ixc_lst.append(pn_int)
 
@@ -493,7 +493,7 @@ def calc_xc(lepton, material, model):
                             'energy':'%s energy, in GeV' % lepton.capitalize(),
                             'y':'Inelasticity; y = (E_initial-E_final)/E_initial',
                             'cdf':'Cross-section CDF values for PN_%s in %s' % (str.upper(model),material),
-                            'Note':'The integrated cross-section CDF values should be integrated from y = 0, 10^(-0.1),...,10^(-3). This is a convention we chose to adopt'})
+                            'Note':'The integrated cross-section CDF values should be integrated from y = 1, 10^(-0.1),...,10^(-3). This is a convention we chose to adopt'})
     ixc_table = Table([np.repeat(E_lep,31), np.tile(yvals_padded,len(E_lep)), cdf], names=('energy','y','cdf_pn_%s' % model), meta=ixc_meta)
 
     fnm_ixc = "ixc_%s_pn_%s_%s.ecsv" % (lepton,model,material)

@@ -1,4 +1,4 @@
-# %ECSV 0.9
+# %ECSV 1.0
 # ---
 # datatype:
 # - {name: energy, datatype: float64}
@@ -7,8 +7,8 @@
 # meta: !!omap
 # - {Description: Neutrino-nucleon cross-section values for CTW}
 # - {energy: 'Neutrino energy, in GeV'}
-# - {sigma_cc: 'Charged current cross-section, in cm^2'}
-# - {sigma_nc: 'Neutral current cross-section, in cm^2'}
+# - {sigma_cc: 'Charged current cross-section for CTW, in cm^2'}
+# - {sigma_nc: 'Neutral current cross-section for CTW, in cm^2'}
 # schema: astropy-2.0
 energy sigma_cc_ctw sigma_nc_ctw
 1000.0 5.938363384193696e-36 1.8316238118834595e-36

@@ -64,9 +64,13 @@ real(dp), parameter :: E_lep(121) = (/1.00000000e+00, 1.25892541e+00, 1.58489319
        & 1.58489319e+11, 1.99526231e+11, 2.51188643e+11, 3.16227766e+11,&
        & 3.98107171e+11, 5.01187234e+11, 6.30957344e+11, 7.94328235e+11,&
        & 1.00000000e+12/)
-real(dp), parameter, dimension(31) :: v2 = (/0.,-0.1, -0.2, -0.3, -0.4, -0.5, -0.6, -0.7, -0.8, -0.9, -1. ,&
-       & -1.1, -1.2, -1.3, -1.4, -1.5, -1.6, -1.7, -1.8, -1.9, -2. , -2.1,&
-       & -2.2, -2.3, -2.4, -2.5, -2.6, -2.7, -2.8, -2.9, -3./) ! x (interpolating arr for find_y)
+! real(dp), parameter, dimension(31) :: v2 = (/0.,-0.1, -0.2, -0.3, -0.4, -0.5, -0.6, -0.7, -0.8, -0.9, -1. ,&
+!        & -1.1, -1.2, -1.3, -1.4, -1.5, -1.6, -1.7, -1.8, -1.9, -2. , -2.1,&
+!        & -2.2, -2.3, -2.4, -2.5, -2.6, -2.7, -2.8, -2.9, -3./) ! x (interpolating arr for find_y)
+real(dp), parameter, dimension(31) :: yvals = (/1., 0.79432823, 0.63095734, 0.50118723, 0.39810717,0.31622777,&
+       & 0.25118864, 0.19952623, 0.15848932, 0.12589254, 0.1, 0.07943282, 0.06309573, 0.05011872, 0.03981072,&
+       & 0.03162278, 0.02511886, 0.01995262, 0.01584893, 0.01258925, 0.01, 0.00794328, 0.00630957, 0.00501187,&
+       & 0.00398107,0.00316228, 0.00251189, 0.00199526, 0.00158489, 0.00125893, 0.001/) ! x (interpolating arr for find_y)
 
 end module constants
 
@@ -534,7 +538,7 @@ subroutine em_cont_part(E_init, alpha_val, beta_val, x, m_le, E_fin)
     if (beta_val * x < 1e-6_dp) then
         E_fin = E_init * (1._dp-beta_val*x) - alpha_val*x
     else
-        E_fin = E_init * dexp(-beta_val*x) - alpha_val/beta_val*(1-dexp(-beta_val*x))
+        E_fin = E_init * dexp(-beta_val*x) - alpha_val/beta_val*(1._dp-dexp(-beta_val*x))
     end if
 
     if (E_fin < 0) then
@@ -706,7 +710,7 @@ subroutine find_y(energy, ixc_arr, ip, y)
     real(dp), intent(out) :: y
     !! Inelasticity, y = (E_init-E_final)/E_initial.
 
-    real(dp) :: dy, dlv, search_arr(31) ! interpolating_arr is f(x)
+    real(dp) :: dy, search_arr(31) ! interpolating_arr is f(x)
     integer :: ip_id, energy_index
 
     call random_no(dy)
@@ -736,8 +740,11 @@ subroutine find_y(energy, ixc_arr, ip, y)
 
     search_arr = ixc_arr(:,energy_index,ip_id)
 
-    call interpol(dy, search_arr, v2, dlv) ! interpolate in v2
-    y = 10.**dlv
+    call interpol(dy, search_arr, yvals, y) ! interpolate in yvals directly
+    ! dy is the randomly sampled cross-section CDF value (between 0 & 1)
+    ! search_arr = cross-section CDF value array for energy_index
+    ! yvals = array of min. y values from which the cross-section CDF is calculated (see models.py for calculation details) 
+    ! y is the interpolated (yvals) value corresponding to the cross-section CDF value = dy; this y is responsible for stochastic energy losses
 
     if (y > 1._dp) then
         y = 1.0_dp
@@ -1127,7 +1134,6 @@ subroutine propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_
             call em_cont_part(e_lep, alpha, beta, x, m_le, e_int) ! get the continuous energy
 
             if (e_int <= e_min) then ! is it below minimum energy now?
-!                file.write("e_int < 1e3, so considering this to be a decay" + "\n")
                 e_fin = e_int
                 ! go to 20
                 d_fin = d_max/1e5_dp ! in km.w.e
@@ -1139,7 +1145,6 @@ subroutine propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_
             call interaction_type_lep(e_int, xc_rock, rho, m_le, c_tau, int_type)
 
             if (int_type == 2) then ! tau has decayed
-!                file.write(str("decayed; no. of stochastic interactions before decay = %d" % stoch_int) + "\n")
                 part_id = 0
                 e_fin = e_int
                 ! go to 50
@@ -1148,19 +1153,16 @@ subroutine propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_
             end if
 
             ! tau didn't decay. Now how much energy does it have after interaction?
-!            stoch_int += 1
             call find_y(e_int, lep_ixc, int_type, y)
-!            file.write(str("interaction type = %s, y = %f" % (int_type,y)) + "\n")
 
             ! outgoing tau energy is old e_lep*(1-y)
-            e_lep = e_int*(1-y) ! this is the energy for the next interaction
+            e_lep = e_int*(1._dp-y) ! this is the energy for the next interaction
             e_fin = e_lep
 
         end do
 
         ! Outside the while loop, e_lep has to be < e_min
         if (e_lep <= e_min) then ! only continuous energy loss; go to 20
-!            file.write("e_int < 1e3, so considering this to be a decay" + "\n")
             d_fin = d_max/1e5_dp
             e_fin = e_min
             part_id = 0 ! decayed or no_count??? should be decayed
@@ -1191,7 +1193,6 @@ subroutine propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_
             if (e_lep < e_min) then
                 exit
             end if
-!            cnt += 1
 
             call cd2distd(xalong, cdalong, col_depth, x_interp) ! find how far we are along the chord for given beta
             call densityatx(x_interp, angle, idepth, r, rho) ! find rho at x

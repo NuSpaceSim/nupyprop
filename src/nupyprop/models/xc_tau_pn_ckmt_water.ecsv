@@ -1,12 +1,12 @@
-# %ECSV 0.9
+# %ECSV 1.0
 # ---
 # datatype:
 # - {name: energy, datatype: float64}
 # - {name: sigma_pn_ckmt, datatype: float64}
 # meta: !!omap
-# - {Description: tau-nucleon cross-section values for ckmt in water}
-# - {energy: 'tau energy, in GeV'}
-# - {sigma_ckmt: 'cross-section for ckmt * N_A/A, in cm^2/g'}
+# - {Description: Tau-nucleon cross-section values for PN_CKMT in water}
+# - {energy: 'Tau energy, in GeV'}
+# - {sigma_ckmt: 'N_A/A * cross-section for PN_CKMT in water, in cm^2/g'}
 # schema: astropy-2.0
 energy sigma_pn_ckmt
 1.0 0.0
