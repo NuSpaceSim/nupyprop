@@ -170,7 +170,7 @@ def ctw_ixc(): # CTW parameterization (eqs. 12, 13)
 
     for E in E_nu:
 
-        nu_cc, nu_nc, anu_cc, anu_nc = np.ones(1),np.ones(1),np.ones(1),np.ones(1) # pad all arrays with 1 at the beginning
+        nu_cc, nu_nc, anu_cc, anu_nc = np.zeros(1),np.zeros(1),np.zeros(1),np.zeros(1) # pad all arrays with 0 at the beginning since CDFs should begin with 0
 
         for i in range(1,31):
             nu_cc = np.concatenate((nu_cc, np.asarray([1-ixc_high(yvals[i-1],E,A_high_n_cc[0],A_high_n_cc[1],A_high_n_cc[2],A_high_n_cc[3],ymin,ymax)])))
@@ -475,7 +475,7 @@ def calc_xc(lepton, material, model):
         pn_int = np.asarray([i/pn_int[-1] if pn_int[-1]!=0 else i for i in pn_int]) # normalize to CDF values
         # pn_int = pn_int/np.max(pn_int) # normalize to CDF values
 
-        pn_int = np.insert(pn_int, 0, 1.0) # pad with 1 at the beginning of the array
+        pn_int = np.insert(pn_int, 0, 0) # pad with 0 at the beginning of the array because CDFs should begin with 0
 
         ixc_lst.append(pn_int)
 
