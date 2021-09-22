@@ -1753,6 +1753,8 @@ subroutine single_stat(energy, angle, nu_xc, nu_ixc, depth, depthE, dwater, xc_w
     real(dp) :: depth0, dtr, ef, etauin, dfinal, etauf, dleft, dtau2, ef2
     integer :: ip, ipp, ipp3
     integer(kind=8) :: regen_cnt
+    CHARACTER(LEN=10) :: Format
+    Format = "(F5.2)"
 
     depth0 = 0.0_dp ! start with this each time
 
@@ -1795,7 +1797,7 @@ subroutine single_stat(energy, angle, nu_xc, nu_ixc, depth, depthE, dwater, xc_w
         no_regen_tot = no_regen_tot + 1
         regen_tot = regen_tot + 1 ! update the regen tau array once
 
-        write(u, *) dlog10(etauf)
+        write(u, Format) dlog10(etauf)
         ! go to 10; we are done with the loop
         return ! break outside stat; continue is correct here
     end if
@@ -1817,7 +1819,7 @@ subroutine single_stat(energy, angle, nu_xc, nu_ixc, depth, depthE, dwater, xc_w
         if (ipp3 == 1) then ! then we are back to a tau at the end of the road
             regen_tot = regen_tot + 1
             
-            write(u, *) dlog10(ef2)
+            write(u, Format) dlog10(ef2)
             ! go to 10; we are done with the loop
             return ! need to check if this breaks out of stat loop or not. Yes??
         end if
@@ -1895,8 +1897,6 @@ subroutine run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_wate
     integer(kind=8):: regen_cnt, i
     integer(kind=8) :: u
     character(25) filename
-
-!    write(6,*)'stat_val=',stats
 
     if (angle < 10._dp) then
         write(filename,'(a,es8.2,a,F4.2,a)') 'eout_',energy,'_',angle,'.dat' ! filename is e_out_energy_angle
