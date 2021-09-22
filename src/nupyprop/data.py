@@ -807,13 +807,17 @@ def interp_pexit(nu_type, ch_lepton, energy, angle, idepth, cross_section_model,
         energies = 10**np.asarray(sorted([float(i) for i in hf['CLep_out_energies'].keys()])) # these energies are in GeV
         angles = np.asarray(sorted([float(i) for i in hf['CLep_out_energies'][str(np.log10(energies[0]))].keys()])) # get Earth emergence angles
 
-    p_exit = np.asarray([get_pexit(nu_type, ch_lepton, i, idepth, cross_section_model, pn_model, prop_type, stats)[1] for i in energies]).reshape(len(energies),len(angles)) # p_exit[i,j] = [energy,angle]
+    if (energy in energies) and (angle in angles): # return the p_exit value from the data
+        angle_index = np.where(angles==angle)[0][0]
+        pexit_val = get_pexit(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats)[1][angle_index]
+        return pexit_val
 
-    points = (energies, angles)
-    point = (energy, angle)
-    interp_val = float(interpn(points, p_exit, point, method=method))
-
-    return interp_val
+    else: # got through with interpolation
+        p_exit = np.asarray([get_pexit(nu_type, ch_lepton, i, idepth, cross_section_model, pn_model, prop_type, stats)[1] for i in energies]).reshape(len(energies),len(angles)) # p_exit[i,j] = [energy,angle]
+        points = (energies, angles)
+        point = (energy, angle)
+        interp_val = float(interpn(points, p_exit, point, method=method))
+        return interp_val
 
 def interp_cdf(nu_type, ch_lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, z=None, arg=None):
     """interpolates CDF values at given energy, angle and z (bin) value
@@ -841,25 +845,28 @@ def interp_cdf(nu_type, ch_lepton, energy, angle, idepth, cross_section_model, p
 
     with h5py.File(in_file, 'r') as hf:
         energies = 10**np.asarray(sorted([float(i) for i in hf['CLep_out_energies'].keys()])) # these energies are in GeV
-        # angles = np.asarray(sorted([float(i) for i in hf['CLep_out_energies'][str(np.log10(energies[0]))].keys()])) # get Earth emergence angles
         z_vals = get_cdf(nu_type, ch_lepton, energies[0], idepth, cross_section_model, pn_model, prop_type, stats)[0] # get whatever z_vals are in the output file
         angles = get_cdf(nu_type, ch_lepton, energies[0], idepth, cross_section_model, pn_model, prop_type, stats)[1] # get Earth emergence angles
 
-    cdf_vals = np.asarray([get_cdf(nu_type, ch_lepton, i, idepth, cross_section_model, pn_model, prop_type, stats)[2] for i in energies]).reshape(len(energies),len(angles),len(z_vals)) # cdf_vals[i,j,k] = [energy,angle,cdf_val]
+    if (energy in energies) and (angle in angles) and (z is None):
+        angle_index = np.where(angles==angle)[0][0]
+        cdf_arr = get_cdf(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, arg=arg)[2][angle_index]
+        return cdf_arr
+    else:
+        cdf_vals = np.asarray([get_cdf(nu_type, ch_lepton, i, idepth, cross_section_model, pn_model, prop_type, stats)[2] for i in energies]).reshape(len(energies),len(angles),len(z_vals)) # cdf_vals[i,j,k] = [energy,angle,cdf_val]
+        points = (energies, angles, z_vals) # 3D 'coordinates' or grid
 
-    points = (energies, angles, z_vals) # 3D 'coordinates' or grid
-
-    if z is None: # if the z value to be interpolated at is not provided
-        out_arr = []
-        for z in z_vals:
+        if z is None: # if the z value to be interpolated at is not provided
+            out_arr = []
+            for z in z_vals:
+                point = (energy, angle, z)
+                out_arr.append(interpn(points, cdf_vals, point))
+            interp_arr = np.asarray(out_arr).flatten()
+        else: # if the z value is provided by the user
             point = (energy, angle, z)
-            out_arr.append(interpn(points, cdf_vals, point))
-        interp_arr = np.asarray(out_arr).flatten()
-    else: # if the z value is provided by the user
-        point = (energy, angle, z)
-        interp_arr = float(interpn(points, cdf_vals, point)) # not an array, just a value at z
+            interp_arr = float(interpn(points, cdf_vals, point)) # not an array, just a value at z
 
-    return interp_arr
+        return interp_arr
 
 def sort_htc_files(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, cdf_bins=None):
     """processes files created when the code is run with HTC mode on
