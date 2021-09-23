@@ -731,7 +731,11 @@ def add_cdf(nu_type, ch_lepton, idepth, cross_section_model, pn_model, prop_type
                 e_out = get_clep_out(nu_type, ch_lepton, 10**energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, arg=arg)
                 if np.array_equal(bins,np.logspace(-5,0,51)):count, bins_count = np.histogram(e_out/10**energy, bins) # because for nuSpaceSim, z=E_tau(or E_mu)/E_nu
                 else:count, bins_count = np.histogram(e_out, bins) # for user defined bins
-                pdf = count / sum(count)
+                count_sum = sum(count)
+                if count_sum == 0:
+                    pdf = np.zeros_like(count) # workaround if none of the energies fall in any bins
+                else:
+                    pdf = count / sum(count)
                 cdf = np.insert(np.cumsum(pdf),0,0) # pad at the beginning with 0 because np.histogram 'eats' the first index/value
                 cdf_angles.append(cdf)
             cdf_table = Table(cdf_angles, names=('z',*angles), meta=cdf_meta)
