@@ -567,7 +567,7 @@ subroutine int_depth_nu(energy, nu_xc, fac_nu, x_int)
 
     call int_xc_nu(energy, nu_xc, fac_nu, sig_cc, sig_nc) ! initialize CC & NC xc interpolations; moved fac_nu to here
     sig_weak = sig_cc + sig_nc ! weak interactions
-    x_int = 1/(N_A*sig_weak)
+    x_int = 1._dp/(N_A*sig_weak)
 
 end subroutine int_depth_nu
 
@@ -598,7 +598,7 @@ subroutine int_depth_lep(energy, xc_arr, rho, m_le, c_tau, x_int)
     sig_nc = 0 ! placeholder for NC (charged) lepton interactions; can be read in from the lookup table in the future
 
     decay_length = (energy/m_le)*c_tau
-    decay_depth_inv = 1/(decay_length*rho)
+    decay_depth_inv = 1._dp/(decay_length*rho)
 
     call int_xc_lep(energy, xc_arr, rho, sig_brem, sig_pair, sig_pn) ! initialize Brem, pair & pn xc interpolations
 
@@ -668,10 +668,10 @@ subroutine interaction_type_lep(energy, xc_arr, rho, m_le, c_tau, int_type)
     call int_xc_lep(energy, xc_arr, rho, sig_brem, sig_pair, sig_pn)
 
     decay_length = (energy/m_le)*c_tau
-    decay_depth_inv = 1/(decay_length*rho)
+    decay_depth_inv = 1._dp/(decay_length*rho)
     call int_depth_lep(energy, xc_arr, rho, m_le, c_tau, int_lep)
 
-    tot_frac = 1/int_lep
+    tot_frac = 1._dp/int_lep
     decay_frac = decay_depth_inv/tot_frac
     cc_frac = sig_cc/tot_frac ! placeholder for CC (charged) lepton interactions
     nc_frac = sig_nc/tot_frac ! placeholder for NC (charged) lepton interactions
@@ -747,7 +747,7 @@ subroutine find_y(energy, ixc_arr, ip, y)
     ! y is the interpolated (yvals) value corresponding to the cross-section CDF value = dy; this y is responsible for stochastic energy losses
 
     if (y > 1._dp) then
-        y = 1.0_dp
+        y = 1._dp
     end if
 
 end subroutine find_y
@@ -1898,11 +1898,7 @@ subroutine run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_wate
     integer(kind=8) :: u
     character(25) filename
 
-    if (angle < 10._dp) then
-        write(filename,'(a,es8.2,a,F4.2,a)') 'eout_',energy,'_',angle,'.dat' ! filename is e_out_energy_angle
-    else
-        write(filename,'(a,es8.2,a,F5.2,a)') 'eout_',energy,'_',angle,'.dat' ! filename is e_out_energy_angle
-    end if
+    write(filename,'(a,F0.2,a,F0.2,a)') 'eout_',dlog10(energy),'_',angle,'.dat' ! filename is eout_energy_angle.dat
 
     open(newunit=u, file=trim(filename), status="replace")
 

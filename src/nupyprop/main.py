@@ -157,7 +157,6 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, ch_lept
         Adds exit probability & outgoing lepton energy results to output_x.h5
 
     '''
-
     make_array = lambda x : x if isinstance(x, Iterable) else np.array([x]) # to avoid errors with single or no columns
 
     nu_xc, xc_water, xc_rock, alpha_water, alpha_rock, beta_water, beta_rock = init_xc(nu_type, ch_lepton, cross_section_model, pn_model, prop_type)
@@ -183,26 +182,28 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, ch_lept
 
     for energy in E_prop:
 
+        # log_energy = np.log10(energy)
+
         for angle in sorted(angles):
 
             xalong, cdalong = Data.get_trajs('col', angle, idepth) # initialize arrays here for each angle, to reduce a ton of overhead when tauthrulayers & regen are called
 
-            print("Energy = %.2e, Angle = %.2f" % (energy, angle), flush=True)
+            print("Neutrino Energy = 10^(%.2f) GeV, Earth Emergence Angle = %.2f degrees" % (energy, angle), flush=True)
 
             chord, water = Data.get_trajs('water', angle, idepth)
             dwater = water*rho_water # depth in water [kmwe] in last or only section
             depthE = Geometry.columndepth(angle, idepth)*1e-5 # column depth in kmwe
 
-            no_regen, regen = Run.run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton_int, fac_nu, stats, prop_type_int)
+            no_regen, regen = Run.run_stat_single(10**energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton_int, fac_nu, stats, prop_type_int)
 
             prob_no_regen = no_regen/float(stats)
             prob_regen = regen/float(stats)
 
             if htc_mode == 'no': # htc mode off
-                with open("pexit_%.2f.dat" % np.log10(energy), "a") as pexit_file:
-                    pexit_file.write("%.5e\t%.5e\t%.5e\t%.5e\n" % (energy,angle,prob_no_regen,prob_regen))
+                with open("pexit_%.2f.dat" % energy, "a") as pexit_file:
+                    pexit_file.write("%.5e\t%.5e\t%.5e\t%.5e\n" % (10**energy,angle,prob_no_regen,prob_regen))
 
-                e_out = make_array(np.genfromtxt(str("eout_%.2E_%.2f.dat" % (energy, angle))))
+                e_out = make_array(np.genfromtxt(str("eout_%.2f_%.2f.dat" % (energy, angle))))
                 e_out = Data.patch_for_astropy(e_out)
 
                 clep_meta = OrderedDict({'Description':'Outgoing %s energies' % ch_lepton,
@@ -215,13 +216,13 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, ch_lept
                 Data.add_clep_out(nu_type, ch_lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, clep_table)
 
 
-            else: # save p_exit files with single energy and angle; no post-processing of files here in the main execution; use data.sort_htc
-                with open("pexit_%.2E_%.2f.dat" % (energy,angle), "w") as pexit_file:
-                    pexit_file.write("%.5e\t%.5e\t%.5e\t%.5e\n" % (energy,angle,prob_no_regen,prob_regen))
+            else: # save p_exit files with single energy and angle; no post-processing of files here in the main execution (for that, use data.process_htc_out)
+                with open("pexit_%.2f_%.2f.dat" % (energy,angle), "w") as pexit_file:
+                    pexit_file.write("%.5e\t%.5e\t%.5e\t%.5e\n" % (10**energy,angle,prob_no_regen,prob_regen))
 
         # end of for loop for angles
         if htc_mode == 'no': # htc mode off; do some post-processing
-            p_angle, p_noregen, p_regen = np.genfromtxt("pexit_%.2f.dat" % np.log10(energy), usecols=(1,2,3), unpack=True)
+            p_angle, p_noregen, p_regen = np.genfromtxt("pexit_%.2f.dat" % energy, usecols=(1,2,3), unpack=True)
 
             p_angle = Data.patch_for_astropy(p_angle)
             p_noregen = Data.patch_for_astropy(p_noregen)
@@ -257,41 +258,20 @@ if __name__ == "__main__":
     # for i in range(10):
     # random.seed(30)
     start_time = time.time()
+    e_nu = np.array([7])
     angles = np.array([1,2,3,4,5])
-    # angles = np.arange(1,36)
-    # angles = np.array([1,2,3,4,5])
-    # angles = np.array([1,2,3,5,7,10,12,15,17,20,25,30,35])
-    # angles = np.array([17,20,25,30,35])
-    E_prop = np.array([10**7])
 
     idepth = 4
     fac_nu = 1
     ch_lepton = 'tau'
-    cross_section_model = 'ct18nlo'
-    pn_model = 'allm' # do not need to give the 'pn_' prefix if using run.py
+    cross_section_model = 'ctw'
+    pn_model = 'allm'
     prop_type = 'stochastic'
-    stats = int(1e7)
+    stats = int(1e9)
     nu_type = 'neutrino'
-    cdf_bins = np.logspace(-5,0,51)
-    htc_mode = 'no'
+    htc_mode = 'yes'
 
-    # nu_xc, xc_water, xc_rock, alpha_water, alpha_rock, beta_water, beta_rock = init_xc(lepton, cross_section_model, pn_model, prop_type)
-
-    # nu_ixc, lep_ixc_water, lep_ixc_rock = init_ixc(lepton, cross_section_model, pn_model)
-
-    # prob_dict, lep_dict = main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, lepton, fac_nu, stat, prop_type)
-    main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, ch_lepton, fac_nu, stats, cdf_bins, prop_type, htc_mode)
-
-    # print(prob_dict)
-
-    # e_out_files = glob.glob("e_out_*")
-
-    # for file in e_out_files:
-    #     os.remove(file)
-
-    # with ProcessPoolExecutor(max_workers = 4) as executor:
-    #     prob_dict, e_out = executor.map(main, angles, cross_section_model, pn_model, [idepth], lepton, [fac_nu], [stat], prop_type)
+    # main(e_nu, angles, nu_type, cross_section_model, pn_model, idepth, ch_lepton, fac_nu, stats, prop_type, htc_mode)
 
     end_time = time.time()
     print(f"It took a total of {end_time-start_time:.2f} seconds to compute")
-    # print("str(%.2E)" % 1e7.5)

@@ -143,7 +143,7 @@ def main():
     parser = get_parser()
     args = parser.parse_args()
 
-    energies = np.power(10, np.fromstring(args.energy_val, dtype=float, sep=","))
+    energies = np.fromstring(args.energy_val, dtype=float, sep=",")
     angles = np.fromstring(args.angle_val, dtype=float, sep=",")
 
     idepth = int(args.idepth_val)
