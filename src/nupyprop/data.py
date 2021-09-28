@@ -888,7 +888,7 @@ def process_htc_out(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_
     p_regen_lst = []
 
     for i in range(len(eout_files)):
-        fnm = eout_files[i].replace(".dat","")
+        fnm = os.path.basename(eout_files[i].replace(".dat",""))
         angle = float(fnm.split("_")[-1])
         e_out = make_array(np.genfromtxt(eout_files[i]))
         e_out = patch_for_astropy(e_out)
@@ -903,7 +903,7 @@ def process_htc_out(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_
                                 'lep_energy':'Outgoing %s energy, in log_10(E) GeV'})
         clep_table = Table([e_out], names=('lep_energy',), meta=clep_meta)
 
-        add_clep_out(nu_type, ch_lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, clep_table, arg=arg)
+        add_clep_out(nu_type, ch_lepton, float(energy), angle, idepth, cross_section_model, pn_model, prop_type, stats, clep_table, arg=arg)
     print("CLep_out processed successfully")
 
     pexit_angle = patch_for_astropy(np.asarray(p_angle_lst))
@@ -917,7 +917,7 @@ def process_htc_out(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_
 
     pexit_table = Table([pexit_angle, pexit_noregen, pexit_regen], names=('angle','no_regen','regen'), meta=pexit_meta)
 
-    add_pexit(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, pexit_table, arg=arg) # adds p_exit results to output file
+    add_pexit(nu_type, ch_lepton, float(energy), idepth, cross_section_model, pn_model, prop_type, stats, pexit_table, arg=arg) # adds p_exit results to output file
     print("P_exit processed successfully")
 
     if cdf_bins is None:add_cdf(nu_type, ch_lepton, idepth, cross_section_model, pn_model, prop_type, stats, arg=arg) # adds the binned cdf values for all neutrino energies and angles in an output file, to the output file.
