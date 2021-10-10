@@ -669,7 +669,10 @@ subroutine interaction_type_lep(energy, xc_arr, rho, m_le, c_tau, int_type)
 
     decay_length = (energy/m_le)*c_tau
     decay_depth_inv = 1._dp/(decay_length*rho)
-    call int_depth_lep(energy, xc_arr, rho, m_le, c_tau, int_lep)
+    ! call int_depth_lep(energy, xc_arr, rho, m_le, c_tau, int_lep)
+    sig_em = sig_brem + sig_pair + sig_pn ! EM interactions
+    sig_weak = sig_cc + sig_nc ! weak interactions
+    int_lep = 1/(sig_em + sig_weak + decay_depth_inv)
 
     tot_frac = 1._dp/int_lep
     decay_frac = decay_depth_inv/tot_frac
