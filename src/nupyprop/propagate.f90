@@ -662,6 +662,7 @@ subroutine interaction_type_lep(energy, xc_arr, rho, m_le, c_tau, int_type)
 
     real(dp) :: sig_cc, sig_nc, sig_brem, sig_pair, sig_pn, decay_length, decay_depth_inv, int_lep
     real(dp) :: tot_frac, decay_frac, cc_frac, nc_frac, brem_frac, pair_frac, pn_frac, y
+    real(dp) :: sig_em, sig_weak
 
     sig_cc = 0 ! placeholder for CC lepton interactions
     sig_nc = 0 ! placeholder for NC lepton interactions
