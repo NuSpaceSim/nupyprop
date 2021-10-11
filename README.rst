@@ -84,6 +84,11 @@ described as follows:
 11. ``-htc`` or ``--htc_mode``: High throughput computing mode. If set to yes,
     the code will be optimized to run in high throughput computing mode.
     Default is no.
+    
+**Note**: This program uses OpenMP for propagating the huge number of neutrinos injected.
+For this purpose, the code will use **all** the threads available in your processor by default.
+To control the number of threads used for running the code, use ``export OMP_NUM_THREADS=x``, 
+where ``x`` is the number of threads you want the code to run with.
 
 **Viewing output results**: output_*.h5 will contain the results of the
 code after it has finished running. In the terminal, run ``vitables``
