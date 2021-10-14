@@ -131,6 +131,35 @@ def output_file(nu_type, ch_lepton, idepth, cross_section_model, pn_model, prop_
         fnm = "output_%s_%s_%s_%s_%s_%s_%s_%s.h5" % (nu_type,ch_lepton,idepth_str,cross_section_model,pn_model,prop_type,stats_str,arg)
     return fnm
 
+def add_attributes(nu_type, ch_lepton, idepth, cross_section_model, pn_model, prop_type, stats, arg=None):
+    """adds attributes to output file
+
+    Args:
+        nu_type (str): type of neutrino particle; can be neutrino or anti_neutrino
+        ch_lepton (str): type of charged lepton; can be tau or muon
+        idepth (int): depth of water layer, in km
+        cross_section_model (str): neutrino cross-section model
+        pn_model (str): photonuclear energy loss model
+        prop_type (str): type of energy loss mechanism; can be stochastic or continuous
+        stats (int): statistics or number of neutrinos injected
+        arg (str, optional): additional arguments at the end of the file name. Defaults to None.
+
+    Returns:
+        None
+    """
+    out_file = output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg)
+    if nu_type=='neutrino':nu_type='nu' # nu for neutrino and anu for anti-neutrino
+
+    with h5py.File(out_file, 'a') as hf:
+        hf.attrs['nu_type'] = nu_type
+        hf.attrs['ch_lepton'] = ch_lepton
+        hf.attrs['idepth'] = idepth
+        hf.attrs['cross_section_model'] = cross_section_model
+        hf.attrs['pn_model'] = pn_model
+        hf.attrs['prop_type'] = prop_type
+        hf.attrs['stats'] = int(stats)
+    return None
+
 def add_trajs(type_traj, idepth, traj_table):
     """adds trajectory values to lookup_tables.h5
 

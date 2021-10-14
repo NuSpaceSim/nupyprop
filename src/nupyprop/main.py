@@ -243,6 +243,7 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, ch_lept
 
     if htc_mode == 'no':
         Data.add_cdf(nu_type, ch_lepton, idepth, cross_section_model, pn_model, prop_type, stats) # adds the binned cdf values for all neutrino energies and angles in an output file, to the output file.
+        Data.add_attributes(nu_type, ch_lepton, idepth, cross_section_model, pn_model, prop_type, stats) # add attributes to the output file
         end_time = time.time()
         print(f"It took {end_time-start_time:.2f} seconds to compute")
         print("Done!")
