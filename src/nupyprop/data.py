@@ -149,7 +149,7 @@ def add_attributes(nu_type, ch_lepton, idepth, cross_section_model, pn_model, pr
     """
     out_file = output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg)
     if nu_type=='neutrino':nu_type='nu' # nu for neutrino and anu for anti-neutrino
-
+    else:nu_type='anu'
     with h5py.File(out_file, 'a') as hf:
         hf.attrs['nu_type'] = nu_type
         hf.attrs['ch_lepton'] = ch_lepton
