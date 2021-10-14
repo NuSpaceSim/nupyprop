@@ -95,12 +95,12 @@ code after it has finished running. In the terminal, run ``vitables``
 (optional dependency) and open the output_*.h5 file to view the output
 results.
 
-output_*.h5 naming convention is as follows: **output_A_B_C_D_E_F_G**,
+output_*.h5 naming convention is as follows: **output_A_B_Ckm_D_E_F_G**,
 where
 
 | A = Neutrino type: nu is for neutrino & anu is for anti-neutrino.
-| B = Lepton_type: tau is for tau leptons & muon is for muons.
-| C = idepth: depth of water layer, in km.
+| B = Charged lepton type: tau is for tau leptons & muon is for muons.
+| C = idepth: depth of water layer (in km).
 | D = Neutrino (or anti-neutrino) cross-section model.
 | E = Charged lepton photonuclear energy loss model.
 | F = Energy loss type: can be stochastic or continuous.
@@ -115,10 +115,10 @@ Model Tables
    | Neutrino/Anti-Neutrino Cross-Section Model |                                             Reference                                            |
    +============================================+==================================================================================================+
    |    Abramowicz, Levin, Levy, Maor (ALLM)    | `hep-ph/9712415 <https://arxiv.org/abs/hep-ph/9712415>`_,                                        |
-   |                                            | `Phys. Rev. D 81, 114012 <https://journals.aps.org/prd/abstract/10.1103/PhysRevD.81.114012>`_    |
+   |                                            | `Phys. Rev. D 96, 043003 <https://journals.aps.org/prd/abstract/10.1103/PhysRevD.96.043003>`_    |
    +--------------------------------------------+--------------------------------------------------------------------------------------------------+
    |       Block, Durand, Ha, McKay (BDHM)      | `Phys. Rev. D 89, 094027 <https://journals.aps.org/prd/abstract/10.1103/PhysRevD.89.094027>`_,   |
-   |                                            | `Phys. Rev. D 81, 114012 <https://journals.aps.org/prd/abstract/10.1103/PhysRevD.81.114012>`_    |
+   |                                            | `Phys. Rev. D 96, 043003 <https://journals.aps.org/prd/abstract/10.1103/PhysRevD.96.043003>`_    |
    +--------------------------------------------+--------------------------------------------------------------------------------------------------+
    |                 CTEQ18-NLO                 | `Phys. Rev. D 103, 014013 <https://journals.aps.org/prd/abstract/10.1103/PhysRevD.103.014013>`_, |
    |                                            | `Phys. Rev. D 81, 114012 <https://journals.aps.org/prd/abstract/10.1103/PhysRevD.81.114012>`_    |
