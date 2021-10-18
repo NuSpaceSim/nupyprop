@@ -885,7 +885,7 @@ def interp_cdf(nu_type, ch_lepton, energy, angle, idepth, cross_section_model, p
             interp_arr = float(interpn(points, cdf_vals, point)) # not an array, just a value at z
         return interp_arr
 
-def process_htc_out(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, cdf_bins=None, arg=None):
+def process_htc_out(files_path, nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, arg=None):
     """processes files created when the code is run with HTC mode on
 
     Args:
@@ -897,13 +897,12 @@ def process_htc_out(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_
         pn_model (str): photonuclear energy loss model
         prop_type (str): type of energy loss mechanism; can be stochastic or continuous
         stats (int): statistics or number of neutrinos injected
-        cdf_bins (ndarray, optional): bins for computing CDF values. Defaults to np.logspace(-5,0,51)
         arg (str, optional): additional arguments at the end of the file name. Defaults to None
     Returns:
         None
     """
 
-    files_path = "osg_out/" # my output folder from OSG is osg_out/energy/*
+    if files_path[-1]!='/':files_path = files_path + '/' # path for data files
 
     make_array = lambda x : x if isinstance(x, Iterable) else np.array([x]) # to avoid errors with single or no columns
 
@@ -933,7 +932,7 @@ def process_htc_out(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_
         clep_table = Table([e_out], names=('lep_energy',), meta=clep_meta)
 
         add_clep_out(nu_type, ch_lepton, float(energy), angle, idepth, cross_section_model, pn_model, prop_type, stats, clep_table, arg=arg)
-    print("CLep_out processed successfully")
+    print("CLep_out processed successfully for E=1e%.f GeV" % energy)
 
     pexit_angle = patch_for_astropy(np.asarray(p_angle_lst))
     pexit_noregen = patch_for_astropy(np.asarray(p_noregen_lst))
@@ -947,10 +946,9 @@ def process_htc_out(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_
     pexit_table = Table([pexit_angle, pexit_noregen, pexit_regen], names=('angle','no_regen','regen'), meta=pexit_meta)
 
     add_pexit(nu_type, ch_lepton, float(energy), idepth, cross_section_model, pn_model, prop_type, stats, pexit_table, arg=arg) # adds p_exit results to output file
-    print("P_exit processed successfully")
+    print("P_exit processed successfully for E=1e%.f GeV" % energy)
 
-    if cdf_bins is None:add_cdf(nu_type, ch_lepton, idepth, cross_section_model, pn_model, prop_type, stats, arg=arg) # adds the binned cdf values for all neutrino energies and angles in an output file, to the output file.
-    else:add_cdf(nu_type, ch_lepton, idepth, cross_section_model, pn_model, prop_type, stats, bins=cdf_bins, arg=arg) # adds the binned cdf values for all neutrino energies and angles in an output file, to the output file.
+    add_attributes(nu_type, ch_lepton, idepth, cross_section_model, pn_model, prop_type, stats, arg=arg)
     return None
 
 # =============================================================================
