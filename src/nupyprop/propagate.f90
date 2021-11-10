@@ -1902,7 +1902,7 @@ subroutine run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_wate
     integer(kind=8) :: u
     character(25) filename
 
-    write(filename,'(a,F0.2,a,F0.2,a)') 'eout_',dlog10(energy),'_',angle,'.dat' ! filename is eout_energy_angle.dat
+    write(filename,'(a,F0.2,a,F4.2,a)') 'eout_',dlog10(energy),'_',angle,'.dat' ! filename is eout_energy_angle.dat
 
     open(newunit=u, file=trim(filename), status="replace")
 
