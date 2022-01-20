@@ -12,6 +12,14 @@ Documentation (WIP): https://nupyprop.readthedocs.io/en/latest/
 `nuPyProp tutorial repository <https://research-git.uiowa.edu/spatel31/nupyprop_tutorial>`__
 for visualizing output from the code and creating user-defined models.
 
+**Citation:** Work is in progress on a comprehensive paper describing nuPyProp. Until then, please cite
+the ICRC 2021 conference proceedings, S. Patel et al. (NuSpaceSim Collaboration), 
+"Monte Carlo simulations of neutrino and charged lepton propagation in the Earth with nuPyProp"
+https://pos.sissa.it/395/1203 / e-Print: 2109.08198 [hep-ph].
+
+**Acknowledgments:** This work is supported by NASA grants 80NSSC19K0626 at the University of Maryland,Baltimore County, 80NSSC19K0460 at the Colorado School of Mines, 80NSSC19K0484 at theUniversity of Iowa, and 80NSSC19K0485 at the University of Utah, 80NSSC18K0464 at LehmanCollege, and under proposal 17-APRA17-0066 at NASA/GSFC and JPL.
+
+
 Installation
 ------------
 
