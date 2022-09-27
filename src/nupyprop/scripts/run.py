@@ -103,6 +103,17 @@ def get_parser():
     )
 
     parser.add_argument(
+        "-el",
+        "--energy_lepton",
+        dest="energy_lepton_id",
+        nargs="?",
+        type=str,
+        const="no",
+        default="no",
+        help="option to print exiting charged lepton's final energy in output file; default is no",
+    )
+
+    parser.add_argument(
         "-f",
         "--fac_nu",
         dest="fac_nu_val",
@@ -139,7 +150,6 @@ def get_parser():
 
 
 def main():
-
     parser = get_parser()
     args = parser.parse_args()
 
@@ -153,10 +163,11 @@ def main():
     type_loss = str(args.loss_type)
     cross_section_model = str(args.xc_model_id)
     pn_model = str(args.pn_model_id)
+    energy_lepton = str(args.energy_lepton_id)
     fac_nu = float(args.fac_nu_val)
     stats = int(args.stats_val)
     htc_mode = str(args.htc_id)
-    
+
 
     param_data = [["Parameter Name", "Value"],
         ["Charged Lepton", ch_lepton.capitalize()],
@@ -165,6 +176,7 @@ def main():
         ["Energy Loss Propagation", type_loss.capitalize()],
         ["Neutrino Cross Section Model", str.upper(cross_section_model)],
         ["Charged Lepton Photonuclear Energy Loss Model", str.upper(pn_model)],
+        ["Print Final Energy", energy_lepton.capitalize()],
         ["SM Neutrino Cross Section Scaling Factor", fac_nu],
         ["Statistics", '{:.0e}'.format(stats)],
         ["HTC Mode", htc_mode.capitalize()]]
@@ -182,6 +194,7 @@ def main():
         fac_nu,
         stats,
         type_loss,
+        energy_lepton,
         htc_mode
     )
 

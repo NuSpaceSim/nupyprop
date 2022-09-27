@@ -83,12 +83,16 @@ described as follows:
     Can be from the pre-defined set of models (see pn-table_) or custom.
     Default is allm.
 
-9.  ``-f`` or ``--fac_nu``: rescaling factor for BSM cross-sections. Default is 1.
+9.  ``-el`` or ``--energy_lepton``: option to print exiting charged lepton's final energy in
+    output file.
+    Default is no
 
-10. ``-s`` or ``--stats``: statistics or no. of injected neutrinos. Default is 1e7
+10.  ``-f`` or ``--fac_nu``: rescaling factor for BSM cross-sections. Default is 1.
+
+11. ``-s`` or ``--stats``: statistics or no. of injected neutrinos. Default is 1e7
     neutrinos.
     
-11. ``-htc`` or ``--htc_mode``: High throughput computing mode. If set to yes,
+12. ``-htc`` or ``--htc_mode``: High throughput computing mode. If set to yes,
     the code will be optimized to run in high throughput computing mode.
     Default is no.
     
