@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+1#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Sat Sep 26 16:44:13 2020
@@ -9,7 +9,7 @@ Created on Sat Sep 26 16:44:13 2020
 import numpy as np
 from decimal import Decimal
 import importlib_resources
-from astropy.table import Table
+from astropy.table import Table, vstack
 from astropy.io import ascii
 from collections import OrderedDict
 import glob
@@ -21,7 +21,7 @@ from scipy.interpolate import interpn
 E_nu = np.logspace(3,12,91,base=10).astype(np.float64)
 E_lep = np.logspace(0,12,121,base=10).astype(np.float64)
 
-nu_models = ['allm', 'bdhm', 'ct18nlo', 'nct15']
+nu_models = ['allm', 'bdhm', 'ct18nlo', 'nct15'] #these are the models that exsist in lookup_table.h5
 pn_models = ['allm', 'bb']
 
 ref = importlib_resources.files('nupyprop.datafiles') / 'lookup_tables.h5' # path for lookup_tables
@@ -130,6 +130,46 @@ def output_file(nu_type, ch_lepton, idepth, cross_section_model, pn_model, prop_
     else: # if a custom argument is present, it should be in the end of the filename
         fnm = "output_%s_%s_%s_%s_%s_%s_%s_%s.h5" % (nu_type,ch_lepton,idepth_str,cross_section_model,pn_model,prop_type,stats_str,arg)
     return fnm
+
+def sign(avg_pola):
+    """changes the sign of the avergae polariation value of charged lepton, because it starts as LH (P=-1)
+
+    Args:
+        avg_pola (float): Average polarization value of charged lepton
+
+    Returns:
+        Average polarization with an opposite sign as input
+        """
+    if avg_pola>0:
+        return -1*avg_pola
+    else:
+        return +1*avg_pola
+
+def replace_elements(old_arr, new_arr):
+    """replaces repeated array row, based on if the first element of each row is repeated.
+
+    Args:
+    ----------
+    old_arr : ndarray
+        previously present data in h5 file
+    new_arr : ndarray
+        new data to be written in h5 file
+
+    Returns
+    -------
+    arr : ndarray
+        data comprising of old and new data, and the repeated old data got replaced by new data
+
+    """
+    index=[]
+    for i in range(len(new_arr)):
+        for j in range(len(old_arr)):
+            if new_arr[i][0] == old_arr[j][0]:
+                index.append(j)  #the repeated angle in the old data will get replaced by new data
+
+    old_arr = np.delete(old_arr, index, 0)
+    arr = np.vstack((old_arr, new_arr))
+    return arr
 
 def add_attributes(nu_type, ch_lepton, idepth, cross_section_model, pn_model, prop_type, stats, arg=None):
     """adds attributes to output file
@@ -271,8 +311,7 @@ def get_xc(part_type, model, arg, out=False):
         part_type (str): type of particle; can be nu for neutrinos or tau for tau leptons or muon for muons
         model (str): name of the model
         arg (str): type of neutrino for part_type=nu or the propagation material for part_type=tau and part_type=muon
-        out (bool, optional): saves the data as an ASCII ecsv file if set to True; returns the array
-            value if set to False. Defaults to False.
+        out (bool, optional): saves the data as an ASCII ecsv file if set to True; returns the array value if set to False. Defaults to False.
 
     Returns:
         None/ndarray: None if out=True otherwise otherwise:
@@ -583,29 +622,56 @@ def get_beta(ch_lepton, model, material, arg, out=False):
     return np.asfortranarray(beta_arr.T)
 
 
-def add_pexit(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, pexit_table, arg=None):
-    """adds exit probability values to output file
+def add_pexit(ch_lepton, energy, p_angle, p_noregen, p_regen, out_file, arg=None):
+    """adds exit probability values to .h5 formatted output file
 
     Args:
-        nu_type (str): type of neutrino particle; can be neutrino or anti_neutrino
         ch_lepton (str): type of charged lepton; can be tau or muon
         energy (float): ingoing neutrino (or anti-neutrino) energy, in log_10(E/GeV)
-        idepth (int): depth of water layer, in km
-        cross_section_model (str): neutrino cross-section model
-        pn_model (str): photonuclear energy loss model
-        prop_type (str): type of energy loss mechanism; can be stochastic or continuous
-        stats (int): statistics or number of neutrinos injected
-        pexit_table (`~astropy.table.Table`): charged lepton exit probability values
-            Each table will need the following columns:
-            - ``angle``: Earth emergence angle, in degrees [``angle``]
-            - ``no_regen``: Exit probability value without any regeneration [``no_regen``]
-            - ``regen``: Exit probability value including regeneration (max. of 6 rounds of regen) [``regen``]
+        p_angle (float): Earth emergence angle, in degrees [``angle``]
+        p_noregen (float): Exit probability value without any regeneration [``no_regen``]
+        p_regen (float): Exit probability value including regeneration (max. of 6 rounds of regen) [``regen``]
+        out_file (str): Filename of h5 file in which the data will be stored
         arg (str, optional): additional arguments at the end of the file name. Defaults to None.
 
     Returns:
         None
     """
-    out_file = output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg)
+    pexit_meta = OrderedDict({'Description':'Exit probability for %s' % ch_lepton,
+                              'angle':'Earth emergence angle',
+                              'no_regen':'Exit probability without including any %s regeneration' % ch_lepton,
+                            'regen':'Exit probability including %s regeneration' % ch_lepton})
+
+    with h5py.File(out_file, 'a') as hf:
+        key = list(hf.keys())
+        boolean = 'Exit_Probability' in key
+
+        if boolean==True:
+            energies = np.asarray([float(i) for i in hf['Exit_Probability'].keys()]) #this gives us previous energies
+            #print("energies = ", energies)
+
+            if energy in energies:
+                #print("i am in repeated energy")
+                p_new_arr = np.asarray([[p_angle[i],p_noregen[i],p_regen[i]] for i in range(len(p_regen))])
+
+                old_data = hf['Exit_Probability/%s' % energy]
+                old_angle = np.array(old_data['angle'][:])
+                old_noregen = np.array(old_data['no_regen'][:])
+                old_regen = np.array(old_data['regen'][:])
+
+                p_old_arr = np.asarray([[old_angle[i],old_noregen[i],old_regen[i]] for i in range(len(old_regen))])
+
+                p_arr = replace_elements(p_old_arr, p_new_arr)
+                p_arr = np.transpose(sorted(p_arr, key = lambda x: x[0]))
+
+                pexit_table = Table([p_arr[0], p_arr[1], p_arr[2]], names=('angle','no_regen','regen'), meta=pexit_meta)
+
+            else:
+                #print("I am a new energy.")
+                pexit_table = Table([p_angle, p_noregen, p_regen], names=('angle','no_regen','regen'), meta=pexit_meta)
+
+        else:
+            pexit_table = Table([p_angle, p_noregen, p_regen], names=('angle','no_regen','regen'), meta=pexit_meta)
 
     pexit_table.write(out_file, path='Exit_Probability/%s' % energy, append=True, overwrite=True)
 
@@ -636,9 +702,10 @@ def get_pexit(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model,
 
     pexit_table = Table.read(in_file, path='Exit_Probability/%s' % np.log10(energy))
 
+    angle = pexit_table['angle']
     no_regen = pexit_table['no_regen']
     regen = pexit_table['regen']
-    out_arr = np.asarray([no_regen, regen])
+    out_arr = np.asarray([angle,no_regen, regen])
 
     if out:
         if nu_type=='neutrino':nu_type='nu'
@@ -649,29 +716,25 @@ def get_pexit(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model,
 
     return out_arr
 
-def add_clep_out(nu_type, ch_lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, clep_table, arg=None):
+def add_clep_out(ch_lepton, energy, angle, e_out, out_file, arg=None):
     """adds outgoing charged lepton energy values to output file
 
     Args:
-        nu_type (str): type of neutrino particle; can be neutrino or anti_neutrino
         ch_lepton (str): type of charged lepton; can be tau or muon
         energy (float): ingoing neutrino (or anti-neutrino) energy, in log_10(E/GeV)
         angle (float): earth emergence angle, in degrees
-        idepth (int): depth of water layer, in km
-        cross_section_model (str): neutrino cross-section model
-        pn_model (str): photonuclear energy loss model
-        prop_type (str): type of energy loss mechanism; can be stochastic or continuous
-        stats (int): statistics or number of neutrinos injected
-        clep_table (`~astropy.table.Table`): charged lepton outgoing energy values
-            Each table will need the following column:
-            - ``lep_energy``: Outgoing charged lepton energy, in log_10(E) GeV [``lep_energy``]
+        e_out (float): final energy of exiting charged leptons [``lep_energy``]
+        out_file (str): Filename of h5 file in which the data will be stored
         arg (str, optional): additional arguments at the end of the file name. Defaults to None.
 
     Returns:
         None
     """
     angle = float(angle)
-    out_file = output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg)
+
+    clep_meta = OrderedDict({'Description':'Outgoing %s energies' % ch_lepton,
+                            'lep_energy':'Outgoing %s energy, in log_10(E) GeV'})
+    clep_table = Table([e_out], names=('lep_energy',), meta=clep_meta)
 
     clep_table.write(out_file, path='CLep_out_energies/%s/%s' % (energy,angle), append=True, overwrite=True)
     return None
@@ -694,7 +757,7 @@ def get_clep_out(nu_type, ch_lepton, energy, angle, idepth, cross_section_model,
         arg (str, optional): additional arguments at the end of the file name. Defaults to None.
 
     Returns:
-        None/ndarray: None if out=True otherwise otherwise:
+        None/ndarray: None if out=True otherwise:
             1D numpy array of shape (x,) containing outgoing charged lepton energy values, in GeV;
             x is the number of outgoing charged leptons
     """
@@ -715,49 +778,219 @@ def get_clep_out(nu_type, ch_lepton, energy, angle, idepth, cross_section_model,
 
     return out_lep
 
-def add_cdf(nu_type, ch_lepton, idepth, cross_section_model, pn_model, prop_type, stats, bins=np.logspace(-5,0,51), arg=None):
-    """adds outgoing charged lepton energy CDF values to output file
+def add_polarization(ch_lepton, energy, pola_angle, avg_pola, out_file, arg=None):  #added May 19 2022
+    """adds outgoing charged lepton average polarization to output file
 
     Args:
-        nu_type (str): type of neutrino particle; can be neutrino or anti_neutrino
         ch_lepton (str): type of charged lepton; can be tau or muon
-        idepth (int): depth of water layer, in km
-        cross_section_model (str): neutrino cross-section model
-        pn_model (str): photonuclear energy loss model
-        prop_type (str): type of energy loss mechanism; can be stochastic or continuous
-        stats (int): statistics or number of neutrinos injected
-        bins (ndarray, optional): bins for computing CDF values. Defaults to np.logspace(-5,0,51)
+        energy (float): ingoing neutrino (or anti-neutrino) energy, in log_10(E/GeV)
+        pola_angle (float): the earth emergence angle in degrees [``angle``]
+        avg_polarization (float): Outgoing charged lepton average polarization about z-axis [``Avg_polarization``]
+        out_file (str): Filename of h5 file in which the data will be stored
         arg (str, optional): additional arguments at the end of the file name. Defaults to None.
 
     Returns:
         None
     """
-    out_file = output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg)
+    polarization_meta = OrderedDict({'Description':'Average polarization of exiting %s' % ch_lepton,
+                                     'angle':'Earth emergence angle',
+                            'Avg_polarization':'Average polarization along z-axis'})
 
+    with h5py.File(out_file, 'a') as hf:
+        key = list(hf.keys())
+        #print((key))
+        boolean = 'Avg_polarization' in key
+
+        if boolean==True:
+            energies = np.asarray([float(i) for i in hf['Avg_polarization'].keys()]) #this gives us previous energies
+            #print("energies = ", energies)
+
+            if energy in energies:
+                #print("i am in repeated energy")
+                p_new_arr = np.asarray([ [ pola_angle[i], avg_pola[i] ] for i in range(len(pola_angle))])
+
+                old_data = hf['Avg_polarization/%s' % energy]
+                old_angle = np.array(old_data['angle'][:])
+                old_polarization = np.array(old_data['Avg_polarization'][:])
+
+                p_old_arr = np.asarray([ [ old_angle[i], old_polarization[i] ] for i in range(len(old_angle))])
+
+                p_arr = replace_elements(p_old_arr, p_new_arr)
+                p_arr = np.transpose(sorted(p_arr, key = lambda x: x[0]))
+
+                #print(p_arr)
+
+                polarization_table = Table([p_arr[0], p_arr[1]], names=('angle','Avg_polarization'), meta=polarization_meta)
+
+            else:
+                #print("I am a new energy.")
+                polarization_table = Table([pola_angle, avg_pola], names=('angle', 'Avg_polarization',), meta=polarization_meta)
+
+        else:
+            polarization_table = Table([pola_angle, avg_pola], names=('angle', 'Avg_polarization',), meta=polarization_meta)
+
+    polarization_table.write(out_file, path='Avg_polarization/%s' % energy, append=True, overwrite=True)
+    return None
+
+def get_polarization(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, out=False, arg=None):   #added May 19 2022
+    """gets outgoing charged lepton average polarization values
+
+    Args:
+        nu_type (str): type of neutrino particle; can be neutrino or anti_neutrino
+        ch_lepton (str): type of charged lepton; can be tau or muon
+        energy (float): ingoing neutrino (or anti-neutrino) energy, in GeV
+        angle (float): earth emergence angle, in degrees
+        idepth (int): depth of water layer, in km
+        cross_section_model (str): neutrino cross-section model
+        pn_model (str): photonuclear energy loss model
+        prop_type (str): type of energy loss mechanism; can be stochastic or continuous
+        stats (int): statistics or number of neutrinos injected
+        out (bool, optional): saves the data as an ascii ecsv file if set to True; returns the array
+        value if set to False. Defaults to False.
+        arg (str, optional): additional arguments at the end of the file name. Defaults to None.
+
+    Returns:
+        None/ndarray: None if out=True otherwise:
+            1D numpy array of shape (x,) containing outgoing charged lepton average polarization along z-axis;
+            x is the number of outgoing charged leptons
+    """
+    in_file = output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg)
+
+    P_out = Table.read(in_file, 'Avg_polarization/%s' % np.log10(energy))
+    angle = P_out['angle']
+    polarization = P_out['Avg_polarization']
+    out_lep = np.asarray([angle,polarization])
+
+    if out:
+        if nu_type=='neutrino':nu_type='nu'
+        else:nu_type='anu'
+        fnm = "polarization_%s_%s_%sGeV_%skm_%s_%s_%s_%s.ecsv" % (nu_type, ch_lepton, np.log10(energy), idepth, cross_section_model, pn_model, prop_type, sci_str(stats))
+        ascii.write(P_out, fnm, format='ecsv', fast_writer=True, overwrite=True)
+        return print('Avg polarization of exiting charged lepton data saved to file %s' % fnm)
+
+    return out_lep
+
+def cdf_calc(energy, eout_list, bins):
+    """calculates the CDF values for the exiting charged lepton
+
+    Args:
+        energy (float): incoming neutrino (or anti-neutrino) energy, in log_10(E/GeV)
+        eout_list ([list, float]): final energy of exiting charged leptons, in log_10(E/GeV)
+        bins ([array, float]): bins for computing CDF values, different for each charged lepton
+
+        Returns:
+            ndarray of cdf values
+    """
+    cdf_angles = np.array([bins])
+    for i in range(len(eout_list)):
+        eout = np.delete(eout_list[i], 0)
+        count, bins_count = np.histogram(10**eout/10**energy, bins) # because for nuSpaceSim, z=E_tau(or E_mu)/E_nu
+        count_sum = sum(count)
+        if count_sum == 0:
+            pdf = np.zeros_like(count) # workaround if none of the energies fall in any bins
+        else:
+            pdf = count / count_sum
+        cdf = np.insert(np.cumsum(pdf),0,0) # pad at the beginning with 0 because np.histogram 'eats' the first index/value
+        cdf_angles = np.append(cdf_angles, [cdf], axis=0)
+
+    return cdf_angles
+
+def add_cdf(ch_lepton, energy, eout_list, out_file, htc_mode, bins=None, arg=None):
+    """adds outgoing charged lepton energy CDF values to output file
+
+    Args:
+        ch_lepton (str): type of charged lepton; can be tau or muon
+        energy (float): ingoing neutrino (or anti-neutrino) energy, in log_10(E/GeV)
+        eout_list (float): final energy of exiting charged leptons
+        out_file (str): Filename of h5 file in which the data will be stored
+        arg (str, optional): additional arguments at the end of the file name. Defaults to None.
+
+    Returns:
+        None
+    """
     cdf_meta = OrderedDict({'Description':'Outgoing %s energy CDF' % ch_lepton,
                             'z':'z=E_tau/E_nu',
                             'x':'Outgoing %s energy cdf values for x degrees' % ch_lepton})
-    with h5py.File(out_file, 'a') as hf:
-        energies = sorted([float(i) for i in hf['CLep_out_energies'].keys()])
 
-        for energy in energies: # these are log_10(GeV)
-            angles = sorted([float(i) for i in hf['CLep_out_energies'][str(energy)].keys()])
-            cdf_angles = []
-            cdf_angles.append(bins)
-            for angle in angles:
-                e_out = get_clep_out(nu_type, ch_lepton, 10**energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, arg=arg)
-                if np.array_equal(bins,np.logspace(-5,0,51)):count, bins_count = np.histogram(e_out/10**energy, bins) # because for nuSpaceSim, z=E_tau(or E_mu)/E_nu
-                else:count, bins_count = np.histogram(e_out, bins) # for user defined bins
+    #bins for computing CDF values.
+    if ch_lepton == 'tau':
+        bins = np.logspace(-7,0,71)
+    elif ch_lepton == 'muon':
+        bins = np.logspace(-9,0,91)
+
+    with h5py.File(out_file, 'a') as hf:
+        key = list(hf.keys())
+        #print((key))
+        boolean = 'CLep_out_cdf' in key #to check if it exists already
+        #print(boolean)
+
+        if htc_mode==True:
+            angles = arg
+            cdf_angles = np.array([bins])
+            for i in range(len(eout_list)):
+                #eout = np.delete(eout_list[i], 0)
+                eout = eout_list[i]
+                count, bins_count = np.histogram(10**eout/10**energy, bins) # because for nuSpaceSim, z=E_tau(or E_mu)/E_nu
                 count_sum = sum(count)
                 if count_sum == 0:
                     pdf = np.zeros_like(count) # workaround if none of the energies fall in any bins
                 else:
                     pdf = count / count_sum
                 cdf = np.insert(np.cumsum(pdf),0,0) # pad at the beginning with 0 because np.histogram 'eats' the first index/value
-                cdf_angles.append(cdf)
-            cdf_table = Table(cdf_angles, names=('z',*angles), meta=cdf_meta)
-            cdf_table.write(out_file, path='CLep_out_cdf/%s' % energy, append=True, overwrite=True)
+                cdf_angles = np.append(cdf_angles, [cdf], axis=0)
 
+            cdf_table = Table(np.transpose(cdf_angles), names=('z',*angles), meta=cdf_meta)
+
+        else:  #htc_mode==False
+            angles = np.asarray([eout_list[i][0] for i in range(len(eout_list))]) #earth emergence angles
+
+            if boolean==True: #Clep_out_cdf section already exists
+                energies = np.asarray([float(i) for i in hf['CLep_out_cdf'].keys()]) #this gives us previous energies
+                #print("energies = ", energies)
+
+                cdf_angles = np.array([bins])
+                new_cdf=[]
+                if energy in energies: #neutrino energy already exists
+                    new_cdf_angles = cdf_calc(energy, eout_list, bins)
+                    new_cdf_angles = np.delete(new_cdf_angles, 0, 0)  #removing first column which is the z values
+                    #print(new_cdf_angles)
+                    for i in range(len(new_cdf_angles)):
+                        cdf_val = np.insert(new_cdf_angles[i], 0, (angles[i])) #inserting angle corresponding to cdf vals
+                        new_cdf.append(cdf_val)
+                    #print("new_cdf = ", np.asarray(new_cdf))
+
+                    angle_val = hf['CLep_out_cdf/%s' % energy]
+                    old_angles = list(angle_val.dtype.fields.keys())[1:]  #get angles of the cdf data already in file
+                    #print("old_angles = ", old_angles)
+
+                    old_cdf=[]
+                    for i in range(len(old_angles)):
+                        cdf_vals = np.array(angle_val[old_angles[i]][:])
+                        cdf_vals = np.insert(cdf_vals, 0, float(old_angles[i]))
+                        old_cdf.append(cdf_vals)
+                    #print("old_cdf = ", np.asarray(old_cdf))
+
+                    cdf_arr = replace_elements(np.asarray(old_cdf), np.asarray(new_cdf))
+                    cdf_arr = np.asarray(sorted(cdf_arr, key = lambda x: x[0]))
+
+                    angles = cdf_arr[:, 0]
+                    cdf_arr = np.delete(cdf_arr, 0, axis=1)
+
+                    cdf_angles = np.concatenate((cdf_angles, cdf_arr))
+
+                    cdf_table = Table(np.transpose(cdf_angles), names=('z',*angles), meta=cdf_meta)
+
+                else: #neutrino energy doesn't exist
+                    cdf_angles = cdf_calc(energy, eout_list, bins)
+                    #print("cdf_angles in htc mode off = ", cdf_angles)
+                    cdf_table = Table(np.transpose(cdf_angles), names=('z',*angles), meta=cdf_meta)
+
+            else:  #Clep_out_cdf section doesn't exist
+                cdf_angles = cdf_calc(energy, eout_list, bins)
+                #print("cdf_angles in htc mode off = ", cdf_angles)
+                cdf_table = Table(np.transpose(cdf_angles), names=('z',*angles), meta=cdf_meta)
+
+    cdf_table.write(out_file, path='CLep_out_cdf/%s' % energy, append=True, overwrite=True)
     print("CDF tables created!")
     return None
 
@@ -885,7 +1118,7 @@ def interp_cdf(nu_type, ch_lepton, energy, angle, idepth, cross_section_model, p
             interp_arr = float(interpn(points, cdf_vals, point)) # not an array, just a value at z
         return interp_arr
 
-def process_htc_out(files_path, nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, arg=None):
+def process_htc_out(files_path, nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, elep_mode=False, arg=None):
     """processes files created when the code is run with HTC mode on
 
     Args:
@@ -897,17 +1130,25 @@ def process_htc_out(files_path, nu_type, ch_lepton, energy, idepth, cross_sectio
         pn_model (str): photonuclear energy loss model
         prop_type (str): type of energy loss mechanism; can be stochastic or continuous
         stats (int): statistics or number of neutrinos injected
+        elep_mode (str): Option to print exiting charged lepton's final energy. Can be yes or no. Default is No.
         arg (str, optional): additional arguments at the end of the file name. Defaults to None
     Returns:
         None
     """
+    out_file = output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg=None)
+
+    print("In htc mode on")
 
     if files_path[-1]!='/':files_path = files_path + '/' # path for data files
+
+    print("files_path = ",files_path)
 
     make_array = lambda x : x if isinstance(x, Iterable) else np.array([x]) # to avoid errors with single or no columns
 
     eout_files = sorted(glob.glob(files_path + str(energy) + "/" + "eout_*"))
     eout_files = sorted(eout_files, key=len)
+
+    print("eout with htc mode on: ", len(eout_files))
 
     assert len(eout_files) == len(sorted(glob.glob(files_path + str(energy) + "/" + "pexit_*"))) # make sure len(eout_files) == len(pexit_files)
 
@@ -915,38 +1156,54 @@ def process_htc_out(files_path, nu_type, ch_lepton, energy, idepth, cross_sectio
     p_noregen_lst = []
     p_regen_lst = []
 
+    e_out_lst = []
+
+    pola_lst= []
+
     for i in range(len(eout_files)):
         fnm = os.path.basename(eout_files[i].replace(".dat",""))
         angle = float(fnm.split("_")[-1])
         e_out = make_array(np.genfromtxt(eout_files[i]))
-        e_out = patch_for_astropy(e_out)
 
-        p_angle, p_noregen, p_regen = np.genfromtxt(files_path + str(energy) + "/" + "pexit_%.2f_%.2f.dat" % (energy,angle), usecols=(1,2,3), unpack=True)
+        e_out_lst.append(e_out)
+
+        p_angle, p_noregen, p_regen = np.genfromtxt(files_path + str(energy) + "/" + "pexit_%.2f_%.1f.dat" % (energy,angle), usecols=(1,2,3), unpack=True)
 
         p_angle_lst.append(p_angle)
         p_noregen_lst.append(p_noregen)
         p_regen_lst.append(p_regen)
 
-        clep_meta = OrderedDict({'Description':'Outgoing %s energies' % ch_lepton,
-                                'lep_energy':'Outgoing %s energy, in log_10(E) GeV'})
-        clep_table = Table([e_out], names=('lep_energy',), meta=clep_meta)
+        polarization = np.genfromtxt( files_path + str(energy) + "/" + "Pout_%.2f_%.1f.dat" % (energy,angle) )
 
-        add_clep_out(nu_type, ch_lepton, float(energy), angle, idepth, cross_section_model, pn_model, prop_type, stats, clep_table, arg=arg)
-    print("CLep_out processed successfully for E=1e%.f GeV" % energy)
+        if polarization.size==0:
+            P_avg = -1
+        else:
+            P_avg = sign(np.mean(polarization))  #avg of polarization of the exiting charged leptons
+
+        pola_lst.append(P_avg)
+
+        if elep_mode==True:
+            e_out = patch_for_astropy(e_out)
+            add_clep_out(ch_lepton, float(energy), angle, e_out, out_file, arg=None)
+
+    if elep_mode==True: print("CLep_out processed successfully for E=1e%.f GeV" % energy)
 
     pexit_angle = patch_for_astropy(np.asarray(p_angle_lst))
     pexit_noregen = patch_for_astropy(np.asarray(p_noregen_lst))
     pexit_regen = patch_for_astropy(np.asarray(p_regen_lst))
 
-    pexit_meta = OrderedDict({'Description':'Exit probability for %s' % ch_lepton,
-                              'angle':'Earth emergence angle, in degrees',
-                              'no_regen':'Exit probability without including any %s regeneration' % ch_lepton,
-                              'regen':'Exit probability including %s regeneration' % ch_lepton})
+    eout = patch_for_astropy(np.asarray(e_out_lst))
 
-    pexit_table = Table([pexit_angle, pexit_noregen, pexit_regen], names=('angle','no_regen','regen'), meta=pexit_meta)
+    avg_pola = patch_for_astropy(np.asarray(pola_lst))
 
-    add_pexit(nu_type, ch_lepton, float(energy), idepth, cross_section_model, pn_model, prop_type, stats, pexit_table, arg=arg) # adds p_exit results to output file
+    add_pexit(ch_lepton, float(energy), pexit_angle, pexit_noregen, pexit_regen, out_file, arg=None) #adds p_exit results to output file
     print("P_exit processed successfully for E=1e%.f GeV" % energy)
+
+    add_polarization(ch_lepton, float(energy), pexit_angle, avg_pola, out_file, arg=None) #adds avg_polarization to output file
+    print("Avg polarization processed successfully for E=1e%.f GeV" % energy)
+
+    add_cdf(ch_lepton, float(energy), eout, out_file, htc_mode=True, arg=pexit_angle) #adds cdf data to output file
+    print("CDFs processed successfully for E=1e%.f GeV" % energy)
 
     add_attributes(nu_type, ch_lepton, idepth, cross_section_model, pn_model, prop_type, stats, arg=arg)
     return None
@@ -955,12 +1212,13 @@ def process_htc_out(files_path, nu_type, ch_lepton, energy, idepth, cross_sectio
 # Test
 # =============================================================================
 if __name__ == "__main__":
+    path = "/Users/dikgarg/Desktop/Research/Neutrinos/Tau_polarization/nupyprop/src/nupyprop"
     nu_type = 'neutrino'
     ch_lepton = 'tau'
     idepth = 4
     cross_section_model = 'ct18nlo'
     pn_model = 'allm'
     prop_type = 'stochastic'
-    stats = 1e8
-    pass
-    # process_htc(nu_type, ch_lepton, 9.75, idepth, cross_section_model, pn_model, prop_type, stats, arg='interp2')
+    stats = 1e7
+    #pass
+    process_htc_out(path,nu_type, ch_lepton, 10, idepth, cross_section_model, pn_model, prop_type, stats, arg='interp2')
