@@ -19,3 +19,4 @@ src/nupyprop/matplotlibrc
 src/nupyprop/interp_cdf.py
 
 build_artifacts
+.DS_store
