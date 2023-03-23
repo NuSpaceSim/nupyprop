@@ -37,10 +37,10 @@ Notes
 -----
 
 1. The ipynb notebooks in this tutorial repository should be run in the nuPyProp environment.
-2. There are two output files in ``plotting_tutorial/data``, ``output_nu_tau_4km_ct18nlo_allm_stochastic_1e7.h5`` and, ``output_nu_tau_4km_ct18nlo_allm_stochastic_1e8.h5`` .
-3. The file ``output_nu_tau_4km_ct18nlo_allm_stochastic_1e8.h5`` is used in the ``output_plots.ipynb`` notebook to show how to plot the output data from nuPyProp. This output file has two tables, Exit_Probability and Clep_out_cdf. We didn't include the Clep_out_energy because that made the h5 file really big in size.
+2. There are two output files using allm electromagnetic energy loss method in ``plotting_tutorial/data``, named ``output_nu_tau_4km_ct18nlo_allm_stochastic_1e7.h5`` and, ``output_nu_tau_4km_ct18nlo_allm_stochastic_1e8.h5`` . And another output file using bdhm electromagnetic energy loss method in ``plotting_tutorial/data``, named ``output_nu_tau_4km_ct18nlo_bdhm_stochastic_1e8.h5`` .
+3. The file ``output_nu_tau_4km_ct18nlo_allm_stochastic_1e8.h5`` is used in the ``output_plots.ipynb`` notebook to show how to plot the output data from nuPyProp. This file has tau-neutrino energy ranging from 1e6 to 1e12 GeV in quarter decades. This output file has two tables, Exit_Probability and Clep_out_cdf. We didn't include the Clep_out_energy because that made the h5 file really big in size. 
 4. Therefore, section 2 can't be implemented using the given example h5 files. But an example code is given to the user to visualize the reuslts, if they have Clep_out_energy table in the h5 file (which can be included by running the nuPyProp simulation code with --el flag as yes, look at nuPyProp README document for more information).
-5. The file ``output_nu_tau_4km_ct18nlo_allm_stochastic_1e7.h5`` has three tables, Exit_Probability, Avg_Polarization and Clep_out_cdf. This is an example file for plotting average polarization of the exiting lepton. This is shown in section 6 of the ``output_plots.ipynb`` notebook. 
+5. The file ``output_nu_tau_4km_ct18nlo_allm_stochastic_1e7.h5`` and ``output_nu_tau_4km_ct18nlo_bdhm_stochastic_1e8.h5`` has three tables, Exit_Probability, Avg_Polarization and Clep_out_cdf. This is an example file for plotting average polarization of the exiting lepton. This is shown in section 6 of the ``output_plots.ipynb`` notebook. 
 
 Creating Custom Models
 ----------------------
