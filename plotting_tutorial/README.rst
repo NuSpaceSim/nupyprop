@@ -27,11 +27,9 @@ Installation
 
 1. Install nuPyProp through one of the many options outlined in the `nuPyProp repository <https://github.com/NuSpaceSim/nupyprop>`_.
 2. Install the external dependencies mentioned above.
-3. git clone the source code:
-   ``git clone https://github.com/sameer-patel-1/nupyprop_tutorial.git``
-4. Either place your nuPyProp output hdf5 file in ``plotting_tutorial/data`` or use the sample data file provided with this repo.
-5. ``cd nupyprop_tutorial``
-6. ``jupyter-lab *.ipynb``, where * is any of the 3 ipython notebooks in the repo.
+3. Either place your nuPyProp output hdf5 file in ``plotting_tutorial/data`` or use the sample data file provided with this repo.
+4. ``cd plotting_tutorial``
+5. ``jupyter-lab *.ipynb``, where * is any of the 3 ipython notebooks in the repo.
 
 Notes
 -----
@@ -46,7 +44,7 @@ Creating Custom Models
 ----------------------
 
 The custom/user-defined models will have to be of the same formats as shown in the iPython notebooks
-and the user should utilize the python code (`models.py <https://github.com/NuSpaceSim/nupyprop/blob/main/src/nupyprop/models/models.py>`_) which provides examples and templates on how to generate your own models. This is further more explained in the paper: "Neutrino propagation in the Earth and emerging charged leptons with nuPyProp", D. Garg, S.Patel et al. (NuSpaceSim Collaboration), `e-Print: arXiv:2209.15581 [astro-ph.HE, hep-ph] <https://doi.org/10.48550/arXiv.2209.15581>`__ 
+and the user should utilize the python code (`models.py <https://github.com/NuSpaceSim/nupyprop/blob/main/src/nupyprop/models/models.py>`_) which provides examples and templates on how to generate your own models. This is further more explained in the paper: "Neutrino propagation in the Earth and emerging charged leptons with nuPyProp", D. Garg, S.Patel et al. (NuSpaceSim Collaboration), `e-Print: arXiv:2209.15581 [astro-ph.HE, hep-ph] <https://doi.org/10.48550/arXiv.2209.15581>`__. 
 
 
 .. |alpha|  unicode:: U+003B1 .. GREEK SMALL LETTER ALPHA
