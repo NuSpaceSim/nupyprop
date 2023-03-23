@@ -46,7 +46,7 @@ Creating Custom Models
 ----------------------
 
 The custom/user-defined models will have to be of the same formats as shown in the iPython notebooks
-and the user should utilize the python code (`models.py <https://github.com/NuSpaceSim/nupyprop/blob/main/src/nupyprop/models/models.py>`_) which provides examples and templates on how to generate your own models.
+and the user should utilize the python code (`models.py <https://github.com/NuSpaceSim/nupyprop/blob/main/src/nupyprop/models/models.py>`_) which provides examples and templates on how to generate your own models. This is further more explained in the paper: "Neutrino propagation in the Earth and emerging charged leptons with nuPyProp", D. Garg, S.Patel et al. (NuSpaceSim Collaboration), `e-Print: arXiv:2209.15581 [astro-ph.HE, hep-ph] <https://doi.org/10.48550/arXiv.2209.15581>`__ 
 
 
 .. |alpha|  unicode:: U+003B1 .. GREEK SMALL LETTER ALPHA
