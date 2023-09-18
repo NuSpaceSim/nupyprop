@@ -1325,7 +1325,7 @@ subroutine tau_thru_layers(angle, depth, d_water, depth_traj, e_lep_in, xc_water
         return
     end if
 
-    if (angle <= 1.5_dp .or. depth-depth_traj < d_water) then
+    if (depth-depth_traj < d_water) then
         rho = rho_water ! water
     else
         call cd2distd(xalong, cdalong, col_depth, x)
