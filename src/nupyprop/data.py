@@ -622,7 +622,7 @@ def get_beta(ch_lepton, model, material, arg, out=False):
     return np.asfortranarray(beta_arr.T)
 
 
-def add_pexit(ch_lepton, energy, p_angle, p_noregen, p_regen, out_file, arg=None):
+def add_pexit(ch_lepton, energy, p_angle, p_noregen, p_regen, exit_prob_nu, out_file, arg=None):
     """adds exit probability values to .h5 formatted output file
 
     Args:
@@ -642,38 +642,62 @@ def add_pexit(ch_lepton, energy, p_angle, p_noregen, p_regen, out_file, arg=None
                               'no_regen':'Exit probability without including any %s regeneration' % ch_lepton,
                             'regen':'Exit probability including %s regeneration' % ch_lepton})
 
+    pexitnu_meta = OrderedDict({'Description':'Exit probability for nu_%s' % ch_lepton,
+                              'angle':'Earth emergence angle',
+                            'prob':'Exit probability of nu_%s' % ch_lepton})
+
+    print("pexit nu = ", exit_prob_nu)
+
     with h5py.File(out_file, 'a') as hf:
         key = list(hf.keys())
-        boolean = 'Exit_Probability' in key
+        print("Pexit key = ", key)
+        if len(key)==0:
+            pexit_table = Table([p_angle, p_noregen, p_regen], names=('angle','no_regen','regen'), meta=pexit_meta)
+            pexitnu_table = Table([p_angle, exit_prob_nu], names=('angle','prob'), meta=pexitnu_meta)
+        else:
+            boolean = 'Exit_Probability' in list(hf[key[0]])
 
-        if boolean==True:
-            energies = np.asarray([float(i) for i in hf['Exit_Probability'].keys()]) #this gives us previous energies
-            #print("energies = ", energies)
+            if boolean==True:
+                energies = np.asarray([float(i) for i in hf['%s/Exit_Probability'%(ch_lepton)].keys()]) #this gives us previous energies
 
-            if energy in energies:
-                #print("i am in repeated energy")
-                p_new_arr = np.asarray([[p_angle[i],p_noregen[i],p_regen[i]] for i in range(len(p_regen))])
+                if energy in energies:
+                    p_new_arr = np.asarray([[p_angle[i],p_noregen[i],p_regen[i]] for i in range(len(p_angle))])
+                    p_new_nuarr = np.asarray([[p_angle[i],exit_prob_nu[i]] for i in range(len(p_angle))])
 
-                old_data = hf['Exit_Probability/%s' % energy]
-                old_angle = np.array(old_data['angle'][:])
-                old_noregen = np.array(old_data['no_regen'][:])
-                old_regen = np.array(old_data['regen'][:])
+                    # for charged lepton:
+                    old_data = hf['%s/Exit_Probability/%s' % (ch_lepton,energy)]
+                    old_angle = np.array(old_data['angle'][:])
+                    old_noregen = np.array(old_data['no_regen'][:])
+                    old_regen = np.array(old_data['regen'][:])
 
-                p_old_arr = np.asarray([[old_angle[i],old_noregen[i],old_regen[i]] for i in range(len(old_regen))])
+                    p_old_arr = np.asarray([[old_angle[i],old_noregen[i],old_regen[i]] for i in range(len(old_regen))])
 
-                p_arr = replace_elements(p_old_arr, p_new_arr)
-                p_arr = np.transpose(sorted(p_arr, key = lambda x: x[0]))
+                    p_arr = replace_elements(p_old_arr, p_new_arr)
+                    p_arr = np.transpose(sorted(p_arr, key = lambda x: x[0]))
 
-                pexit_table = Table([p_arr[0], p_arr[1], p_arr[2]], names=('angle','no_regen','regen'), meta=pexit_meta)
+                    pexit_table = Table([p_arr[0], p_arr[1], p_arr[2]], names=('angle','no_regen','regen'), meta=pexit_meta)
+
+                    # for neutrino:
+                    old_nudata = hf['nu_%s/Exit_Probability/%s' % (ch_lepton,energy)]
+                    old_nuprob = np.array(old_nudata['prob'][:])
+
+                    p_old_nuarr = np.asarray([[old_angle[i],old_nuprob[i]] for i in range(len(old_nuprob))])
+
+                    p_nuarr = replace_elements(p_old_nuarr, p_new_nuarr)
+                    p_nuarr = np.transpose(sorted(p_nuarr, key = lambda x: x[0]))
+
+                    pexitnu_table = Table([p_nuarr[0], p_nuarr[1]], names=('angle','prob'), meta=pexitnu_meta)
+
+                else:
+                    pexit_table = Table([p_angle, p_noregen, p_regen], names=('angle','no_regen','regen'), meta=pexit_meta)
+                    pexitnu_table = Table([p_angle, exit_prob_nu], names=('angle','prob'), meta=pexitnu_meta)
 
             else:
-                #print("I am a new energy.")
                 pexit_table = Table([p_angle, p_noregen, p_regen], names=('angle','no_regen','regen'), meta=pexit_meta)
+                pexitnu_table = Table([p_angle, exit_prob_nu], names=('angle','prob'), meta=pexitnu_meta)
 
-        else:
-            pexit_table = Table([p_angle, p_noregen, p_regen], names=('angle','no_regen','regen'), meta=pexit_meta)
-
-    pexit_table.write(out_file, path='Exit_Probability/%s' % energy, append=True, overwrite=True)
+    pexit_table.write(out_file, path='%s/Exit_Probability/%s' % (ch_lepton,energy), append=True, overwrite=True)
+    pexitnu_table.write(out_file, path='nu_%s/Exit_Probability/%s' % (ch_lepton,energy), append=True, overwrite=True)
 
     return None
 
@@ -700,12 +724,14 @@ def get_pexit(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model,
     """
     in_file = output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg)
 
-    pexit_table = Table.read(in_file, path='Exit_Probability/%s' % np.log10(energy))
+    pexit_table = Table.read(in_file, path='Exit_Probability/%s' % (np.log10(energy)) )
+    #pexit_nutable = Table.read(in_file, path='nu_%s/Exit_Probability/%s' % (ch_lepton,np.log10(energy)) )
 
     angle = pexit_table['angle']
     no_regen = pexit_table['no_regen']
     regen = pexit_table['regen']
-    out_arr = np.asarray([angle,no_regen, regen])
+    #prob = pexit_nutable['prob']
+    out_arr = np.asarray([angle,no_regen, regen]) #, prob])
 
     if out:
         if nu_type=='neutrino':nu_type='nu'
@@ -716,7 +742,7 @@ def get_pexit(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model,
 
     return out_arr
 
-def add_clep_out(ch_lepton, energy, angle, e_out, out_file, arg=None):
+def add_clep_out(ch_lepton, energy, angle, e_out, enu_out, out_file, arg=None):
     """adds outgoing charged lepton energy values to output file
 
     Args:
@@ -734,9 +760,16 @@ def add_clep_out(ch_lepton, energy, angle, e_out, out_file, arg=None):
 
     clep_meta = OrderedDict({'Description':'Outgoing %s energies' % ch_lepton,
                             'lep_energy':'Outgoing %s energy, in log_10(E) GeV'})
-    clep_table = Table([e_out], names=('lep_energy',), meta=clep_meta)
 
-    clep_table.write(out_file, path='CLep_out_energies/%s/%s' % (energy,angle), append=True, overwrite=True)
+    nulep_meta = OrderedDict({'Description':'Outgoing nu_%s energies' % ch_lepton,
+                            'nulep_energy':'Outgoing nu_%s energy, in log_10(E) GeV'})
+
+    clep_table = Table([e_out], names=('lep_energy',), meta=clep_meta)
+    clep_table.write(out_file, path='%s/CLep_out_energies/%s/%s' % (ch_lepton,energy,angle), append=True, overwrite=True)
+
+    nulep_table = Table([enu_out], names=('nulep_energy',), meta=nulep_meta)
+    nulep_table.write(out_file, path='nu_%s/CLep_out_energies/%s/%s' % (ch_lepton,energy,angle), append=True, overwrite=True)
+
     return None
 
 def get_clep_out(nu_type, ch_lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, out=False, arg=None):
@@ -763,8 +796,9 @@ def get_clep_out(nu_type, ch_lepton, energy, angle, idepth, cross_section_model,
     """
     in_file = output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg)
 
-    e_out = Table.read(in_file, 'CLep_out_energies/%s/%s' % (np.log10(energy),angle))
-    out_lep = 10**(np.asarray(e_out['lep_energy'])) # changed 13/7/21
+    e_out = Table.read(in_file, '%s/CLep_out_energies/%s/%s' % (ch_lepton,np.log10(energy),angle))
+    enu_out = Table.read(in_file, 'nu_%s/CLep_out_energies/%s/%s' % (ch_lepton,np.log10(energy),angle))
+    out_lep = [10**(np.asarray(e_out['lep_energy'])), 10**(np.asarray(enu_out['nulep_energy']))] # changed 13/7/21
 
     if out:
         if nu_type=='neutrino':nu_type='nu'
@@ -799,17 +833,17 @@ def add_polarization(ch_lepton, energy, pola_angle, avg_pola, out_file, arg=None
     with h5py.File(out_file, 'a') as hf:
         key = list(hf.keys())
         #print((key))
-        boolean = 'Avg_polarization' in key
+        boolean = 'Avg_polarization' in list(hf[key[0]])
 
         if boolean==True:
-            energies = np.asarray([float(i) for i in hf['Avg_polarization'].keys()]) #this gives us previous energies
+            energies = np.asarray([float(i) for i in hf['%s/Avg_polarization'%(ch_lepton)].keys()]) #this gives us previous energies
             #print("energies = ", energies)
 
             if energy in energies:
                 #print("i am in repeated energy")
                 p_new_arr = np.asarray([ [ pola_angle[i], avg_pola[i] ] for i in range(len(pola_angle))])
 
-                old_data = hf['Avg_polarization/%s' % energy]
+                old_data = hf['%s/Avg_polarization/%s' % (ch_lepton,energy)]
                 old_angle = np.array(old_data['angle'][:])
                 old_polarization = np.array(old_data['Avg_polarization'][:])
 
@@ -829,7 +863,7 @@ def add_polarization(ch_lepton, energy, pola_angle, avg_pola, out_file, arg=None
         else:
             polarization_table = Table([pola_angle, avg_pola], names=('angle', 'Avg_polarization',), meta=polarization_meta)
 
-    polarization_table.write(out_file, path='Avg_polarization/%s' % energy, append=True, overwrite=True)
+    polarization_table.write(out_file, path='%s/Avg_polarization/%s' % (ch_lepton,energy), append=True, overwrite=True)
     return None
 
 def get_polarization(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, out=False, arg=None):   #added May 19 2022
@@ -856,7 +890,7 @@ def get_polarization(nu_type, ch_lepton, energy, idepth, cross_section_model, pn
     """
     in_file = output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg)
 
-    P_out = Table.read(in_file, 'Avg_polarization/%s' % np.log10(energy))
+    P_out = Table.read(in_file, 'Avg_polarization/%s' % (np.log10(energy)) )
     angle = P_out['angle']
     polarization = P_out['Avg_polarization']
     out_lep = np.asarray([angle,polarization])
@@ -885,17 +919,21 @@ def cdf_calc(energy, eout_list, bins):
     for i in range(len(eout_list)):
         eout = np.delete(eout_list[i], 0)
         count, bins_count = np.histogram(10**eout/10**energy, bins) # because for nuSpaceSim, z=E_tau(or E_mu)/E_nu
+        #print("count = ", count)
         count_sum = sum(count)
+        #print("count_sum = ", count_sum)
         if count_sum == 0:
             pdf = np.zeros_like(count) # workaround if none of the energies fall in any bins
         else:
             pdf = count / count_sum
+        #print("pdf = ", pdf)
         cdf = np.insert(np.cumsum(pdf),0,0) # pad at the beginning with 0 because np.histogram 'eats' the first index/value
+        #print("cdf = ", cdf)
         cdf_angles = np.append(cdf_angles, [cdf], axis=0)
 
     return cdf_angles
 
-def add_cdf(ch_lepton, energy, eout_list, out_file, htc_mode, bins=None, arg=None):
+def add_cdf(ch_lepton, energy, eout_list, enuout_list, out_file, bins=None, arg=None):
     """adds outgoing charged lepton energy CDF values to output file
 
     Args:
@@ -911,6 +949,9 @@ def add_cdf(ch_lepton, energy, eout_list, out_file, htc_mode, bins=None, arg=Non
     cdf_meta = OrderedDict({'Description':'Outgoing %s energy CDF' % ch_lepton,
                             'z':'z=E_tau/E_nu',
                             'x':'Outgoing %s energy cdf values for x degrees' % ch_lepton})
+    cdf_numeta = OrderedDict({'Description':'Outgoing nu_%s energy CDF' % ch_lepton,
+                            'z':'z=E_nu_f/E_nu',
+                            'x':'Outgoing nu_%s energy cdf values for x degrees' % ch_lepton})
 
     #bins for computing CDF values.
     if ch_lepton == 'tau':
@@ -918,79 +959,99 @@ def add_cdf(ch_lepton, energy, eout_list, out_file, htc_mode, bins=None, arg=Non
     elif ch_lepton == 'muon':
         bins = np.logspace(-9,0,91)
 
+    bins_nu = np.logspace(-9,0,91)
+
     with h5py.File(out_file, 'a') as hf:
         key = list(hf.keys())
-        #print((key))
-        boolean = 'CLep_out_cdf' in key #to check if it exists already
-        #print(boolean)
+        boolean = 'CLep_out_cdf' in list(hf[key[0]]) #to check if it exists already
 
-        if htc_mode==True:
-            angles = arg
-            cdf_angles = np.array([bins])
-            for i in range(len(eout_list)):
-                #eout = np.delete(eout_list[i], 0)
-                eout = eout_list[i]
-                count, bins_count = np.histogram(10**eout/10**energy, bins) # because for nuSpaceSim, z=E_tau(or E_mu)/E_nu
-                count_sum = sum(count)
-                if count_sum == 0:
-                    pdf = np.zeros_like(count) # workaround if none of the energies fall in any bins
-                else:
-                    pdf = count / count_sum
-                cdf = np.insert(np.cumsum(pdf),0,0) # pad at the beginning with 0 because np.histogram 'eats' the first index/value
-                cdf_angles = np.append(cdf_angles, [cdf], axis=0)
+        angles = np.asarray([eout_list[i][0] for i in range(len(eout_list))]) #earth emergence angles
+        #print("new angles = ", angles)
 
-            cdf_table = Table(np.transpose(cdf_angles), names=('z',*angles), meta=cdf_meta)
+        if boolean==True: #Clep_out_cdf section already exists
+            energies = np.asarray([float(i) for i in hf['%s/CLep_out_cdf'%(ch_lepton)].keys()]) #this gives us previous energies
+            #print("energies = ", energies)
 
-        else:  #htc_mode==False
-            angles = np.asarray([eout_list[i][0] for i in range(len(eout_list))]) #earth emergence angles
-
-            if boolean==True: #Clep_out_cdf section already exists
-                energies = np.asarray([float(i) for i in hf['CLep_out_cdf'].keys()]) #this gives us previous energies
-                #print("energies = ", energies)
-
+            if energy in energies: #neutrino energy already exists
                 cdf_angles = np.array([bins])
-                new_cdf=[]
-                if energy in energies: #neutrino energy already exists
-                    new_cdf_angles = cdf_calc(energy, eout_list, bins)
-                    new_cdf_angles = np.delete(new_cdf_angles, 0, 0)  #removing first column which is the z values
-                    #print(new_cdf_angles)
-                    for i in range(len(new_cdf_angles)):
-                        cdf_val = np.insert(new_cdf_angles[i], 0, (angles[i])) #inserting angle corresponding to cdf vals
-                        new_cdf.append(cdf_val)
-                    #print("new_cdf = ", np.asarray(new_cdf))
+                cdf_nuangles = np.array([bins_nu])
 
-                    angle_val = hf['CLep_out_cdf/%s' % energy]
-                    old_angles = list(angle_val.dtype.fields.keys())[1:]  #get angles of the cdf data already in file
-                    #print("old_angles = ", old_angles)
+                #charged leptons
+                new_cdf_angles = cdf_calc(energy, eout_list, bins)
+                new_cdf_angles = np.delete(new_cdf_angles, 0, 0)  #removing first column which is the z values
+                new_cdf = [np.insert(new_cdf_angles[i], 0, (angles[i])) for i in range(len(new_cdf_angles))] #inserting angle corresponding to cdf vals
 
-                    old_cdf=[]
-                    for i in range(len(old_angles)):
-                        cdf_vals = np.array(angle_val[old_angles[i]][:])
-                        cdf_vals = np.insert(cdf_vals, 0, float(old_angles[i]))
-                        old_cdf.append(cdf_vals)
-                    #print("old_cdf = ", np.asarray(old_cdf))
+                #print("new clep = ", new_cdf)
+                angle_val = hf['%s/CLep_out_cdf/%s' % (ch_lepton, energy)]
+                old_angles = list(angle_val.dtype.fields.keys())[1:]  #get angles of the cdf data already in file
+                #print("old_angles = ", old_angles)
 
-                    cdf_arr = replace_elements(np.asarray(old_cdf), np.asarray(new_cdf))
-                    cdf_arr = np.asarray(sorted(cdf_arr, key = lambda x: x[0]))
+                old_cdf=[]
+                for i in range(len(old_angles)):
+                    cdf_vals = np.array(angle_val[old_angles[i]][:])
+                    cdf_vals = np.insert(cdf_vals, 0, float(old_angles[i]))
+                    old_cdf.append(cdf_vals)
+                #print("old_cdf = ", np.asarray(old_cdf))
 
-                    angles = cdf_arr[:, 0]
-                    cdf_arr = np.delete(cdf_arr, 0, axis=1)
+                cdf_arr = replace_elements(np.asarray(old_cdf), np.asarray(new_cdf))
+                cdf_arr = np.asarray(sorted(cdf_arr, key = lambda x: x[0]))
 
-                    cdf_angles = np.concatenate((cdf_angles, cdf_arr))
+                angle = cdf_arr[:, 0]
+                cdf_arr = np.delete(cdf_arr, 0, axis=1)
 
-                    cdf_table = Table(np.transpose(cdf_angles), names=('z',*angles), meta=cdf_meta)
+                cdf_angles = np.concatenate((cdf_angles, cdf_arr))
 
-                else: #neutrino energy doesn't exist
-                    cdf_angles = cdf_calc(energy, eout_list, bins)
-                    #print("cdf_angles in htc mode off = ", cdf_angles)
-                    cdf_table = Table(np.transpose(cdf_angles), names=('z',*angles), meta=cdf_meta)
+                cdf_table = Table(np.transpose(cdf_angles), names=('z',*angle), meta=cdf_meta)
 
-            else:  #Clep_out_cdf section doesn't exist
+                #neutrino
+                new_nucdf_angles = cdf_calc(energy, enuout_list, bins_nu)
+                new_nucdf_angles = np.delete(new_nucdf_angles, 0, 0)  #removing first column which is the z values
+                #print("angles = ", angles[0])
+                new_nucdf = [np.insert(new_nucdf_angles[i], 0, (angles[i])) for i in range(len(new_nucdf_angles))] #inserting angle corresponding to cdf vals
+
+                #print("new = ", new_nucdf)
+
+                angle_nuval = hf['nu_%s/CLep_out_cdf/%s' % (ch_lepton, energy)]
+                old_nuangles = list(angle_nuval.dtype.fields.keys())[1:]  #get angles of the cdf data already in file
+                #print("old_angles = ", old_angles)
+
+                old_nucdf=[]
+                for i in range(len(old_nuangles)):
+                    cdf_nuvals = np.array(angle_nuval[old_nuangles[i]][:])
+                    cdf_nuvals = np.insert(cdf_nuvals, 0, float(old_nuangles[i]))
+                    old_nucdf.append(cdf_nuvals)
+
+                #print("old_cdf = ", np.asarray(old_nucdf))
+
+                cdf_nuarr = replace_elements(np.asarray(old_nucdf), np.asarray(new_nucdf))
+
+                #print("final cdf array = ", cdf_nuarr)
+                cdf_nuarr = np.asarray(sorted(cdf_nuarr, key = lambda x: x[0]))
+
+                nuangle = cdf_nuarr[:, 0]
+                cdf_nuarr = np.delete(cdf_nuarr, 0, axis=1)
+
+                cdf_nuangles = np.concatenate((cdf_nuangles, cdf_nuarr))
+                #print("reached final neutrino cdf step")
+                #print(cdf_nuangles)
+                cdf_nutable = Table(np.transpose(cdf_nuangles), names=('z',*nuangle), meta=cdf_numeta)
+
+            else: #neutrino energy doesn't exist
                 cdf_angles = cdf_calc(energy, eout_list, bins)
-                #print("cdf_angles in htc mode off = ", cdf_angles)
                 cdf_table = Table(np.transpose(cdf_angles), names=('z',*angles), meta=cdf_meta)
 
-    cdf_table.write(out_file, path='CLep_out_cdf/%s' % energy, append=True, overwrite=True)
+                cdf_nuangles = cdf_calc(energy, enuout_list, bins_nu)
+                cdf_nutable = Table(np.transpose(cdf_nuangles), names=('z',*angles), meta=cdf_numeta)
+
+        else:  #Clep_out_cdf section doesn't exist
+            cdf_angles = cdf_calc(energy, eout_list, bins)
+            cdf_table = Table(np.transpose(cdf_angles), names=('z',*angles), meta=cdf_meta)
+
+            cdf_nuangles = cdf_calc(energy, enuout_list, bins_nu)
+            cdf_nutable = Table(np.transpose(cdf_nuangles), names=('z',*angles), meta=cdf_numeta)
+
+    cdf_table.write(out_file, path='%s/CLep_out_cdf/%s' % (ch_lepton, energy), append=True, overwrite=True)
+    cdf_nutable.write(out_file, path='nu_%s/CLep_out_cdf/%s' % (ch_lepton, energy), append=True, overwrite=True)
     print("CDF tables created!")
     return None
 
@@ -1019,19 +1080,22 @@ def get_cdf(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, p
     """
     in_file = output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg)
 
-    cdf_table = Table.read(in_file, 'CLep_out_cdf/%s' % np.log10(energy))
+    cdf_table = Table.read(in_file, 'CLep_out_cdf/%s' % (np.log10(energy)) )
+    #cdf_nutable = Table.read(in_file, 'nu_%s/CLep_out_cdf/%s' % (ch_lepton,np.log10(energy)) )
 
     cols = cdf_table.columns
     z_vals = cdf_table['z'].data
     nn = cols.pop('z')
     angles = np.asarray([float(i) for i in cols])
     cdf_arr = np.asarray([cdf_table[str(i)].data for i in angles])
+    # z_nu = cdf_nutable['z'].data
+    # cdf_nuarr = np.asarray([cdf_nutable[str(i)].data for i in angles])
 
     if out:
         fnm = "cdf_%s_%s_%s_%skm_%s_%s_%s_%s.ecsv" % (nu_type, ch_lepton, np.log10(energy), idepth, cross_section_model, pn_model, prop_type, sci_str(stats))
         ascii.write(cdf_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
         return print('Outgoing %s energy CDF data saved to file %s' % (ch_lepton,fnm))
-    return z_vals, angles, cdf_arr
+    return z_vals, angles, cdf_arr#, z_nu, cdf_nuarr
 
 def interp_pexit(nu_type, ch_lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, method='linear', arg=None):
     """interpolates exit probability value at a given energy & angle
@@ -1152,12 +1216,8 @@ def process_htc_out(files_path, nu_type, ch_lepton, energy, idepth, cross_sectio
 
     assert len(eout_files) == len(sorted(glob.glob(files_path + str(energy) + "/" + "pexit_*"))) # make sure len(eout_files) == len(pexit_files)
 
-    p_angle_lst = []
-    p_noregen_lst = []
-    p_regen_lst = []
-
+    p_angle_lst, p_noregen_lst, p_regen_lst = [], [], []
     e_out_lst = []
-
     pola_lst= []
 
     for i in range(len(eout_files)):
@@ -1165,6 +1225,11 @@ def process_htc_out(files_path, nu_type, ch_lepton, energy, idepth, cross_sectio
         angle = float(fnm.split("_")[-1])
         e_out = make_array(np.genfromtxt(eout_files[i]))
 
+        if elep_mode==True:
+            e_out = patch_for_astropy(e_out)
+            add_clep_out(ch_lepton, float(energy), angle, e_out, out_file, arg=None)
+
+        e_out = np.insert(e_out, 0, angle)
         e_out_lst.append(e_out)
 
         p_angle, p_noregen, p_regen = np.genfromtxt(files_path + str(energy) + "/" + "pexit_%.2f_%.1f.dat" % (energy,angle), usecols=(1,2,3), unpack=True)
@@ -1182,17 +1247,13 @@ def process_htc_out(files_path, nu_type, ch_lepton, energy, idepth, cross_sectio
 
         pola_lst.append(P_avg)
 
-        if elep_mode==True:
-            e_out = patch_for_astropy(e_out)
-            add_clep_out(ch_lepton, float(energy), angle, e_out, out_file, arg=None)
-
     if elep_mode==True: print("CLep_out processed successfully for E=1e%.f GeV" % energy)
 
     pexit_angle = patch_for_astropy(np.asarray(p_angle_lst))
     pexit_noregen = patch_for_astropy(np.asarray(p_noregen_lst))
     pexit_regen = patch_for_astropy(np.asarray(p_regen_lst))
 
-    eout = patch_for_astropy(np.asarray(e_out_lst))
+    #eout = patch_for_astropy(np.asarray(e_out_lst))
 
     avg_pola = patch_for_astropy(np.asarray(pola_lst))
 
@@ -1202,7 +1263,7 @@ def process_htc_out(files_path, nu_type, ch_lepton, energy, idepth, cross_sectio
     add_polarization(ch_lepton, float(energy), pexit_angle, avg_pola, out_file, arg=None) #adds avg_polarization to output file
     print("Avg polarization processed successfully for E=1e%.f GeV" % energy)
 
-    add_cdf(ch_lepton, float(energy), eout, out_file, htc_mode=True, arg=pexit_angle) #adds cdf data to output file
+    add_cdf(ch_lepton, float(energy), e_out_lst, out_file) #adds cdf data to output file
     print("CDFs processed successfully for E=1e%.f GeV" % energy)
 
     add_attributes(nu_type, ch_lepton, idepth, cross_section_model, pn_model, prop_type, stats, arg=arg)

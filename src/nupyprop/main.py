@@ -36,6 +36,8 @@ def file_cleaner(output_type):
     '''
     if output_type == 'e_out':
         files = glob.glob("eout_*") # cleanup of Fortran e_out files
+    elif output_type == 'enu_out':
+            files = glob.glob("enuout_*") # cleanup of Fortran enu_out files
     elif output_type == 'P_out':
         files = glob.glob("Pout_*") # cleanup of Fortran polarization files
     elif output_type == 'polarization':
@@ -190,8 +192,10 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, ch_lept
 
     for energy in sorted(E_prop):
         # log_energy = np.log10(energy)
-        eout_list = [] #to store final energies of exiting charged lepton
-        for angle in sorted(angles):
+        eout_list, enuout_list = [], [] #to store final energies of exiting charged lepton
+        exit_prob_nu = np.zeros(shape=len(angles))
+
+        for i, angle in enumerate(sorted(angles)):
 
             xalong, cdalong = Data.get_trajs('col', angle, idepth) # initialize arrays here for each angle, to reduce a ton of overhead when tauthrulayers & regen are called
 
@@ -203,8 +207,30 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, ch_lept
 
             no_regen, regen = Run.run_stat_single(10**energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton_int, fac_nu, stats, prop_type_int)
 
+            print("regen and no-regen = ", regen, no_regen)
             prob_no_regen = no_regen/float(stats)
             prob_regen = regen/float(stats)
+
+            if elep_mode == 'yes' and htc_mode == 'no':
+                print("Printing final lepton energies in the output file.")
+                e_out = make_array(np.genfromtxt(str("eout_{:.2f}_{:4.1f}.dat".format(energy, angle))))
+                e_out = Data.patch_for_astropy(e_out)
+                enu_out = make_array(np.genfromtxt("enuout_{:.2f}_{:4.1f}.dat".format(energy, angle)))
+                enu_out = Data.patch_for_astropy(enu_out)
+                Data.add_clep_out(ch_lepton, energy, angle, e_out, enu_out, out_file)
+
+            # exiting lepton's final energy for CDFs
+            eout_vals = np.genfromtxt("eout_{:.2f}_{:4.1f}.dat".format(energy, angle))
+            eout_vals = np.insert(eout_vals, 0, angle)
+            eout_list.append(eout_vals)
+            #print("eout list = ", eout_list)
+
+            # exiting primary neutrino's final energy for CDFs
+            enuout_vals = np.genfromtxt("enuout_{:.2f}_{:4.1f}.dat".format(energy, angle))
+            #print("enu list = ", enuout_vals)
+            enuout_vals = np.insert(enuout_vals, 0, angle)
+            enuout_list.append(enuout_vals)
+            #print("enu list = ", enuout_list)
 
             if htc_mode == 'no': # HTC mode off
                 with open("pexit_%.2f.dat" % energy, "a") as pexit_file:
@@ -216,19 +242,10 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, ch_lept
                 else:
                     P_avg = Data.sign(np.mean(P_out))  # avg of polarization of the exiting charged leptons
 
+                file_cleaner('P_out') # remove P_out files
+
                 with open("polarization_%.2f.dat" % energy, "a") as pola_file:
                     pola_file.write("%.5e\t%.5e\t%.5e\n" % (10**energy,angle,P_avg))
-
-                if elep_mode == 'yes':
-                    print("Printing final lepton energies in the output file.")
-                    e_out = make_array(np.genfromtxt(str("eout_{:.2f}_{:4.1f}.dat".format(energy, angle))))
-                    e_out = Data.patch_for_astropy(e_out)
-                    Data.add_clep_out(ch_lepton, energy, angle, e_out, out_file)
-
-                # exiting lepton's final energy for CDFs
-                eout_vals = np.genfromtxt("eout_{:.2f}_{:4.1f}.dat".format(energy, angle))
-                eout_vals = np.insert(eout_vals, 0, angle)
-                eout_list.append(eout_vals)
 
             else: # HTC mode on. Post-processing can be done using data.process_htc_out
                 with open("pexit_%.2f_%.1f.dat" % (energy,angle), "w") as pexit_file:
@@ -248,7 +265,9 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, ch_lept
             p_noregen = Data.patch_for_astropy(p_noregen)
             p_regen = Data.patch_for_astropy(p_regen)
 
-            Data.add_pexit(ch_lepton, energy, p_angle, p_noregen, p_regen, out_file)
+            #print(eout_list)
+
+            Data.add_pexit(ch_lepton, energy, p_angle, p_noregen, p_regen, exit_prob_nu, out_file)
             file_cleaner('p_exit')  # remove p_exit files
 
             # Avg polarization of the exiting charged leptons
@@ -257,20 +276,20 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, ch_lept
             pola_angle = Data.patch_for_astropy(pola_angle)
             avg_pola = Data.patch_for_astropy(avg_pola)
 
-            Data.add_polarization(ch_lepton, energy, pola_angle, avg_pola, out_file)
-            file_cleaner('P_out') # remove P_out files
+            #Data.add_polarization(ch_lepton, energy, pola_angle, avg_pola, out_file)
             file_cleaner('polarization') #remove polarization_* files
 
             # energy CDFs for the exiting charged leptons
-            Data.add_cdf(ch_lepton, energy, eout_list, out_file, htc_mode=False, arg=None) # adds the binned cdf values for all neutrino energies and angles to the output file.
+            Data.add_cdf(ch_lepton, energy, eout_list, enuout_list, out_file, arg=None) # adds the binned cdf values for all neutrino energies and angles to the output file.
             file_cleaner('e_out') # remove e_out files
+            file_cleaner('enu_out') # remove enu_out files
 
         end_time = time.time()
         print(f"It took {end_time-start_time:.2f} seconds to compute")
 
-        if htc_mode== 'no': print("Done!")
-        else: print("Done!") # for HTC mode on
-
+        # if htc_mode== 'no': print("Done!")
+        # else: print("Done!") # for HTC mode on
+    print("Done!")
     return None
 
 # =============================================================================
