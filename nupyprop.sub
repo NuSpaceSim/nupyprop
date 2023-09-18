@@ -1,0 +1,17 @@
+executable = nupy.sh
+#executable = /home/dikgarg/miniconda3/envs/nupyprop/bin/
+#executable = nupyprop
+#arguments = -e 8 -a 2 -s 1e1 -htc yes -job $(Process)
+arguments = 8 1e6 bdhm yes $(Process)
+
+transfer_input_files = nupyprop.tar.gz
+
+output = op/nu_$(Process).out
+error = er/nu_$(Process).error
+log = log/nu_$(Process).log
+
+request_cpus = 1
+request_memory = 15GB
+request_disk = 15GB
+
+queue 1

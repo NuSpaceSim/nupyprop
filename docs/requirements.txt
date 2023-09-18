@@ -1,0 +1,7 @@
+sphinx
+sphinx-argparse
+sphinx-copybutton
+sphinx-press-theme
+
+importlib_resources
+numpy

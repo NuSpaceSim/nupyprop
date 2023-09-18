@@ -1,0 +1,74 @@
+name: PyPI Build Python 🐍 wheel 🎡, Test 📝, and Publish 🎉.
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - setup.py
+      - setup.cfg
+      - pyproject.toml
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+
+  build_wheels:
+    name: Build wheel for cp${{ matrix.python }}-${{ matrix.platform_id }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python: [38, 39, 310, 311]
+        include:
+          - os: ubuntu-latest
+            platform_id: manylinux_x86_64
+          - os: macos-latest
+            platform_id: macosx_x86_64
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Get history and tags for SCM versioning
+      run: |
+        git fetch --prune --unshallow
+        git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+
+    - name: Build wheels
+      uses: pypa/cibuildwheel@v2.12.0
+      env:
+        CIBW_ENVIRONMENT_MACOS: F90=gfortran-11
+        CIBW_BUILD: cp${{ matrix.python }}-${{ matrix.platform_id }}
+        CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
+
+    - name: Upload Build Artifact
+      uses: actions/upload-artifact@v2.2.4
+      with:
+        name: nupyprop-gh-pypi-artifact
+        path: wheelhouse/*.whl
+        retention-days: 1
+
+
+  publish:
+    name: Publish wheels to PyPI
+    runs-on: ubuntu-latest
+    needs: build_wheels
+
+    steps:
+    - name: Download Build Artifacts
+      uses: actions/download-artifact@v2
+      with:
+        name: nupyprop-gh-pypi-artifact
+        path: wheelhouse/
+
+    - name: Publish a Python distribution to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        user: __token__
+        password: ${{ secrets.PYPI_SECRET }}
+        packages_dir: wheelhouse/

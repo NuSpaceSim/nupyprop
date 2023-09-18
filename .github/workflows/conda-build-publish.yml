@@ -1,0 +1,51 @@
+name: Conda Build Python 🐍 package, and Publish 🎉.
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - setup.py
+      - setup.cfg
+      - pyproject.toml
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  conda_build:
+    name: Build conda package for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            platform: "linux-64"
+          - os: macos-latest
+            platform: "osx-64"
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Get history and tags for SCM versioning
+      run: |
+        git fetch --prune --unshallow
+        git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+
+    - uses: conda-incubator/setup-miniconda@v2
+
+    - name: Install Conda-build
+      run: conda install conda-build anaconda-client
+
+    - name: Conda build nupyprop
+      run: conda build -c conda-forge recipe
+
+    - name: Conda upload nupyprop
+      run: |
+        $CONDA/bin/anaconda -v -t ${{ secrets.ANACONDA_UPLOAD_TOKEN }} upload \
+           -u nuspacesim $CONDA/conda-bld/${{ matrix.platform }}/nupyprop-*

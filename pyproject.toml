@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=46",
+            "setuptools_scm[toml]>=3.4",
+            "wheel",
+            "numpy>=1.22",
+           ]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+write_to = '_version.py'
+version_scheme = 'post-release'
+local_scheme = 'no-local-version'
+parentdir_prefix_version = 'nupyprop-'
+
+[tool.cibuildwheel]
+test-requires = "pytest"
+test-command = "pytest {project}/tests"
+
+[tool.cibuildwheel.macos]
+archs = ["x86_64"] #, "universal2", "arm64"]
+
+[tool.cibuildwheel.linux]
+archs = ["x86_64"]
+
+[tool.black]
+line-length = 88
+skip-string-normalization = false
+exclude = '''
+(
+  /(
+      \.eggs         # exclude a few common directories in the
+    | \.git          # root of the project
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+  )/
+#  | foo.py           # also separately exclude a file named foo.py in
+#                     # the root of the project
+)
+'''
+
+[tool.autopep8]
+max_line_length = 88
+ignore = "E501,W6"  # or ["E501", "W6"]

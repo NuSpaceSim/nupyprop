@@ -1,0 +1,70 @@
+{% set name = "nupyprop" %}
+{% set version = environ.get('GIT_DESCRIBE_TAG', 'untagged')|string|replace('-','_') %}
+{% set build_number = environ.get('GIT_DESCRIBE_NUMBER', '0') %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  git_url: {{ environ.get('FEEDSTOCK_ROOT', '..') }}
+
+build:
+  skip: true  # [py<36]
+  skip: true  # [win]
+
+  number: {{ build_number }}
+  string: {{ [build_number, ('h' + PKG_HASH), environ.get('GIT_DESCRIBE_HASH', '')]|join('_') }}
+
+  script: "{{ PYTHON }} -m pip install --no-deps . -vv"
+
+requirements:
+  build:
+    - {{ compiler('fortran') }}
+  host:
+    - python >=3.6
+    - pip
+    - setuptools >=46
+    - setuptools_scm[toml] >=3.4
+    - numpy >=1.17
+    - wheel
+  run:
+    - astropy
+    - h5py
+    - importlib_resources
+    - matplotlib
+    - numpy >=1.17
+    - python >=3.6
+    - scipy
+    - sympy
+    - pyyaml
+    - tabulate
+
+# Woe is us. We lack tests.
+test:
+  # Some packages might need a `test/commands` key to check CLI.
+  # List all the packages/modules that `run_test.py` imports.
+  imports:
+    - nupyprop
+  # Run your test commands here
+  commands:
+    - nupyprop --help
+    - pytest tests
+  # declare any test-only requirements here
+  requires:
+    - pytest
+  # copy over any needed test files here
+  source_files:
+    - tests/
+
+# Annoying that this is not readable from setup.cfg
+about:
+  home: https://github.com/nuSpaceSim/nupyprop
+  license: BSD-3-Clause
+  license_family: BSD
+  # license_file: LICENSE
+
+extra:
+  recipe-maintainers:
+    - Sameer Patel
+    - Alex Reustle

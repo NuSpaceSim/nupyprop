@@ -1,0 +1,25 @@
+1. In this folder, you have to run the job: condor_submit nupyprop.sub. 
+2. This file calls nupy.sh a shell file. 
+3. The shell file untars the nupyprop environment which is a conda environmnet where nupyprop is installed in non-editable mode. This means if you make changes even in python file you need to recompile. Then you will have to create a tar file again for that. Only then the shell file will have the latest changes in it. 
+4. Then the shell file activates the environment. 
+5. You gave all the executable line for nupyprop but the variables like energy stats etc.. are called in the sub file and not in the shell file. 
+6. Then in the sub file, you have a line with arguments which gives all the values of the variables for nupyprop.
+7. One variable to note is job, this takes the queue number, i.e., how many jobs you want to run. We are running 100 jobs for 10^6 stats, which makes it 1-^8 stats in total. 
+
+
+8. Once the jobs have run, you activate nupyprop env. by conda activate nupyprop. 
+9. Then you execute file_organizer.py code. This takes a specific input neutrino energy, stats, angles, and job numbers. It will condense all the 100 jobs for a specific angle into one file. such that in the end we have only one file for each angle, and energy with 1e8 stats now. 
+10. Then it calls process_htc_out() function which creates the h5 output file.
+
+Some usefull commands:
+1. to watch the queue: 
+condor_q
+condor_watch_q: to check progress bar of job submission and completion
+
+2. condor_q -hold -af HoldReason: to know in detail why your job was held
+
+3. conda pack -n conda_env_name OR conda pack -n conda_env_name --ignore-missing-files: Run this command in the conda base env., where it will pack nupyprop conda env. into a tar file. 
+
+4. To copy from local computer on the server, be in the folder on local machine where the file exsists and don't be logged in the server:-> scp test.txt dikgarg@ap21.uc.osg-htc.org:/home/......
+
+5. To copy from server to the local computer, be in the folder where you want to copy the file in the local machine and don't be logged in the server:-> scp dikgarg@ap21.uc.osg-htc.org:/home/user/file_name .
