@@ -152,13 +152,11 @@ contains
     real(dp), dimension(10) :: Rlay
     
     Rlay = (/1221.5, 3480.0, 5701.0, 5771.0, 5971.0, 6151.0, 6346.6, 6356.0, 6368.0, 6371.0/) ! # PREM layers based on R_earth
-    !    print *, E_nu
+
     Rlay(9) = 6368.0_dp + (3.0_dp-dble(idepth)) ! sets the last layer as water layer
-    !    print *,'Rlay=',Rlay
+   
     x = Rin
     y = x/R_earth
-    
-    !    print *,'x=',x
     
     if (x<=Rlay(1)) then
        edens = 13.0885_dp-8.8381_dp*y**2
@@ -216,8 +214,6 @@ contains
     else
        r = dsqrt(r2)
     end if
-    
-    !    print *,'r=',r
     
     call PREMdensity(r, idepth, rho_at_x)
 end subroutine
@@ -1070,7 +1066,6 @@ contains
 
             !! This routine will run for only PN interaction 
             if (int_type == 5) then          
-             !print *, "Is PN"
              call polarization(y, Pin, theta_in, Pout, theta_out)
              Pin = Pout
              theta_in = theta_out
@@ -1084,7 +1079,6 @@ contains
            part_id = 2 ! don't count this
            !print *, "I have less energy than emin!"
            pcthf = Pin*cos(theta_in)
-           !print *, pcthf
            return
         end if
         
@@ -1244,15 +1238,13 @@ contains
              call int_alpha(e_lep, alpha_rock, alpha)
              call int_beta(e_lep, beta_rock, rho, beta)
              e_fin = e_lep - (e_lep*beta + alpha)*d_rem
-             d_fin = d_max/1e5_dp
+             d_fin = d_max/1e5_dp !this might be the problem here!!!!!!!!!!
              if (e_fin > e_init) then
                 e_fin=e_init  
              end if
              !print *,"Passed Earth already!"
-             !pcthf = Pin*cos(theta_in)
              Pf = Pin
              cthf = cos(theta_in)
-             !print *, pcthf
              return
              
           end if
@@ -1279,11 +1271,10 @@ contains
              d_fin = d_max/1e5_dp ! in km.w.e
              e_fin = e_min
              part_id = 0
-             !print *, "too small to handle"
+             print *, "too small to handle"
              !pcthf = Pin*cos(theta_in)
              Pf = Pin
              cthf = cos(theta_in)
-             !print *, pcthf
              return
           end if
         
@@ -1294,17 +1285,13 @@ contains
              e_fin = e_int
              ! go to 50
              ! 50 continue
-             !print *, "I decayed"
-             !pcthf = Pin*cos(theta_in)
              Pf = Pin
              cthf = cos(theta_in)
-             !print *, pcthf
              return
           end if
           
           ! tau didn't decay. Now how much energy does it have after interaction?
           call find_y(e_int, lep_ixc, int_type, y)
-          !print *, int_type
           
           ! outgoing tau energy is old e_lep*(1-y)
           e_lep = e_int*(1._dp-y) ! this is the energy for the next interaction
@@ -1325,11 +1312,8 @@ contains
           d_fin = d_max/1e5_dp
           e_fin = e_min
           part_id = 0 ! decayed or no_count??? should be decayed
-          !print *, "I have less energy than emin!"
-          !pcthf = Pin*cos(theta_in)
           Pf = Pin
           cthf = cos(theta_in)
-          !print *, pcthf
           return
        end if
        
@@ -1488,7 +1472,7 @@ contains
        return
     end if
     
-    if (angle <= 1.5_dp .or. depth-depth_traj < d_water) then
+    if (depth-depth_traj < d_water) then
        rho = rho_water ! water
     else
        call cd2distd(xalong, cdalong, col_depth, x)
@@ -1505,28 +1489,29 @@ contains
     end if
     
     if (rho > 1.5_dp) then ! we aren't in water yet
-       !    if (rho > rho_water) then ! we aren't in water yet
        d_in = depth - depth_traj - d_water ! propagate this far in rock
-       
        call propagate_lep_rock(angle, e_lep, xc_rock, lep_ixc_rock, alpha_rock, beta_rock, depth_traj,&
             & d_in, xalong, cdalong, idepth, lepton, prop_type, part_type, d_f, e_fin, cthf, Pf)
+
+       depth_traj = depth_traj + d_f
        
        if (part_type == 1 .and. idepth /= 0) then ! still a tau; added .and. clause on 3/18
           
           e_lep = e_fin
           d_in = d_water
-          depth_traj = depth_traj + d_f ! now propagate through final layer of water
-          d_fin = depth_traj
+          !depth_traj = depth_traj + d_f ! now propagate through final layer of water
+          !d_fin = depth_traj
           Pi = Pf
           cthi = cthf
-
-          !print *, "I propagate thru rock"
           
           call propagate_lep_water(e_lep, xc_water, lep_ixc_water, alpha_water, beta_water, d_in,&
                & lepton, prop_type, cthi, Pi, part_type, d_f, e_fin, pcthf)
 
-       else if (part_type == 0) then ! tau decayed
+          d_fin = depth_traj + d_f
+          
+       else !either tau decayed or idepth==0
           pcthf = Pf*cthf
+          d_fin = depth_traj
           return
           
        end if
@@ -1535,7 +1520,7 @@ contains
        d_in = depth - depth_traj
        Pi = 1._dp
        cthi = cos(0._dp)
-       
+
        call propagate_lep_water(e_lep, xc_water, lep_ixc_water, alpha_water, beta_water, d_in, lepton,&
             & prop_type, cthi, Pi, part_type, d_f, e_fin, pcthf)
        
@@ -1543,12 +1528,6 @@ contains
        d_fin = depth_traj ! needed to add this since return was depth_traj here
        return
     end if
-
-!!$    if (part_type == 0) then ! tau decayed
-!!$       d_fin = d_f
-!!$       pcthf = Pf*cthf
-!!$       return
-!!$    end if
     
     return
     
@@ -1697,7 +1676,6 @@ contains
        ! go to 60; all done
        ! 60 continue
        Pout = -2._dp  !fake polarization value which will help us filter out the neutrino events in python
-       !print *, "In regeneration, stayed a neutrino."
        return
     end if
 
@@ -1837,16 +1815,12 @@ contains
     call tau_thru_layers(angle, depth, dwater, depth0, etauin, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water,&
          & alpha_rock, beta_water, beta_rock, xalong, cdalong, idepth, lepton, prop_type, ipp, dfinal, etauf, Pi)
 
-    !print *, "Just propagated tau, ipp = ",ipp, " ipp=1: Tau; ipp=0: neutrino"
     dleft = depth-dfinal
     
     if (ipp == 1 .and. dleft <= 0.0_dp) then ! a tau has emerged through column depth
        Pout = Pi
        no_regen_tot = no_regen_tot + 1
        regen_tot = regen_tot + 1 ! update the regen tau array once
-       
-       !print *, "no regenration, tau makes it out"
-       !print *, "Pout w/ no regen = ", Pout
        write(u, Format) dlog10(etauf)
        write(w, Format1) (Pout)
        ! go to 10; we are done with the loop
@@ -1860,8 +1834,6 @@ contains
     do while (dfinal < depthE .and. ipp3 /= 1 .and. regen_cnt <= 6) ! tau has decayed before the end
        
        etauin = etauf ! regen finds neutrino energy
-
-       !print *, "in regenration loop."
        
        call regen(angle, etauin, depth, dwater, dfinal, nu_xc, nu_ixc, ithird, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,&
             & alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, idepth, lepton,&
@@ -1875,7 +1847,6 @@ contains
        if (ipp3 == 1) then ! then we are back to a tau at the end of the road
           regen_tot = regen_tot + 1
           Pout = Pint
-          !print *, "back to tau after regenrated neutrino, exiting, P = ", Pout
           write(u, Format) dlog10(ef2)
           write(w, Format1) (Pout)
           ! go to 10; we are done with the loop
@@ -1953,7 +1924,7 @@ contains
     !! No. of outgoing charged leptons with regeneration.
    
     real(dp) :: depth
-    integer(kind=8):: regen_cnt, i
+    integer(kind=8):: i
     integer(kind=8) :: u, w
     character(25) Efilename, Pfilename
     
@@ -1964,7 +1935,6 @@ contains
     open(newunit=w, file=trim(Pfilename), status="replace")
     
     depth = depthE
-    regen_cnt = 0
     no_regen_tot = 0
     regen_tot = 0
     
