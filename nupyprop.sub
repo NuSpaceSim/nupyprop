@@ -2,7 +2,7 @@ executable = nupy.sh
 #executable = /home/dikgarg/miniconda3/envs/nupyprop/bin/
 #executable = nupyprop
 #arguments = -e 8 -a 2 -s 1e1 -htc yes -job $(Process)
-arguments = 8 1e6 bdhm yes $(Process)
+arguments = 8 1 1e6 bdhm yes $(Process)
 
 transfer_input_files = nupyprop.tar.gz
 
