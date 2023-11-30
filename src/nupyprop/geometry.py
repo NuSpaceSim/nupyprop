@@ -301,7 +301,6 @@ def create_traj_table(idepth):
         Adds trajectory table lookup entries in lookup_table.h5.
 
     '''
-
     beta_col, xalong, cdalong = gen_col_trajs(idepth)
     col_meta = OrderedDict({'Description':'Column trajectories for water layer = %s km' % str(idepth),
                             'beta':'Earth emergence angle, in degrees',

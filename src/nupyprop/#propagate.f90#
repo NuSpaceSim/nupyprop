@@ -40,7 +40,7 @@ module constants
        & 3.98107171e+01, 5.01187234e+01, 6.30957344e+01, 7.94328235e+01,&
        & 1.00000000e+02, 1.25892541e+02, 1.58489319e+02, 1.99526231e+02,&
        & 2.51188643e+02, 3.16227766e+02, 3.98107171e+02, 5.01187234e+02,&
-       & 6.30957344e+02, 7.94328235e+02, 1.00000000e+03, 1.25892541e+03,&
+densi       & 6.30957344e+02, 7.94328235e+02, 1.00000000e+03, 1.25892541e+03,&
        & 1.58489319e+03, 1.99526231e+03, 2.51188643e+03, 3.16227766e+03,&
        & 3.98107171e+03, 5.01187234e+03, 6.30957344e+03, 7.94328235e+03,&
        & 1.00000000e+04, 1.25892541e+04, 1.58489319e+04, 1.99526231e+04,&
@@ -140,7 +140,7 @@ contains
     
     implicit none
     
-    real(dp), intent(in) :: idepth
+    integer, intent(in) :: idepth
     !! Depth of water layer, in km.
     real(dp), intent(in) :: Rin
     !! Point at which density is to be calculated.
@@ -153,10 +153,9 @@ contains
     
     Rlay = (/1221.5, 3480.0, 5701.0, 5771.0, 5971.0, 6151.0, 6346.6, 6356.0, 6368.0, 6371.0/) ! # PREM layers based on R_earth
 
-    Rlay(9) = 6368.0_dp + (3.0_dp-(idepth)) ! sets the last layer as water layer
-    
+    Rlay(9) = 6368.0_dp + (3.0_dp-dble(idepth)) ! sets the last layer as water layer
+   
     x = Rin
-    
     y = x/R_earth
     
     if (x<=Rlay(1)) then
@@ -193,7 +192,7 @@ contains
     ! center of the Earth in order to find the density there.
     implicit none
     
-    real(dp), intent(in) :: idepth
+    integer, intent(in) :: idepth
     !! Depth of water layer, in km.
     real(dp), intent(in) :: x
     !! Distance along the chord of the trajectory, in km.
@@ -1174,7 +1173,7 @@ contains
     !! 1D array containing distance in water, in km.
     real(dp), intent(in) :: cdalong(:)
     !! 1D array containing column depth at xalong, in g/cm^2.
-    real(dp), intent(in) :: idepth
+    integer, intent(in) :: idepth
     !! Depth of water layer in km.
     integer, intent(in) :: lepton
     !! Type of charged lepton. 1=tau; 2=muon.
@@ -1442,7 +1441,7 @@ contains
     !! 1D array containing distance in water, in km.
     real(dp), intent(in) :: cdalong(:)
     !! 1D array containing column depth at xalong, in g/cm^2.
-    real(dp), intent(in) :: idepth
+    integer, intent(in) :: idepth
     !! Depth of water layer in km.
     integer, intent(in) :: lepton
     !! Type of charged lepton. 1=tau; 2=muon.
@@ -1624,7 +1623,7 @@ contains
     !! 1D array containing distance in water, in km.
     real(dp), intent(in) :: cdalong(:)
     !! 1D array containing column depth at xalong, in g/cm^2.
-    real(dp), intent(in) :: idepth
+    integer, intent(in) :: idepth
     !! Depth of water layer in km.
     integer, intent(in) :: lepton
     !! Type of charged lepton. 1=tau; 2=muon.
@@ -1761,7 +1760,7 @@ contains
     !! 1D array containing column depth at xalong, in g/cm^2.
     integer, intent(in) :: ithird
     !! Choice for neutrino -> charged lepton energy fraction selection.
-    real(dp), intent(in) :: idepth
+    integer, intent(in) :: idepth
     !! Depth of water layer in km.
     integer, intent(in) :: lepton
     !! Type of charged lepton. 1=tau; 2=muon.
@@ -1919,7 +1918,7 @@ contains
     !! 1D array containing column depth at xalong, in g/cm^2.
     integer, intent(in) :: ithird
     !! Choice for neutrino -> charged lepton energy fraction selection.
-    real(dp), intent(in) :: idepth
+    integer, intent(in) :: idepth
     !! Depth of water layer in km.
     integer, intent(in) :: lepton
     !! Type of charged lepton. 1=tau; 2=muon.

@@ -189,7 +189,6 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, ch_lept
     print("The water -> rock transition occurs at %.2f degrees" % Geometry.find_interface(idepth)[0])
 
     for energy in sorted(E_prop):
-        # log_energy = np.log10(energy)
         eout_list = [] #to store final energies of exiting charged lepton
         for angle in sorted(angles):
 
@@ -201,10 +200,14 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, ch_lept
             dwater = water*rho_water # depth in water [kmwe] in last or only section
             depthE = Geometry.columndepth(angle, idepth)*1e-5 # column depth in kmwe
 
+            print("total col depth = ", depthE, "col depth of water = ", dwater)
+
             no_regen, regen = Run.run_stat_single(10**energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton_int, fac_nu, stats, prop_type_int)
 
             prob_no_regen = no_regen/float(stats)
             prob_regen = regen/float(stats)
+
+            print("regen, no_regen = ", regen, no_regen)
 
             if htc_mode == 'no': # HTC mode off
                 with open("pexit_%.2f.dat" % energy, "a") as pexit_file:

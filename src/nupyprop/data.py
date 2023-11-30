@@ -242,6 +242,7 @@ def get_trajs(type_traj, angle, idepth, out=False):
     """
     if type_traj == 'col':
         with importlib_resources.as_file(ref) as lookup_tables:
+            print(lookup_tables)
             traj_table = Table.read(lookup_tables,path='Earth/Column_Trajectories/%skm' % str(idepth))
 
         sliced_table = traj_table[traj_table['beta']==angle]
