@@ -121,6 +121,7 @@ def init_ixc(nu_type, ch_lepton, nu_model, pn_model):
         3D array containing lepton integrated cross-section CDF values for rock.
 
     '''
+
     nu_ixc = Data.get_ixc('nu', nu_model, nu_type)
 
     lep_ixc_water = Data.get_ixc(ch_lepton, pn_model, 'water')

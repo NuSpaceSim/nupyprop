@@ -1480,8 +1480,8 @@ contains
        call densityatx(x, angle, idepth, r, rho) ! find rho at x
 
        if (rho <= 0._dp) then ! round off error happening here; went too far
-          print *,"col_depth = ", col_depth
-          print *,"x = ", x
+          !print *,"col_depth = ", col_depth
+          !print *,"x = ", x
           print *,'rho is 0'
        end if
        if (rho <= 1.5_dp .and. r < 6365.0_dp) then
@@ -1508,7 +1508,8 @@ contains
           call propagate_lep_water(e_lep, xc_water, lep_ixc_water, alpha_water, beta_water, d_in,&
                & lepton, prop_type, cthi, Pi, part_type, d_f, e_fin, pcthf)
 
-          d_fin = depth_traj + d_f
+          depth_traj = depth_traj + d_f
+          d_fin = depth_traj 
           
        else !either tau decayed or idepth==0
           pcthf = Pf*cthf
@@ -1583,7 +1584,7 @@ contains
 
   subroutine regen(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, xc_rock,&
        & ixc_water, ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, idepth,&
-       & lepton, fac_nu, prop_type, Pin, part_type, d_exit, e_fin, Pout)
+       & lepton, fac_nu, prop_type, Pin, v, part_type, d_exit, e_fin, Pout)
     !! Regeneration loop.   !!this should take a pin and also throw out pout. pin will be used by distnu and the pout it will throw will be used by regen again as input in the single_stat(). 
     
     implicit none
@@ -1634,6 +1635,8 @@ contains
     !! Type of energy loss propagation. 1=stochastic, 2=continuous.
     real(dp), intent(in) :: Pin
     !!tau's polarization input from tau passing thru layers
+    integer(dp), intent(in) :: v !*****
+    !! Filename for Etaunu_out character size. File for tau just created that will exit******
     
     integer, intent(out) :: part_type
     !! Type of outgoing particle. 0=neutrino; 3=exit.
@@ -1683,7 +1686,7 @@ contains
 
     ! otherwise we have a tau
     d_lep = d_lep + dtr
-    d_left = d_left - dtr
+    d_left = depth - d_lep
     
     if (d_left <= 0._dp) then
        d_exit = depth
@@ -1701,6 +1704,11 @@ contains
          & alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, idepth, lepton, prop_type,&
          & part_type, d_exit, e_fin, Pi)
 
+    if (part_type==1) then!*****
+       write(v, *) dlog10(etau2), (d_left)
+    end if
+    !check if it is a tau, if it is then write etau2, d_left in a new file.******
+    
     Pout = Pi
     
     return
@@ -1720,7 +1728,7 @@ contains
 
   subroutine single_stat(energy, angle, nu_xc, nu_ixc, depth, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,&
        & alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu, prop_type,&
-       & u, w, no_regen_tot, regen_tot)
+       & u, w, v, no_regen_tot, regen_tot)
     !! Propagates a single ingoing neutrino event.
     
     implicit none
@@ -1773,13 +1781,15 @@ contains
     !! Filename for Etau_out character size.
     integer(dp), intent(in) :: w
     !! Filename for Polarization_out character size.
+    integer(dp), intent(in) :: v !*******
+    !! Filename for Etaunu_out character size. File for tau just created that will exit *******
 
     integer(kind=8), intent(inout) :: no_regen_tot
     !! No. of outgoing leptons without regeneration.
     integer(kind=8), intent(inout) :: regen_tot
     !! No. of outgoing leptons with regeneration.
     
-    real(dp) :: depth0, dtr, ef, etauin, dfinal, etauf, dleft, dtau2, ef2
+    real(dp) :: depth0, dtr, ef, etauin, dfinal, etauf, dleft, dtau2, ef2, distance!******! 
     integer :: ip, ipp, ipp3
     integer(kind=8) :: regen_cnt
     real(dp) :: Pi, Pint, Pout
@@ -1797,9 +1807,7 @@ contains
     call propagate_nu(energy, nu_xc, nu_ixc, depth, fac_nu, ip, dtr, ef)
     
     ! how far did the neutrino go? dtr is how far traveled
-    
     depth0 = depth0 + dtr ! how far is the neutrino on trajectory?
-
     dleft = depth - depth0 ! how far is left for the neutrino to travel?
     
     if (ip == 0) then ! still a neutrino at the end of the road
@@ -1815,16 +1823,9 @@ contains
     etauin = ef
     ! still need to propagate the tau, column depth to go
 
-    ! Only thru rock 
-    d_in = depth - depth0 ! propagate this far in rock
-
-    call propagate_lep_rock(angle, etauin, xc_rock, lep_ixc_rock, alpha_rock, beta_rock, depth0,&
-            & d_in, xalong, cdalong, idepth, lepton, prop_type, ipp, dfinal, etauf, cthf, Pf)
-    
-    !call tau_thru_layers(angle, depth, dwater, depth0, etauin, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water,&
-    !     & alpha_rock, beta_water, beta_rock, xalong, cdalong, idepth, lepton, prop_type, ipp, dfinal, etauf, Pi)
-
-    dfinal = dfinal + depth0
+    distance = depth0
+    call tau_thru_layers(angle, depth, dwater, depth0, etauin, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water,&
+         & alpha_rock, beta_water, beta_rock, xalong, cdalong, idepth, lepton, prop_type, ipp, dfinal, etauf, Pi)
     
     dleft = depth-dfinal
     
@@ -1835,6 +1836,8 @@ contains
        regen_tot = regen_tot + 1 ! update the regen tau array once
        write(u, Format) dlog10(etauf)  
        write(w, Format1) (Pout)
+       write(v, *) dlog10(etauin), (depth-distance) !********!
+
        ! go to 10; we are done with the loop
        return ! break outside stat; continue is correct here
     end if 
@@ -1842,39 +1845,36 @@ contains
     ! 11 continue; beginning of regeneration loop
     ! must be a neutrino. Is there still column depth to propagate?
 
-    !ipp3 = 99 ! dummy value
-    !do while (dfinal < depthE .and. ipp3 /= 1 .and. regen_cnt <= 6) ! tau has decayed before the end
+    ipp3 = 99 ! dummy value
+    do while (dfinal < depthE .and. ipp3 /= 1 .and. regen_cnt <= 6) ! tau has decayed before the end
        
-    !   etauin = etauf ! regen finds neutrino energy
+       etauin = etauf ! regen finds neutrino energy
        
-    !   call regen(angle, etauin, depth, dwater, dfinal, nu_xc, nu_ixc, ithird, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,&
-    !        & alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, idepth, lepton,&
-    !        & fac_nu, prop_type, Pi, ipp3, dtau2, ef2, Pint)  
+       call regen(angle, etauin, depth, dwater, dfinal, nu_xc, nu_ixc, ithird, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,&
+            & alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, idepth, lepton,&
+            & fac_nu, prop_type, Pi, v, ipp3, dtau2, ef2, Pint)  
+       
+       regen_cnt = regen_cnt + 1
+       
+       if (ipp3 == 1) then ! then we are back to a tau at the end of the road
+          regen_tot = regen_tot + 1
+          Pout = Pint
+          write(u, Format) dlog10(ef2)
+          write(w, Format1) (Pout)
+          ! go to 10; we are done with the loop
+          return ! need to check if this breaks out of stat loop or not. Yes??
+       end if
 
-       !print *, "After regeneration, Pint = ", Pint 
-       !print *, "ipp3 = ",ipp3, " ipp3=1: Tau; ipp3=0: neutrino"
-       
-    !   regen_cnt = regen_cnt + 1
-       
-    !   if (ipp3 == 1) then ! then we are back to a tau at the end of the road
-    !      regen_tot = regen_tot + 1
-    !      Pout = Pint
-    !      write(u, Format) dlog10(ef2)
-    !      write(w, Format1) (Pout)
-    !      ! go to 10; we are done with the loop
-    !      return ! need to check if this breaks out of stat loop or not. Yes??
-    !   end if
-
-    !  if (regen_cnt > 6) then ! 6 rounds of regeneration
+      if (regen_cnt > 6) then ! 6 rounds of regeneration
           !print *, "regeneration exceeded 6"
-    !      return ! only if regen > 6, break and go to run_stat for next iteration
-    !   end if
+          return ! only if regen > 6, break and go to run_stat for next iteration
+       end if
           
-    !   etauf = ef2
-    !   dfinal = dtau2 ! go to 11
-    !   Pi = Pint
+       etauf = ef2
+       dfinal = dtau2 ! go to 11
+       Pi = Pint
        
-    !end do
+    end do
     
   end subroutine single_stat
   
@@ -1937,14 +1937,17 @@ contains
    
     real(dp) :: depth
     integer(kind=8):: i
-    integer(kind=8) :: u, w
-    character(25) Efilename, Pfilename
+    integer(kind=8) :: u, w, v!*********!
+    character(25) Efilename, Pfilename, Etaunufilename
     
     write(Efilename,'(a,F0.2,a,F4.1,a)') 'eout_',dlog10(energy),'_',angle,'.dat' ! filename is eout_energy_angle.dat
     open(newunit=u, file=trim(Efilename), status="replace")
 
     write(Pfilename,'(a,F0.2,a,F4.1,a)') 'Pout_',dlog10(energy),'_',angle,'.dat' ! filename is Pout_energy_angle.dat
     open(newunit=w, file=trim(Pfilename), status="replace")
+
+    write(Etaunufilename,'(a,F0.2,a,F4.1,a)') 'etaunu_',dlog10(energy),'_',angle,'.dat' ! filename is etaunu_energy_angle.dat
+    open(newunit=v, file=trim(Etaunufilename), status="replace")!********!
     
     depth = depthE
     no_regen_tot = 0
@@ -1954,12 +1957,13 @@ contains
     do i = 1, stats
        call single_stat(energy, angle, nu_xc, nu_ixc, depth, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,&
             & alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu, prop_type, &
-            & u,w, no_regen_tot, regen_tot)
+            & u,w, v, no_regen_tot, regen_tot)!********!
        
     end do
     !$OMP END PARALLEL DO
     close(u)
     close(w)
+    close(v)!!*******!!
     return
   end subroutine run_stat_single
 
