@@ -168,7 +168,6 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, ch_lept
 
     nu_xc, xc_water, xc_rock, alpha_water, alpha_rock, beta_water, beta_rock = init_xc(nu_type, ch_lepton, cross_section_model, pn_model, prop_type)
 
-
     nu_ixc, lep_ixc_water, lep_ixc_rock = init_ixc(nu_type, ch_lepton, cross_section_model, pn_model)
 
     ithird = 0 # use dn/dy in tau to neutrino
@@ -192,7 +191,6 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, ch_lept
     for energy in sorted(E_prop):
         eout_list = [] #to store final energies of exiting charged lepton
         for angle in sorted(angles):
-
             xalong, cdalong = Data.get_trajs('col', angle, idepth) # initialize arrays here for each angle, to reduce a ton of overhead when tauthrulayers & regen are called
 
             print("Neutrino Energy = 10^(%.2f) GeV, Earth Emergence Angle = %.2f degrees" % (energy, angle), flush=True)

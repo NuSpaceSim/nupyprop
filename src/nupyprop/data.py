@@ -42,6 +42,12 @@ class ModelError(Exception):
     def __str__(self):
         return f'{self.fnm} -> {self.message}'
 
+import pandas as pd
+def data_extract(str):
+    data = pd.read_csv(str,sep='\s+',header=None)
+    #data = pd.DataFrame(data)
+    return data;
+
 def patch_for_astropy(arr):
     """makes a patch for astropy to avoid errors with '0 len' arrays
 
@@ -241,31 +247,52 @@ def get_trajs(type_traj, angle, idepth, out=False):
             water (float): Final water layer distance, in km
     """
     if type_traj == 'col':
+        # diksha = data_extract("col_0p1.dat")
+        # xalong, cdalong = [], []
+        # for a in range(len(diksha)):
+        #     if diksha[0][a]==angle:
+        #         #print(diksha[0][a])
+        #         xalong.append(diksha[1][a])
+        #         cdalong.append(diksha[2][a])
+
+        # xalong = np.asfortranarray(xalong)
+        # cdalong = np.asfortranarray(cdalong)
+
         with importlib_resources.as_file(ref) as lookup_tables:
-            print(lookup_tables)
             traj_table = Table.read(lookup_tables,path='Earth/Column_Trajectories/%skm' % str(idepth))
 
         sliced_table = traj_table[traj_table['beta']==angle]
         xalong = np.asfortranarray(sliced_table['xalong'].T)
         cdalong = np.asfortranarray(sliced_table['cdalong'].T)
 
-        if out:
-            fnm = "%s_%.2fdeg_%skm.ecsv" % (type_traj,angle,idepth)
-            ascii.write(traj_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
-            return print('Column trajectory data saved to file %s' % fnm)
+        # if out:
+        #     fnm = "%s_%.2fdeg_%skm.ecsv" % (type_traj,angle,idepth)
+        #     ascii.write(traj_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
+        #     return print('Column trajectory data saved to file %s' % fnm)
         return xalong, cdalong
 
     elif type_traj == 'water':
+        # diksha = data_extract("water_0p1.dat")
+        # chord, water = [], []
+        # for a in range(len(diksha)):
+        #     if diksha[0][a]==angle:
+        #         #print(diksha[2][a])
+        #         chord.append(diksha[1][a])
+        #         water.append(diksha[2][a])
+
+        # chord = np.asfortranarray(chord)
+        # water = np.asfortranarray(water)
+
         with importlib_resources.as_file(ref) as lookup_tables:
             traj_table = Table.read(lookup_tables,path='Earth/Water_Trajectories/%skm' % str(idepth))
 
         chord = float(traj_table['chord'][traj_table['beta']==angle])
         water = float(traj_table['water'][traj_table['beta']==angle])
 
-        if out:
-            fnm = "%s_%.2fdeg_%skm.ecsv" % (type_traj,angle,idepth)
-            ascii.write(traj_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
-            return print('Water trajectory data saved to file %s' % fnm)
+        # if out:
+        #     fnm = "%s_%.2fdeg_%skm.ecsv" % (type_traj,angle,idepth)
+        #     ascii.write(traj_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
+        #     return print('Water trajectory data saved to file %s' % fnm)
         return chord, water
     return "Error in get_trajs in Data"
 

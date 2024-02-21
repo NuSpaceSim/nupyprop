@@ -1952,6 +1952,8 @@ contains
     depth = depthE
     no_regen_tot = 0
     regen_tot = 0
+
+    print *, "idepth = ", idepth
     
     !$OMP PARALLEL DO
     do i = 1, stats

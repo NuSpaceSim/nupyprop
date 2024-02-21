@@ -36,8 +36,10 @@ cross_section_model = 'ct18nlo' # neutrino cross-section model
 pn_model = 'allm' # photonuclear energy loss model
 pn_models = 'bdhm'
 idepth = 4 # depth of water layer in km
-idepths1 = 0
-idepths2 = 1
+idepths1 = 1
+idepths2 = 0.5
+idepths3 = 0.1
+idepths4 = 0
 stats = 1e8 # no. of ingoing neutrinos ie., statistics, Diksha code
 stats1 = 1e5
 stats2 = 1e6
@@ -64,9 +66,12 @@ def data_extract(str):
 # plt.rcParams['xtick.labelsize']='24'
 # plt.rcParams['ytick.labelsize']='24'
 
-energies = [8,9] #np.arange(7,12,1)
-angles1 = [3,4,5,10,15] #np.arange(1,43).astype('float64') # default angles in nuPyProp
-angles = np.arange(1,43).astype('float64') # default angles in nuPyProp
+energies = [9] #np.arange(7,12,1)
+angles1 = [0.2,0.3,0.6,0.7,0.8,0.9,1,2,3,4,5,10,15,20] #np.arange(1,43).astype('float64') # default angles in nuPyProp
+angles = np.arange(0.1,1,0.1)
+angles = np.append(angles, np.arange(1,43).astype('float64')) # default angles in nuPyProp
+angles2 = [1,2,3,4,5,10,15,20]
+# print(angles)
 
 fig= plt.figure(figsize=[8,6], constrained_layout=True)
 spec=gridspec.GridSpec(ncols=1,nrows=2,figure=fig)  # set up subplot grid
@@ -77,13 +82,17 @@ lss = ['-','--']
 colors = sns.color_palette('colorblind')[:len(energies)]
 
 for e, c in zip(energies, colors):
-    pexit_regen1 = data.get_pexit(nu_type, ch_lepton, 10**e, idepths1, cross_section_model, pn_model, prop_type, stats3)[1] # without regen
-    #pexit_regen2 = data.get_pexit(nu_type, ch_lepton, 10**e, idepths1, cross_section_model, pn_model, prop_type, stats3)[1] # with regen
-    pexit_regen3 = data.get_pexit(nu_type, ch_lepton, 10**e, idepth, cross_section_model, pn_model, prop_type, stats)[1] # with regen
+    pexit_regen1 = data.get_pexit(nu_type, ch_lepton, 10**e, idepth, cross_section_model, pn_model, prop_type, stats)[1] # without regen
+    pexit_regen2 = data.get_pexit(nu_type, ch_lepton, 10**e, idepths1, cross_section_model, pn_model, prop_type, stats3)[1] # with regen
+    pexit_regen3 = data.get_pexit(nu_type, ch_lepton, 10**e, idepths2, cross_section_model, pn_model, prop_type, stats3)[1] # with regen
+    pexit_regen4 = data.get_pexit(nu_type, ch_lepton, 10**e, idepths3, cross_section_model, pn_model, prop_type, stats)[1] # with regen
+    pexit_regen5 = data.get_pexit(nu_type, ch_lepton, 10**e, idepths4, cross_section_model, pn_model, prop_type, stats3)[1] # with regen
 
-    plt1.loglog(angles1, pexit_regen1, linestyle='dotted', marker='o', color = c, label='0 km')
-    #plt1.loglog(angles1, pexit_regen2, linestyle=lss[0], marker='o', color = c, label='0 km new with 1 m')
-    plt1.loglog(angles, pexit_regen3[9:], linestyle=lss[1], marker='o', color = c, label='4 km')
+    plt1.loglog(angles, pexit_regen1, linestyle=lss[0], marker='o', color = 'black', label='4 km')
+    plt1.loglog(angles1, pexit_regen2, linestyle=lss[0], marker='o', color = 'orange', label='1 km')
+    plt1.loglog(angles1, pexit_regen3, linestyle='dashdot', marker='o', color = 'green', label='0.5 km')
+    plt1.loglog(angles2, pexit_regen4, linestyle=lss[1], marker='o', color = 'red', label='0.1 km')
+    plt1.loglog(angles1, pexit_regen5, linestyle='dotted', marker='o', color = 'blue', label='0 km')
 
 # # #plt.text(8.8, 0.07, r'$\log_{10}(E_{\nu}$/GeV)',fontsize=18)
 # # m = plt1.plot( [], [], label= r'$\log_{10}(E_{\nu}$/GeV)', ls=lss[0])
@@ -98,9 +107,9 @@ for e, c in zip(energies, colors):
 # # h = [plt1.plot( [],[], color='black', label=titles[i], ls=linestyles[i])[0] for i in range(len(titles)) ]
 # # plt1.legend(handles=(h), frameon=False, loc='lower left', fontsize=18)
 
-# # plt1.set_xlim(1,15)
-# # plt1.set_ylim(1e-6, 2*1e-1)
-# # plt1.set_ylabel(r'$P^{(\tau)}_{exit}$', fontsize=24)
+# plt1.set_xlim(0.2,21)
+# plt1.set_ylim(1*1e-6, 2*1e-2)
+# plt1.set_ylabel(r'$P^{(\tau)}_{exit}$', fontsize=24)
 # plt1.grid(which='major', axis='both', linestyle=':', linewidth=0.5)
 # plt1.grid(which='minor', axis='both', linestyle=':', linewidth=0.5)
 # plt1.set_xticklabels([])
@@ -119,12 +128,12 @@ for e, c in zip(energies, colors):
 # plt2.set_xticklabels(ticks)
 # plt2.set_ylabel('Ratio', fontsize=24)
 # #plt2.set_ylabel('Ratio (ALLM/BDHM)', fontsize=19)
-# plt2.set_xlabel(r"$\beta_{tr}$ [degrees]", fontsize=24)
+#plt1.set_xlabel(r"$\beta_{tr}$ [degrees]", fontsize=24)
 # plt2.grid(which='major', axis='both', linestyle=':', linewidth=0.5)
 # plt2.grid(which='minor', axis='both', linestyle=':', linewidth=0.5)
 
-# plt.savefig('pexit_regen_noregen.pdf', bbox_inches='tight', dpi=400)
 plt.legend()
+#plt.savefig('pexit_waterdepth8.png', bbox_inches='tight', dpi=400)
 plt.show()
 
 #===============================================#
@@ -477,8 +486,8 @@ plt.show()
 #===================================================#
 # To plot col depth for different water layer depth #
 #===================================================#
-# cols = data.get_trajs('col', 1, 0, out=False)
-# # cols1 = data.get_trajs('col', 0.1, 1, out=False)
+# cols = data.get_trajs('col', 1, 1, out=False)
+# cols1 = data.get_trajs('col', 1, 0, out=False)
 # data_1m = data_extract("1m_data.dat")
 # #data_0km = data_extract("0km_data.dat")
 
@@ -504,7 +513,14 @@ plt.show()
 #         xalong_0km.append(data_0km[1][i])
 #         cdalong_0km.append(data_0km[2][i])
 
-# plt.plot(cols[0], cols[1], label='0km')
+# angles = np.arange(0.1,90.1,0.1)
+# cols=[]
+# for a in angles:
+#     print("%.1f" % a)
+#     chord, water = (data.get_trajs('water', "%.1f"%a, 1, out=False))
+    #cols.append((chord, water))
+#plt.plot(cols[0], cols[1], label='1km nupy')
+# plt.plot(cols1[0], cols1[1], label='0km nupy')
 # plt.plot(cols1[0], cols1[1], ls='dotted', label='1km')
 # plt.plot(xalong_1m, cdalong_1m, ls='--', label='1m')
 # plt.plot(xalong_0km, cdalong_0km, ls='-', label='0km')
@@ -514,8 +530,51 @@ plt.show()
 
 #print(Geometry.sagitta_deg(1))
 
-#a = Geometry.gen_col_trajs(0)
+# beta, x, cd = Geometry.gen_col_trajs(4)
+# # beta, x, cd = Geometry.gen_water_trajs(0.8)
+
+# datas = np.stack([beta, x, cd], axis=1)
+# np.savetxt("col_4.dat", datas, delimiter="\t")
+
+# #plt.plot(x, cd, marker='.', label='homemade')
+# plt.legend()
+# plt.show()
+
+# angle = 1;
+# hallsie = data_extract("traj-columndepth0p1.dat")
+# diksha = data_extract("col_0p5.dat")
+# diksha0 = data_extract("col_0.dat")
+# diksha0p5 = data_extract("col_4.dat")
+
+# x_dik, col_dik = [], []
+# x_dik0, col_dik0 = [], []
+# x_dik0p5, col_dik0p5 = [], []
+# for a in range(len(diksha)):
+#     if diksha[0][a]==angle:
+#         #print(diksha[2][a])
+#         x_dik.append(diksha[1][a])
+#         col_dik.append(diksha[2][a])
+#         x_dik0.append(diksha0[1][a])
+#         col_dik0.append(diksha0[2][a])
+#         x_dik0p5.append(diksha0p5[1][a])
+#         col_dik0p5.append(diksha0p5[2][a])
+# plt.semilogy(x_dik, col_dik, label="Diksha 0.1 km")
+# plt.semilogy(x_dik0, col_dik0, ls='--', label="Diksha 0 km")
+# plt.semilogy(x_dik0p5, col_dik0p5, marker='.', ls='none', label="Diksha 4 km")
+
+# x_hal, col_hal = [], []
+# for a1 in range(len(hallsie)):
+#     if hallsie[0][a1]==angle:
+#         x_hal.append(hallsie[1][a1])
+#         col_hal.append(hallsie[2][a1])
+# plt.plot(x_hal, col_hal, marker='.', ls='none', label="Hallsie 0.5")
+
+# plt.legend()
+# plt.show()
+
 #a = Geometry.create_traj_table(0)
 #data_1m = np.stack([a[0], a[1], a[2]], axis=1)
 #np.savetxt("0km_data.dat", data_1m, delimiter="\t")
 #print(a[0])
+
+#print( Geometry.find_interface(0.8) )
