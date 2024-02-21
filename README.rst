@@ -9,7 +9,7 @@ performance with openMP.
 Documentation (WIP): https://nupyprop.readthedocs.io/en/latest/
 
 **Note:** While the documentation is currently WIP, users and developers should consult the 
-nuPyProp tutorial folder called **plotting_tutorial** in the current repository, for visualizing output from the code and creating user-defined models.
+nuPyProp tutorial folder called **tutorial** in the current repository, for visualizing output from the code and creating user-defined models.
 
 **Citation:** Please cite "Neutrino propagation in the Earth and emerging charged leptons with nuPyProp", D. Garg, S.Patel et al. (NuSpaceSim Collaboration), `e-Print: arXiv:2209.15581 [astro-ph.HE, hep-ph] <https://doi.org/10.48550/arXiv.2209.15581>`__, published in Journal of Cosmology and Astroparticle Physics.
 
