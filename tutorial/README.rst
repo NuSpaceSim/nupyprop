@@ -27,24 +27,26 @@ Installation
 
 1. Install nuPyProp through one of the many options outlined in the `nuPyProp repository <https://github.com/NuSpaceSim/nupyprop>`_.
 2. Install the external dependencies mentioned above.
-3. Either place your nuPyProp output hdf5 file in ``plotting_tutorial/data`` or use the sample data file provided with this repo.
-4. ``cd plotting_tutorial``
-5. ``jupyter-lab *.ipynb``, where * is any of the 3 ipython notebooks in the repo.
+3. git clone the source code:
+   ``git clone https://github.com/sameer-patel-1/nupyprop_tutorial.git``
+4. Either place your nuPyProp output hdf5 file in ``plotting_tutorial/data`` or use the sample data file provided with this repo.
+5. ``cd nupyprop_tutorial``
+6. ``jupyter-lab *.ipynb``, where * is any of the 3 ipython notebooks in the repo.
 
 Notes
 -----
 
 1. The ipynb notebooks in this tutorial repository should be run in the nuPyProp environment.
-2. There are two output files using allm electromagnetic energy loss method in ``plotting_tutorial/data``, named ``output_nu_tau_4km_ct18nlo_allm_stochastic_1e7.h5`` and, ``output_nu_tau_4km_ct18nlo_allm_stochastic_1e8.h5`` . And another output file using bdhm electromagnetic energy loss method in ``plotting_tutorial/data``, named ``output_nu_tau_4km_ct18nlo_bdhm_stochastic_1e8.h5`` .
-3. The file ``output_nu_tau_4km_ct18nlo_allm_stochastic_1e8.h5`` is used in the ``output_plots.ipynb`` notebook to show how to plot the output data from nuPyProp. This file has tau-neutrino energy ranging from 1e6 to 1e12 GeV in quarter decades. This output file has two tables, Exit_Probability and Clep_out_cdf. We didn't include the Clep_out_energy because that made the h5 file really big in size. 
+2. There are two output files in ``plotting_tutorial/data``, ``output_nu_tau_4km_ct18nlo_allm_stochastic_1e7.h5`` and, ``output_nu_tau_4km_ct18nlo_allm_stochastic_1e8.h5`` .
+3. The file ``output_nu_tau_4km_ct18nlo_allm_stochastic_1e8.h5`` is used in the ``output_plots.ipynb`` notebook to show how to plot the output data from nuPyProp. This output file has two tables, Exit_Probability and Clep_out_cdf. We didn't include the Clep_out_energy because that made the h5 file really big in size.
 4. Therefore, section 2 can't be implemented using the given example h5 files. But an example code is given to the user to visualize the reuslts, if they have Clep_out_energy table in the h5 file (which can be included by running the nuPyProp simulation code with --el flag as yes, look at nuPyProp README document for more information).
-5. The file ``output_nu_tau_4km_ct18nlo_allm_stochastic_1e7.h5`` and ``output_nu_tau_4km_ct18nlo_bdhm_stochastic_1e8.h5`` has three tables, Exit_Probability, Avg_Polarization and Clep_out_cdf. This is an example file for plotting average polarization of the exiting lepton. This is shown in section 6 of the ``output_plots.ipynb`` notebook. 
+5. The file ``output_nu_tau_4km_ct18nlo_allm_stochastic_1e7.h5`` has three tables, Exit_Probability, Avg_Polarization and Clep_out_cdf. This is an example file for plotting average polarization of the exiting lepton. This is shown in section 6 of the ``output_plots.ipynb`` notebook. 
 
 Creating Custom Models
 ----------------------
 
 The custom/user-defined models will have to be of the same formats as shown in the iPython notebooks
-and the user should utilize the python code (`models.py <https://github.com/NuSpaceSim/nupyprop/blob/main/src/nupyprop/models/models.py>`_) which provides examples and templates on how to generate your own models. This is further more explained in the paper: "Neutrino propagation in the Earth and emerging charged leptons with nuPyProp", D. Garg, S.Patel et al. (NuSpaceSim Collaboration), `e-Print: arXiv:2209.15581 [astro-ph.HE, hep-ph] <https://doi.org/10.48550/arXiv.2209.15581>`__. 
+and the user should utilize the python code (`models.py <https://github.com/NuSpaceSim/nupyprop/blob/main/src/nupyprop/models/models.py>`_) which provides examples and templates on how to generate your own models.
 
 
 .. |alpha|  unicode:: U+003B1 .. GREEK SMALL LETTER ALPHA
