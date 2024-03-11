@@ -1070,7 +1070,6 @@ contains
 
             !! This routine will run for only PN interaction 
             if (int_type == 5) then          
-             !print *, "Is PN"
              call polarization(y, Pin, theta_in, Pout, theta_out)
              Pin = Pout
              theta_in = theta_out
@@ -1084,7 +1083,6 @@ contains
            part_id = 2 ! don't count this
            !print *, "I have less energy than emin!"
            pcthf = Pin*cos(theta_in)
-           !print *, pcthf
            return
         end if
         
@@ -1249,10 +1247,8 @@ contains
                 e_fin=e_init  
              end if
              !print *,"Passed Earth already!"
-             !pcthf = Pin*cos(theta_in)
              Pf = Pin
              cthf = cos(theta_in)
-             !print *, pcthf
              return
              
           end if
@@ -1294,8 +1290,6 @@ contains
              e_fin = e_int
              ! go to 50
              ! 50 continue
-             !print *, "I decayed"
-             !pcthf = Pin*cos(theta_in)
              Pf = Pin
              cthf = cos(theta_in)
              !print *, pcthf
@@ -1304,8 +1298,7 @@ contains
           
           ! tau didn't decay. Now how much energy does it have after interaction?
           call find_y(e_int, lep_ixc, int_type, y)
-          !print *, int_type
-          
+
           ! outgoing tau energy is old e_lep*(1-y)
           e_lep = e_int*(1._dp-y) ! this is the energy for the next interaction
           e_fin = e_lep
@@ -1325,11 +1318,8 @@ contains
           d_fin = d_max/1e5_dp
           e_fin = e_min
           part_id = 0 ! decayed or no_count??? should be decayed
-          !print *, "I have less energy than emin!"
-          !pcthf = Pin*cos(theta_in)
           Pf = Pin
           cthf = cos(theta_in)
-          !print *, pcthf
           return
        end if
        
@@ -1488,15 +1478,13 @@ contains
        return
     end if
     
-    if (angle <= 1.5_dp .or. depth-depth_traj < d_water) then
+    if (depth-depth_traj < d_water) then
        rho = rho_water ! water
     else
        call cd2distd(xalong, cdalong, col_depth, x)
        call densityatx(x, angle, idepth, r, rho) ! find rho at x
        
        if (rho <= 0._dp) then ! round off error happening here; went too far
-          print *,"col_depth = ", col_depth
-          print *,"x = ", x
           print *,'rho is 0'
        end if
        if (rho <= 1.5_dp .and. r < 6365.0_dp) then
@@ -1505,18 +1493,19 @@ contains
     end if
     
     if (rho > 1.5_dp) then ! we aren't in water yet
-       !    if (rho > rho_water) then ! we aren't in water yet
        d_in = depth - depth_traj - d_water ! propagate this far in rock
        
        call propagate_lep_rock(angle, e_lep, xc_rock, lep_ixc_rock, alpha_rock, beta_rock, depth_traj,&
             & d_in, xalong, cdalong, idepth, lepton, prop_type, part_type, d_f, e_fin, cthf, Pf)
+
+       depth_traj = depth_traj + d_f
        
        if (part_type == 1 .and. idepth /= 0) then ! still a tau; added .and. clause on 3/18
           
           e_lep = e_fin
           d_in = d_water
-          depth_traj = depth_traj + d_f ! now propagate through final layer of water
-          d_fin = depth_traj
+          !depth_traj = depth_traj + d_f ! now propagate through final layer of water
+          !d_fin = depth_traj
           Pi = Pf
           cthi = cthf
 
@@ -1525,8 +1514,12 @@ contains
           call propagate_lep_water(e_lep, xc_water, lep_ixc_water, alpha_water, beta_water, d_in,&
                & lepton, prop_type, cthi, Pi, part_type, d_f, e_fin, pcthf)
 
-       else if (part_type == 0) then ! tau decayed
+          depth_traj = depth_traj + d_f
+          d_fin = depth_traj
+          
+       else !either tau decayed or idepth==0
           pcthf = Pf*cthf
+          d_fin = depth_traj
           return
           
        end if
@@ -1543,12 +1536,6 @@ contains
        d_fin = depth_traj ! needed to add this since return was depth_traj here
        return
     end if
-
-!!$    if (part_type == 0) then ! tau decayed
-!!$       d_fin = d_f
-!!$       pcthf = Pf*cthf
-!!$       return
-!!$    end if
     
     return
     
