@@ -36,11 +36,11 @@ m_mu = scc.physical_constants["muon mass energy equivalent in MeV"][0]*1e-3 # Ge
 m_tau = scc.physical_constants["tau mass energy equivalent in MeV"][0]*1e-3 # GeV
 m_pi = 139.57018e-3 # pion mass in GeV
 alpha_fs = scc.fine_structure
-le = 3.8616e-11 # electron Compton wavelength in cm
+#le = 3.8616e-11 # electron Compton wavelength in cm
 
 m_p = scc.physical_constants["proton mass energy equivalent in MeV"][0]*1e-3 # GeV
-G_F = scc.physical_constants["Fermi coupling constant"][0] # GeV^-2
-N_A = scc.Avogadro
+#G_F = scc.physical_constants["Fermi coupling constant"][0] # GeV^-2
+#N_A = scc.Avogadro
 
 def rep(val): # Remove non-physical values
     '''
