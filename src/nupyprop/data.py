@@ -22,7 +22,7 @@ from scipy.interpolate import interpn
 E_nu = const.E_nu
 E_lep = const.E_lep
 
-nu_models = cosnt.nu_models #these are the models that exsist in lookup_table.h5
+nu_models = const.nu_models #these are the models that exsist in lookup_table.h5
 pn_models = const.pn_models
 
 ref = importlib_resources.files('nupyprop.datafiles') / 'lookup_tables.h5' # path for lookup_tables
