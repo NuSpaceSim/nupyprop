@@ -1,4 +1,5 @@
 import numpy as np
-import nupyprop_config as config
+import constants as const
 
-print(config.R_Earth)
+print(N_A)
+
