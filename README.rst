@@ -11,7 +11,7 @@ Documentation (WIP): https://nupyprop.readthedocs.io/en/latest/
 **Note:** While the documentation is currently WIP, users and developers should consult the 
 nuPyProp tutorial folder called **tutorial** in the current repository, for visualizing output from the code and creating user-defined models.
 
-**Citation:** Please cite "Neutrino propagation in the Earth and emerging charged leptons with nuPyProp", D. Garg, S.Patel et al. (NuSpaceSim Collaboration), `e-Print: arXiv:2209.15581 [astro-ph.HE, hep-ph] <https://doi.org/10.48550/arXiv.2209.15581>`__, published in Journal of Cosmology and Astroparticle Physics.
+**Citation:** Please cite "Neutrino propagation in the Earth and emerging charged leptons with nuPyProp", Diksha Garg et al JCAP01(2023)041. DOI: 10.1088/1475-7516/2023/01/041 (`Paper link: <https://iopscience.iop.org/article/10.1088/1475-7516/2023/01/041>`__), published in Journal of Cosmology and Astroparticle Physics.
 
 **Acknowledgments:** This work is supported by NASA grants 80NSSC19K0626 at the University of Maryland,Baltimore County, 80NSSC19K0460 at the Colorado School of Mines, 80NSSC19K0484 at theUniversity of Iowa, and 80NSSC19K0485 at the University of Utah, 80NSSC18K0464 at LehmanCollege, and under proposal 17-APRA17-0066 at NASA/GSFC and JPL.
 
