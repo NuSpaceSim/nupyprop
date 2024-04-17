@@ -1,5 +1,5 @@
 import numpy as np
 import constants as const
 
-print(N_A)
+print(const.N_A)
 

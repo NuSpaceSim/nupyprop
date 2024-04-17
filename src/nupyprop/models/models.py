@@ -13,34 +13,28 @@ Created on Mon Aug 3 14:17:24 2020
 
 @author: sam
 """
-import nupyprop.data as Data
-# import data as Data
+import nupyprop.constants as const
 
 import numpy as np
 import scipy.integrate as integrate
 import scipy.constants as scc
 import multiprocessing as mp
 from multiprocessing import Pool
-# import matplotlib.pyplot as plt
-# mpl.use('Agg') # for clusters
 from astropy.table import Table
 from astropy.io import ascii
 from collections import OrderedDict
 import time
 
-E_nu = Data.E_nu
-E_lep = Data.E_lep
+E_nu = const.E_nu
+E_lep = const.E_lep
 
-#m_e = scc.physical_constants["electron mass energy equivalent in MeV"][0]*1e-3 # GeV
-m_mu = scc.physical_constants["muon mass energy equivalent in MeV"][0]*1e-3 # GeV
-m_tau = scc.physical_constants["tau mass energy equivalent in MeV"][0]*1e-3 # GeV
-m_pi = 139.57018e-3 # pion mass in GeV
-alpha_fs = scc.fine_structure
-#le = 3.8616e-11 # electron Compton wavelength in cm
+m_mu = const.m_mu #muon mass in GeV
+m_tau = const.m_tau #tau mass in GeV
+m_pi = const.m_pi #pion mass in GeV
+alpha_fs = const.alpha_fs #fine structure constant
 
-m_p = scc.physical_constants["proton mass energy equivalent in MeV"][0]*1e-3 # GeV
-#G_F = scc.physical_constants["Fermi coupling constant"][0] # GeV^-2
-N_A = scc.Avogadro
+m_p = const.m_p #proton mass in GeV
+N_A = const.N_A #Avogadro's number 
 
 def rep(val): # Remove non-physical values
     '''
