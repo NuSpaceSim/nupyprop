@@ -10,6 +10,8 @@ import nupyprop.data as Data
 import nupyprop.geometry as Geometry
 from nupyprop.propagate import run as Run
 
+import nupyprop.constants as const 
+
 import numpy as np
 from astropy.table import Table
 from collections import OrderedDict
@@ -18,7 +20,7 @@ import time
 import os
 import glob
 
-rho_water = 1.02 # g/cm^3
+rho_water = const.rho_water # g/cm^3
 
 def file_cleaner(output_type):
     '''

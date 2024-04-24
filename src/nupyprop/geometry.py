@@ -8,6 +8,7 @@ Created on Wed May 26 11:55:30 2021
 
 import nupyprop.data as Data
 from nupyprop.propagate import geometry as Geometry
+import nupyprop.constants as const
 
 from collections import OrderedDict
 import numpy as np
@@ -19,13 +20,12 @@ from multiprocessing import Pool
 import warnings
 warnings.filterwarnings('ignore')
 
-Re = 6371.0 # radius of the earth in km
-Rlay = np.array([1221.5, 3480.0, 5701.0, 5771.0, 5971.0, 6151.0, 6346.6, 6356.0, 6368.0, 6371.0]) # PREM layers based on R_earth. If you're using another Earth model, be sure to change it here as well as propagate.f90, in PREMdensity subroutine.
+Re = const.R_earth #Radius of the earth in km
+Rlay = const.Rlay #PREM layers based on R_earth. If you're using another Earth model, be sure to change it in the constants.py file
 
-rho_water = 1.02 # density of water in g/cm^3
-# beta_arr = np.asarray([float('{:.1f}'.format(i)) for i in np.concatenate((np.linspace(0.1,5,50), np.linspace(6,90,85)))])
+rho_water = const.rho_water #density of water in g/cm^3
 
-beta_arr = np.asarray([float('{:.1f}'.format(i)) for i in np.arange(0.1,90.1,step=0.1)]) # finer steps of 0.1 deg
+beta_arr = const.beta_arr #Earth emergence angles in steps of 0.1 degrees  
 
 def sagitta_deg(beta_deg):
     '''

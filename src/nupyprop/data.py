@@ -5,6 +5,7 @@ Created on Sat Sep 26 16:44:13 2020
 
 @author: sam
 """
+import nupyprop.constants as const 
 
 import numpy as np
 from decimal import Decimal
@@ -18,11 +19,11 @@ import os
 from collections.abc import Iterable
 from scipy.interpolate import interpn
 
-E_nu = np.logspace(3,12,91,base=10).astype(np.float64)
-E_lep = np.logspace(0,12,121,base=10).astype(np.float64)
+E_nu = const.E_nu
+E_lep = const.E_lep
 
-nu_models = ['allm', 'bdhm', 'ct18nlo', 'nct15'] #these are the models that exsist in lookup_table.h5
-pn_models = ['allm', 'bb']
+nu_models = const.nu_models #these are the models that exsist in lookup_table.h5
+pn_models = const.pn_models
 
 ref = importlib_resources.files('nupyprop.datafiles') / 'lookup_tables.h5' # path for lookup_tables
 
