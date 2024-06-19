@@ -6,22 +6,25 @@ Created on Wed May  1 15:02:27 2024
 @author: Diksha Garg
 Comment: This code contains all the functions that are required in the propagation process of the particles. These functions will be called by the propagate.py code. 
 """
-
 import numpy as np
 import pandas as pd
 import importlib_resources
 import nupyprop.constants as const 
 
-rho_rock = const.rho_rock
-rho_iron = const.rho_iron
+rho_rock = const.rho_rock # rock density
+rho_iron = const.rho_iron # iron density
 
-E_nu = const.E_nu
-E_lep = const.E_lep
-yvals = const.yvals
+E_nu = const.E_nu # Neutrino energy numpy array
+E_lep = const.E_lep # Lepton energy numpy array
+yvals = const.yvals # inelasticity from 1e-3 to 1
 
-polarization_path = importlib_resources.files('nupyprop.datafiles') / 'polarization_data.txt'
-pola_df = pd.read_csv(resource_path, delimiter='\s+', header='#') 
+# loading polarization file for tau-leptons
+polarization_path = importlib_resources.files('nupyprop.datafiles') / 'polarization_data.txt' 
+column_names = ['y', 'PCthp', 'P']
+pola_df = pd.read_csv(resource_path, delimiter='\s+', comment='#', names=column_names)
 
+ypol, Pcthp, P = pola_df['y'].to_numpy(), pola_df['PCthp'].to_numpy(), pola_df['P'].to_numpy()
+        
 def cd2distd(xalong, cdalong, col_depth):
     '''
     Interpolate between column depth & distance in a medium.
@@ -44,10 +47,9 @@ def cd2distd(xalong, cdalong, col_depth):
     elif (col_depth > np.max(cdalong)):
        return np.max(xalong)
     else:
-       distance = np.interp(col_depth, cdalong, xalong)
-       return distance 
+       return np.interp(col_depth, cdalong, xalong) 
 
-def get_rho_frac(rho, frac, frac_pn):
+def get_rho_frac(rho):
     ''' 
     Calculates the correction/scaling fraction for material density between rock & iron.
 
@@ -230,10 +232,7 @@ def idecay(energy, distance, m_le, c_tau):
     dy = np.random.random()
     
     # Determine the decay status based on the probability
-    if dy < prob_decay:
-        decay = 0
-    else:
-        decay = 1
+    decay = 0 if dy < prob_decay else 1
     
     return decay
 
@@ -337,11 +336,8 @@ def interaction_type_nu(energy, nu_xc, fac_nu):
     x = np.random.random()
 
     # Determine the interaction type based on the random number
-    if x <= cc_frac:
-        int_type = 0  # CC
-    else:
-        int_type = 1  # NC
-
+    int_type = 0 if x <= cc_frac else 1  # 0 for CC, 1 for NC
+    
     return int_type
 
 def interaction_type_lep(energy, xc_arr, rho, m_le, c_tau):
@@ -428,42 +424,10 @@ def find_y(energy, ixc_arr, ip, E_nu, E_lep, yvals):
     # search_arr = cross-section CDF value array for energy_index
     # yvals = array of min. y values from which the cross-section CDF is calculated (see models.py for calculation details)
     # y is the interpolated (yvals) value corresponding to the cross-section CDF value = dy; this y is responsible for stochastic energy losses
-    
-    if y > 1.0:
-        y = 1.0
+
+    y = min(y, 1.0) #such that y>1 never happens
               
     return y
-
-    subroutine polarization(y, pin, theta_in, pout, theta_out)
-
-      implicit none
-
-      real(dp), intent(in) :: pin, theta_in, y
-      real(dp), intent(out) :: pout, theta_out
-
-      real(dp) :: pzout, theta, p0, rs, cth
-
-      if (y<0.01) then
-         theta_out = theta_in
-         pout = pin
-         return
-      else
-         call interpol(y, ypol, Pcthp, pzout)  !!interpolating Pcthp value for y
-         call interpol(y, ypol, P, pout)   !!interpolating P value for y
-
-      end if
-
-      cth = pzout/pout
-      theta_out = acos(cth)
-      p0 = pin*pout
-      pout = p0
-
-      call random(rs)
-
-      theta = theta_in + rs*theta_out
-      theta_out = theta
-
-    end subroutine polarization
 
 def polarization(y, pin, theta_in):
     '''
@@ -479,8 +443,7 @@ def polarization(y, pin, theta_in):
     float: theta_out, Final polar angle in radians.
     '''
     if y < 0.01:
-        theta_out = theta_in
-        pout = pin
+        pout, theta_out = pin, theta_in
         return pout, theta_out
     else:
         # Interpolate Pcthp and P values for given y
@@ -492,18 +455,10 @@ def polarization(y, pin, theta_in):
     theta_out = np.arccos(cth)
 
     # Update momentum
-    p0 = pin * pout
-    pout = p0
+    pout = pin * pout
 
     # Random scattering angle adjustment
-    rs = np.random.random()
-
-    if (rs<0.5):
-        r = 1
-    else:
-        r = -1
-        
-    theta = theta_in + r * theta_out
-    theta_out = theta
+    r = np.random.choice([1, -1])
+    theta_out = theta_in + r * theta_out
 
     return pout, theta_out
