@@ -48,7 +48,6 @@ def premdensity(Rin , idepth):
         float:
             Density (in g/cm^3) at the specified radius.
     """
-    print('updated')
     #sets the last layer as water layer
     Rlay[9] = 6368.0 + (3.0 - int(idepth))
     y = Rin/Re
