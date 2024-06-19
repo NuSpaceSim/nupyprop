@@ -11,7 +11,6 @@ Updated Wed April 10 14:02:27 2024
 """
 
 import nupyprop.data as Data
-#from nupyprop.propagate import geometry as Geometry
 import nupyprop.constants as const
 
 from collections import OrderedDict
@@ -19,8 +18,6 @@ import numpy as np
 from scipy import integrate
 import sympy as sp
 from astropy.table import Table
-#import multiprocessing as mp
-#from multiprocessing import Pool
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -35,8 +32,6 @@ rho_water = const.rho_water
 
 #Earth Emergence angles in steps of 0.1 degrees
 beta_arr = const.beta_arr
-
-#adding from geometry fortran module
 
 def premdensity(Rin , idepth):
     """
@@ -53,36 +48,29 @@ def premdensity(Rin , idepth):
         float:
             Density (in g/cm^3) at the specified radius.
     """
-
+    print('updated')
     #sets the last layer as water layer
-    Rlay[9] = 6368.0 + (3.0 - float(idepth))
-    
+    Rlay[9] = 6368.0 + (3.0 - int(idepth))
     y = Rin/Re
+    edens = 0.0 
     
-    if Rin <= Rlay[0]:
-        edens = 13.0885-8.8381*y**2
-    elif Rin <= Rlay[1]:
-        edens = 12.5815-1.2638*y-3.6426*y**2-5.5281*y**3
-    elif Rin <= Rlay[2]:
-        edens = 7.9565-6.4761*y+5.5283*y**2-3.0807*y**3
-    elif Rin <= Rlay[3]:
-        edens = edens = 5.3197-1.4836*y
-    elif Rin <= Rlay[4]:
-        edens = 11.2494-8.0298*y
-    elif Rin <= Rlay[5]:
-        edens = 7.1089-3.8045*y
-    elif Rin <= Rlay[6]:
-        edens = 2.6910+0.6924*y
-    elif Rin <= Rlay[7]:
-        edens = 2.900
-    elif Rin <= Rlay[8]:
-        edens = 2.600
-    elif Rin <= Rlay[9]:
-        edens = 1.020
-    elif Rin <=Rlay[9]*1.001:
-        edens = 1.020
-    else:
-        edens=0.0
+    expressions = (
+        lambda y: 13.0885-8.8381*y**2,
+        lambda y: 12.5815-1.2638*y-3.6426*y**2-5.5281*y**3,
+        lambda y: 7.9565-6.4761*y+5.5283*y**2-3.0807*y**3,
+        lambda y: 5.3197-1.4836*y,
+        lambda y: 11.2494-8.0298*y,
+        lambda y: 7.1089-3.8045*y,
+        lambda y: 2.6910+0.6924*y,
+        lambda y: 2.900,
+        lambda y: 2.600,
+        lambda y: 1.020,
+        )
+    
+    for i in range(len(Rlay)):
+        if Rin <= Rlay[i] or (i == len(Rlay) -1 and Rin <= Rlay[-1]*1.001):
+            edens = expressions[i](y)
+            break
     
     return edens
 
@@ -113,8 +101,6 @@ def densityatx(x, beta_deg, idepth):
     rho_at_x = premdensity(r,idepth)
     
     return r, rho_at_x
-
-#end fortran conversion, from here is copy paste from geometry.py
 
 def sagitta_deg(beta_deg):
     '''
@@ -170,67 +156,6 @@ def trajlength(beta_deg):
     traj_length = Re*np.cos(tnadir)*2
     return float(traj_length)
 
-# def PREMgramVSang_old(beta, idepth):
-#     '''
-
-#     Parameters
-#     ----------
-#     beta : float
-#         Earth emergence angle, in degrees.
-#     idepth : int
-#         Depth of water layer in km.
-
-#     Returns
-#     -------
-#     gramlen : float
-#         The "grammage" or column depth, in g/cm^2.
-
-#     '''
-#     Rlay_3 = np.copy(Rlay)
-#     Rlay_3[8] = 6368.0+(3.0-float(idepth))
-#     chord_length = 2.0*Re*np.sin(beta*(np.pi/180))
-#     Depth = Re-(0.5*np.sqrt(4.0*Re**2-chord_length**2))
-#     Rdep = Re-Depth
-
-#     Rlen = np.zeros(10)
-#     RlenS = np.zeros(10)
-#     clen = np.zeros(10)
-#     glen = np.zeros(10)
-
-#     ilay = np.asarray([1 if Rdep<Rlay_3[i] else 0 for i in range(len(Rlay_3))])
-#     gramlen = 0
-
-#     first_non_zero = np.nonzero(ilay)[0][0]
-
-#     for i in range(first_non_zero, len(ilay)):
-#         if i == first_non_zero:
-#             ifirst = i
-#             Rlen[i] = Rlay_3[i]-Rdep
-#             clen[i] = 2*np.sqrt(Rlay_3[i]**2 - (Rlay_3[i] - Rlen[i])**2)
-#             Rin = Rlay_3[i] - (Rlen[i]/2.0)
-#             rho = Geometry.premdensity(Rin, idepth)
-#             glen[i] = clen[i]*1e5*rho
-
-#         elif ilay[i] > 0:
-#             Rlen[i] = Rlay_3[i] - Rlay_3[i-1]
-#             RlenS[i] = Rlay_3[i] - Rlay_3[i-1]
-
-#             for j in range(ifirst,i):
-#                 RlenS[i] = RlenS[i] + Rlen[j]
-
-#             clen[i] = 2.0*np.sqrt(Rlay_3[i]**2 - (Rlay_3[i] - RlenS[i])**2)
-#             # print(clen[i])
-
-#             for j in range(ifirst,i):
-#                 clen[i] = clen[i] - clen[j]
-
-#             Rin = Rlay_3[i] - (Rlen[i]/2.0)
-#             rhoOUT = Geometry.premdensity(Rin, idepth)
-#             glen[i] = clen[i]*1e5*rhoOUT
-
-#         gramlen += glen[i]
-
-#     return gramlen
 
 def PREMgramVSang(beta_deg, idepth):
     chord_length = 2*Re*np.sin(beta_deg*(np.pi/180.))
@@ -283,26 +208,6 @@ def cdtot(x_v, beta_deg, idepth):
     r, rho = densityatx(x_v, beta_deg, idepth)
     cdtot_val = rho*1e5
     return cdtot_val
-
-# def integrator(args): # no longer required
-#     '''
-
-#     Parameters
-#     ----------
-#     args : list of lists
-#         Function arguments (used for multithreading later).
-
-#     Returns
-#     -------
-#     function
-#         Integrator function.
-
-#     '''
-#     fun = args[0]
-#     var = args[1]
-#     low_lim = args[2]
-#     up_lim = args[3]
-#     return integrate.quad(fun,low_lim,up_lim,args=(var))
 
 def gen_col_trajs(idepth):
     '''
@@ -408,37 +313,3 @@ def create_traj_table(idepth):
     Data.add_trajs('col', int(idepth), col_table)
     Data.add_trajs('water', int(idepth), water_table) # yikes! fixed!
     return None
-
-
-# =============================================================================
-# Test
-# =============================================================================
-if __name__ == "__main__":
-    # import data as Data
-
-    pass
-
-    # idepth = 6
-    # print(find_interface(idepth)[0])
-    # print(Geometry.premdensity(1203, idepth))
-    # print(premdensity_2(1203))
-
-    # premdensity(1203, idepth)
-    # r, rho = densityatx(6752.231264859498,32.0, idepth)
-    # print(r,rho)
-    # r,rho = densityatx(719814756.1985742, 10, idepth)
-    # print(r,rho)
-    # print(columndepth(10, idepth))
-    # thn = 1.3962622222222221
-    # print(columndepth(thn, idepth))
-    # print(PREMgramVSang(10, idepth))
-
-    # create_traj_table(0)
-    # for idepth in range(0,11):
-    #     create_traj_table(idepth)
-
-    # idepths = np.arange(0,11)
-    # input_list = [[i] for i in idepths]
-    # p = Pool(mp.cpu_count()) # use all available cores
-    # p.starmap(create_traj_table, input_list)
-    # p.close()
