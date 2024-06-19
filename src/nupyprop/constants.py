@@ -1,5 +1,7 @@
 ############################################################
-#This file contains all the required constants for nupyprop
+#date: April 17, 2024
+#author: Diksha Garg
+#comment: This file contains all the required constants for nupyprop
 ############################################################
 import numpy as np
 import scipy.constants as scc
