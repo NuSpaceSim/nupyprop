@@ -19,13 +19,6 @@ E_nu = const.E_nu # Neutrino energy numpy array
 E_lep = const.E_lep # Lepton energy numpy array
 yvals = const.yvals # inelasticity from 1e-3 to 1
 
-# loading polarization file for tau-leptons
-polarization_path = importlib_resources.files('nupyprop.datafiles') / 'polarization_data.txt' 
-column_names = ['y', 'PCthp', 'P']
-pola_df = pd.read_csv(resource_path, delimiter='\s+', comment='#', names=column_names)
-
-ypol, Pcthp, P = pola_df['y'].to_numpy(), pola_df['PCthp'].to_numpy(), pola_df['P'].to_numpy()
-
 
 def propagate_nu(e_init, nu_xc, nu_ixc, depth_max, fac_nu):
     
@@ -338,8 +331,9 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
                 e_int = e_min
             
             e_avg = 10.0**((np.log10(e_lep) + np.log10(e_int))/2) # does this work ?
-            alpha = transport.int_alpha(e_lep, alpha_rock)
-            beta = transport.int_beta(e_lep, beta_rock, rho)
+            
+            alpha = transport.int_alpha(e_avg, alpha_rock)
+            beta = transport.int_beta(e_avg, beta_rock, rho)
             
             e_int = transport.em_cont_part(e_lep, alpha, beta, x, m_le) # get the continuous energy
             
@@ -356,7 +350,7 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
                 
                 return part_id,d_fin,e_fin,cthf,Pf
 
-            int_type = transport.interaction_type_lep(e_int, xc_rock, rho, m_le, c_tau, int_type)
+            int_type = transport.interaction_type_lep(e_int, xc_rock, rho, m_le, c_tau)
             
             if int_type == 2: #tau has decayed
                 part_id = 0
@@ -381,7 +375,8 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
         #outside the while loop, e_lep has to be < e_min
         if e_lep <= e_min: #only continuous energy loss
                d_fin = d_max/1e5
-               e_fin = e_minpart_id = 0 #dayed or no_count?? should be decayed
+               e_fin = e_min
+               part_id = 0 #dayed or no_count?? should be decayed
                Pf = Pin
                cthf = np.cos(theta_in)
                return part_id,d_fin,e_fin,cthf,Pf
