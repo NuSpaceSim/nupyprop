@@ -273,11 +273,11 @@ def int_depth_nu(energy, nu_xc, fac_nu):
     Returns:
         float: Neutrino interaction depth, in cm^2/g.
     """
-      sig_cc, sig_nc = int_xc_nu(energy, nu_xc, fac_nu)
-      sig_weak = sig_cc + sig_nc # weak interactions
-      x_int = 1.0 / (N_A * sig_weak)
+    sig_cc, sig_nc = int_xc_nu(energy, nu_xc, fac_nu)
+    sig_weak = sig_cc + sig_nc # weak interactions
+    x_int = 1.0 / (const.N_A * sig_weak)
 
-      return x_int
+    return x_int
 
 def int_depth_lep(energy, xc_arr, rho, m_le, c_tau):
     """
@@ -306,7 +306,7 @@ def int_depth_lep(energy, xc_arr, rho, m_le, c_tau):
 
     # Calculate total EM and weak interactions
     sig_em = sig_brem + sig_pair + sig_pn
-    sig_weak = sig_cc + sig_nc
+    sig_weak = sig_cc + sig_nc 
 
     # Calculate the interaction depth
     x_int = 1.0 / (sig_em + sig_weak + decay_depth_inv)
