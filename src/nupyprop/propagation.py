@@ -10,7 +10,7 @@ import pandas as pd
 import importlib_resources
 import nupyprop.constants as const 
 import nupyprop.transport as transport
-import nupyprop.geometry_v2 as geometry
+import nupyprop.geometry as geometry
 
 rho_rock = const.rho_rock # rock density
 rho_iron = const.rho_iron # iron density
