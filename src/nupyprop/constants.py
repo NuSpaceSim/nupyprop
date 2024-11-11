@@ -1,16 +1,17 @@
-############################################################
-#date: April 17, 2024
-#author: Diksha Garg
-#comment: This file contains all the required constants for nupyprop
-############################################################
+"""
+date: April 17, 2024
+author: Diksha Garg
+comment: This file contains all the required constants for nupyprop
+"""
+
 import numpy as np
 import scipy.constants as scc
 
 #useful constants
 N_A = 6.0221409e+23 # Avogadro's number in units of 1/mole
 
-R_earth = 6378.137 #radius of Earth in km
-
+#R_earth = 6378.137 #radius of Earth in km
+R_earth = 6371.0
 rho_water, rho_rock, rho_iron = 1.02, 2.65, 7.87 #density of water, rock and iron in g/cm^3
 
 m_mu = scc.physical_constants["muon mass energy equivalent in MeV"][0]*1e-3 # muon mass in GeV

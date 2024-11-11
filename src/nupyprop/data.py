@@ -246,8 +246,8 @@ def get_trajs(type_traj, angle, idepth, out=False):
             traj_table = Table.read(lookup_tables,path='Earth/Column_Trajectories/%skm' % str(idepth))
 
         sliced_table = traj_table[traj_table['beta']==angle]
-        xalong = np.asfortranarray(sliced_table['xalong'].T)
-        cdalong = np.asfortranarray(sliced_table['cdalong'].T)
+        xalong = np.array(sliced_table['xalong'].T)
+        cdalong = np.array(sliced_table['cdalong'].T)
 
         if out:
             fnm = "%s_%.2fdeg_%skm.ecsv" % (type_traj,angle,idepth)
@@ -346,7 +346,7 @@ def get_xc(part_type, model, arg, out=False):
             ascii.write(out_table, fnm, format='ecsv', fast_writer=False, overwrite=True)
             return print('%s cross-section data saved to file %s' % (nu_type,fnm))
 
-        return np.asfortranarray(xc_arr.T)
+        return np.array(xc_arr.T)
 
     else: # energy loss; part_type == 'tau' or 'muon'
         material = arg
@@ -378,7 +378,7 @@ def get_xc(part_type, model, arg, out=False):
             ascii.write(out_table, fnm, format='ecsv', fast_writer=False, overwrite=True)
             return print('%s cross-section data saved to file %s' % (part_type,fnm))
 
-        return np.asfortranarray(xc_arr.T)
+        return np.array(xc_arr.T)
 
 def add_ixc(part_type, ixc_table, arg):
     """adds cross-section CDF values to lookup_tables.h5
@@ -465,7 +465,8 @@ def get_ixc(part_type, model, arg, out=False):
             ascii.write(out_table, fnm, format='ecsv', fast_writer=False, overwrite=True)
             return print('%s cross-section CDF data saved to file %s' % (nu_type,fnm))
 
-        return np.asfortranarray(ixc_arr.T)
+        #return np.array(ixc_arr.T)
+        return np.array(ixc_arr.T)
 
 
     else: # energy loss; ixc_type == 'tau' or 'muon'
@@ -500,7 +501,8 @@ def get_ixc(part_type, model, arg, out=False):
             ascii.write(out_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
             return print('%s cross-section CDF data saved to file %s' % (part_type,fnm))
 
-        return np.asfortranarray(ixc_arr.T)
+        #return np.array(ixc_arr.T)
+        return np.array(ixc_arr.T)
 
 
 def add_alpha(ch_lepton, material, alpha_table):
@@ -544,7 +546,7 @@ def get_alpha(ch_lepton, material, out=False):
         ascii.write(alpha_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
         return print('Alpha data saved to file %s' % fnm)
 
-    return np.asfortranarray(alpha_arr.T)
+    return np.array(alpha_arr.T)
 
 def add_beta(ch_lepton, material, beta_table):
     """adds charged lepton energy loss parameter values to lookup_tables.h5
@@ -620,7 +622,7 @@ def get_beta(ch_lepton, model, material, arg, out=False):
         ascii.write(out_table, fnm, format='ecsv', fast_writer=False, overwrite=True)
         return print('Beta data saved to file %s' % fnm)
 
-    return np.asfortranarray(beta_arr.T)
+    return np.array(beta_arr.T)
 
 
 def add_pexit(ch_lepton, energy, p_angle, p_noregen, p_regen, out_file, arg=None):

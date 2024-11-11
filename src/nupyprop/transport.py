@@ -21,7 +21,7 @@ yvals = const.yvals # inelasticity from 1e-3 to 1
 # loading polarization file for tau-leptons
 polarization_path = importlib_resources.files('nupyprop.datafiles') / 'polarization_data.txt' 
 column_names = ['y', 'PCthp', 'P']
-pola_df = pd.read_csv(resource_path, delimiter='\s+', comment='#', names=column_names)
+pola_df = pd.read_csv(polarization_path, delimiter='\s+', comment='#', names=column_names)
 
 ypol, Pcthp, P = pola_df['y'].to_numpy(), pola_df['PCthp'].to_numpy(), pola_df['P'].to_numpy()
         
@@ -396,7 +396,7 @@ def interaction_type_lep(energy, xc_arr, rho, m_le, c_tau):
 
     return int_type
 
-def find_y(energy, ixc_arr, ip, E_nu, E_lep, yvals):
+def find_y(energy, ixc_arr, ip):
     """
     Stochastic determination of neutrino/lepton inelasticity.
 
@@ -416,9 +416,10 @@ def find_y(energy, ixc_arr, ip, E_nu, E_lep, yvals):
         ip_id = 0 if ip == 0 else 1 #ip_id=0 for CC and 1 for NC 
     else:  # for charged leptons
         energy_index = searchsorted(E_lep, energy)
-        ip_id = ip - 2  # Convert ip (3, 4, 5) to index (1, 2, 3) for brem, PP, PN, respectively
+        ip_id = ip - 3  # Convert ip (3, 4, 5) to index (1, 2, 3) for brem, PP, PN, respectively
         
     search_arr = ixc_arr[:, energy_index, ip_id]
+    dy = np.random.random()
     y = np.interp(dy, search_arr, yvals)
     # dy is the randomly sampled cross-section CDF value (between 0 & 1)
     # search_arr = cross-section CDF value array for energy_index

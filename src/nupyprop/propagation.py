@@ -2,22 +2,20 @@
 Created on Wed June 19 15:21:03 2024
 
 @author: Luke Kupari
-Comment
+
 """
 
 import numpy as np
-import pandas as pd
-import importlib_resources
 import nupyprop.constants as const 
 import nupyprop.transport as transport
 import nupyprop.geometry as geometry
 
-rho_rock = const.rho_rock # rock density
-rho_iron = const.rho_iron # iron density
+#rho_rock = const.rho_rock # rock density
+#rho_iron = const.rho_iron # iron density
 
-E_nu = const.E_nu # Neutrino energy numpy array
-E_lep = const.E_lep # Lepton energy numpy array
-yvals = const.yvals # inelasticity from 1e-3 to 1
+#E_nu = const.E_nu # Neutrino energy numpy array
+#E_lep = const.E_lep # Lepton energy numpy array
+#yvals = const.yvals # inelasticity from 1e-3 to 1
 
 
 def propagate_nu(e_init, nu_xc, nu_ixc, depth_max, fac_nu):
@@ -42,17 +40,18 @@ def propagate_nu(e_init, nu_xc, nu_ixc, depth_max, fac_nu):
     e_fin = e_init
     x_0 = 0.0 #starting depth in g/cm^2
     d_travel = depth_max #added this in case there is aprogram and needed for breaking out when E<1e3
-    
+    #print('e_nu = ', e_nu)
     while e_nu > 1e3:
         
         r = np.random.random()
-        int_depth = -1*transport.int_depth_nu(e_nu,nu_xc,fac_nu)
+        int_depth = 1*transport.int_depth_nu(e_nu,nu_xc,fac_nu)
         x= -1*int_depth*np.log(r) # prob of interaction=exp(-x/int_depth)
         x_f = x_0 + x   #xf is tracking total column depth traveled
         
         if (x_f > col_depth_total): #total col depth exceeded
-            return depth_max , e_init , part_type
+            return part_type,depth_max,e_fin
 
+        x_0 = x_f
         int_type = transport.interaction_type_nu(e_nu,nu_xc,fac_nu) #CC or NC interaction
         
         if part_type == 0 and int_type == 1:
@@ -65,14 +64,16 @@ def propagate_nu(e_init, nu_xc, nu_ixc, depth_max, fac_nu):
         e_fin = e_nu*(1-y) #Energy Transfer y = (E_i-E_f)/E_i
         
         if (part_type==1):
-            d_travel = x_0*1e5
-            return d_travel , e_nu , part_type
+            d_travel = x_0*1e-5 #cmwe to kmwe
+            return part_type,d_travel,e_fin
         
         e_nu = e_fin
-        d_travel = x_0*1e5
+        d_travel = x_0*1e-5 #cmwe to kmwe
         
         if e_nu <= 1e3:
-            return d_travel , e_nu , part_type
+            return part_type,d_travel,e_fin
+    
+    return part_type,d_travel,e_fin
 
 
 def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in, lepton, prop_type, cthi, Pi):
@@ -97,7 +98,6 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
         pcthf (float): Final polarization after EM interaction of the tau lepton
     """
     e_min = 1e3 #Minimum tau energy, in GeV
-    
     part_id = 1 #Start with tau that's obviously not decayed
     
     x_total = d_in*1e5 # kmwe to cmwe
@@ -107,6 +107,7 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
     
     if lepton == 1:
         m_le = 1.77682 #m_tau in GeV
+        # change c_tau to whatever it is times 10^6 
         c_tau = 8.793e-3 # c*lifetime, in cm, for taus (taken from PDB)
     else:
         m_le = 0.10565837550000001 #m-mu in GeV
@@ -163,7 +164,7 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
             e_int = transport.em_cont_part(e_lep,alpha,beta,x,m_le)
             
             if (e_int <= e_min): # below min energy
-                exit #taken care of outside while loop
+                break #taken care of outside while loop
                 
             int_type = transport.interaction_type_lep(e_int,xc_water,const.rho_water,m_le,c_tau)
             
@@ -243,7 +244,8 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
                 d_fin = e_min
                 part_id = 2 #don't count this 
                 return part_id,d_fin,e_fin,pcthf
-        
+    
+#    return part_id, d_fin, e_fin, pcthf
 
 def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d_entry,
                        d_in, xalong, cdalong, idepth, lepton, prop_type):
@@ -272,7 +274,6 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
         Pf (Float): Final degree of polarization after EM interaction of the tau lepton.
         
     """
-    
     e_min = 1e3 #min tau energy, in GeV
     part_id = 1 #start with tau
     col_depth = d_entry*1e5 #how far in
@@ -322,10 +323,10 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
                 
                 return part_id,d_fin,e_fin,cthf,Pf
             
-            x_0 = x_f 
+            x_0 = x_f #update x_0 and keep going
             alpha = transport.int_alpha(e_lep, alpha_rock)
             beta = transport.int_beta(e_lep, beta_rock, rho)
-            e_int = e_lep - (e_lep*beta + alpha)*x #fina some intermediate energy to get reasonable values of energy between inital and final energy, a la MUSIC
+            e_int = e_lep - (e_lep*beta + alpha)*x #find some intermediate energy to get reasonable values of energy between inital and final energy, a la MUSIC
             
             if e_int <= e_min:
                 e_int = e_min
@@ -374,12 +375,12 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
                 theta_in = theta_out
         #outside the while loop, e_lep has to be < e_min
         if e_lep <= e_min: #only continuous energy loss
-               d_fin = d_max/1e5
-               e_fin = e_min
-               part_id = 0 #dayed or no_count?? should be decayed
-               Pf = Pin
-               cthf = np.cos(theta_in)
-               return part_id,d_fin,e_fin,cthf,Pf
+            d_fin = d_max/1e5
+            e_fin = e_min
+            part_id = 0 #dayed or no_count?? should be decayed
+            Pf = Pin
+            cthf = np.cos(theta_in)
+            return part_id,d_fin,e_fin,cthf,Pf
     
     else: #continuous energy loss
         
@@ -447,6 +448,9 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
         elif cnt >= j_max:
             d_fin = d_in
             return part_id,d_fin,e_fin,cthf,Pf
+   # return part_id, d_fin, e_fin, cthf, Pf
+
+
 
 def tau_thru_layers(angle,depth,d_water,depth_traj,e_lep_in,xc_water,xc_rock,lep_ixc_water,lep_ixc_rock,alpha_water,
                        alpha_rock,beta_water,beta_rock,xalong,cdalong,idepth,lepton,prop_type):
@@ -483,11 +487,10 @@ def tau_thru_layers(angle,depth,d_water,depth_traj,e_lep_in,xc_water,xc_rock,lep
     e_lep = e_lep_in # so e_lep_in doesn't change
     e_fin = e_lep
     part_type = 1 #tau going in
-
-    
     if e_lep < 1e3: #just in case
         part_type = 0
         d_fin = depth
+        return part_type, d_fin,e_fin,None
     
     if (depth-depth_traj) < d_water:
         rho = const.rho_water
@@ -505,7 +508,7 @@ def tau_thru_layers(angle,depth,d_water,depth_traj,e_lep_in,xc_water,xc_rock,lep
         
         part_type, d_f, e_fin, cthf, Pf = propagate_lep_rock(angle, e_lep, xc_rock, lep_ixc_rock, alpha_rock,
                                                              beta_rock, depth_traj, d_in, xalong, cdalong,
-                                                             idepth, lepton)
+                                                             idepth, lepton,prop_type)
         depth_traj = depth_traj + d_f
         
         if part_type == 1 and idepth != 0: #still a tau; added and clause on 3/18
@@ -527,9 +530,21 @@ def tau_thru_layers(angle,depth,d_water,depth_traj,e_lep_in,xc_water,xc_rock,lep
             pcthf = Pf*cthf
             d_fin = depth_traj
             return part_type,d_fin,e_fin,pcthf
-
+    
+    else:
+        d_in =depth - depth_traj
+        Pi = 1.0
+        cthi = np.cos(0.0)
+        
+        part_type,d_f,e_fin,pcthf = propagate_lep_water(e_lep, xc_water, lep_ixc_water, alpha_water, beta_water, d_in, lepton,
+                                                        prop_type, cthi, Pi)
+        depth_traj = depth_traj + d_f
+        d_fin = depth_traj
         return part_type,d_fin,e_fin,pcthf
-            
+    
+    
+    return part_type,d_fin,e_fin,pcthf
+
 def distnu(r, ithird, Pin):
     """Determines the neutrino energy from tau decay. The energy fraction is determined by tau energy CDF
     approximated by leptonic decay channel. Approximate (good enough) for taus; exact for muons
@@ -561,8 +576,8 @@ def distnu(r, ithird, Pin):
                 y1 = y
             dist_val = (y0+y1)/2.0
         
-        else: # if ithird ==1; use 1/3 of energy of 3 body decay.
-            dist_val = 1.0/3.0
+    else: # if ithird ==1; use 1/3 of energy of 3 body decay.
+        dist_val = 1.0/3.0
     
     return dist_val
 
@@ -603,7 +618,6 @@ def regen(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, 
         e_fin (float): Final particle energy, in GeV.
         Pout (float): Tau's polarization output from regen function
     """
-    
     r = np.random.random()
     frac = distnu(r,ithird,Pin) # that pola input goes here as input and cal. the neutrino energy
     e_nu = frac*e_lep 
@@ -621,19 +635,18 @@ def regen(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, 
     int_part = 0 # starting with a neutrino with energy e_nu; change later to string
 
     int_part, dtr, etau2 = propagate_nu(e_nu, nu_xc, nu_ixc, d_left, fac_nu)
-    
+    #print('int part after propagate_nu', int_part)
     if int_part != 1: # neutrinos at the end
         d_exit = depth
         part_type = 0 #HLS =0
         e_fin = etau2 #final neutrino energy
-        Pout = 2.0 #fake polarization value which will help us filter out the neutrino events
-        
+        Pout = -2.0 #fake polarization value which will help us filter out the neutrino events
         return part_type, d_exit, e_fin, Pout
     
     #otherwise we have a tau
     d_lep = d_lep + dtr
     d_left = d_left - dtr
-    
+    #print('dleft', d_left)
     if d_left <= 0.0:
         d_exit = depth
         e_fin = etau2
