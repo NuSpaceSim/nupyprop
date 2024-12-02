@@ -36,7 +36,8 @@ E_nu = np.logspace(3,12,91,base=10).astype(np.float64) #for neutrinos in GeV
 E_lep = np.logspace(0,12,121,base=10).astype(np.float64) #for charged leptons in GeV
 
 #inelasticity values used in interpolation for energy CDFs for neutrinos and charged leptons
-yvals = np.logspace(-3,0,31).astype(np.float64) #goes from 1e-3 to 1
+yvals = np.logspace(0,-3,31).astype(np.float64) #goes from 1 to 1e-3
+#yvals = np.logspace(-3,1,31).astype(np.float64) #goes from 1e-3 to 1
 
 #Earth layers considered in PREM - Earth density model
 Rlay = np.array([1221.5, 3480.0, 5701.0, 5771.0, 5971.0, 6151.0, 6346.6, 6356.0, 6368.0, 6371.0])

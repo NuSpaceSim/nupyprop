@@ -104,7 +104,8 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
     e_lep = e_init
     e_fin = e_init #in case the first interaction is too far
     x_0 = 0.0 #haven't gone anywhere yet; initiate tracker
-    
+    pcthf =0
+#    print('in rock')
     if lepton == 1:
         m_le = 1.77682 #m_tau in GeV
         # change c_tau to whatever it is times 10^6 
@@ -198,6 +199,7 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
             
         
         else: # continuous energy loss
+            #print('in else statement continuous energy loss')
             
             j_max = int(x_total/(const.step_size*const.rho_water)) # we will get close to exit
             
@@ -283,7 +285,6 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
     cnt = 0
     # x_total = d_in*1e5
     # rho = rho_rock #g/cm^3 USE FOR TESTING P_SURV FOR ROCK ONLY ! 
-    
     if lepton ==1:
         m_le = 1.77682
         c_tau = 8.703e-3
@@ -339,8 +340,8 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
             e_int = transport.em_cont_part(e_lep, alpha, beta, x, m_le) # get the continuous energy
             
             if e_int <= e_min:# is it below minimum energy now ?
+                #print('below min energy')
                 e_fin = e_int
-                #go to 20
                 d_fin = d_max/1e5
                 e_fin = e_min
                 part_id = 0
@@ -354,6 +355,7 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
             int_type = transport.interaction_type_lep(e_int, xc_rock, rho, m_le, c_tau)
             
             if int_type == 2: #tau has decayed
+                #print('tau decay')
                 part_id = 0
                 e_fin = e_int
                 Pf = Pin
@@ -375,6 +377,7 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
                 theta_in = theta_out
         #outside the while loop, e_lep has to be < e_min
         if e_lep <= e_min: #only continuous energy loss
+            #print('ENERGY TOO LOW')
             d_fin = d_max/1e5
             e_fin = e_min
             part_id = 0 #dayed or no_count?? should be decayed
@@ -504,6 +507,7 @@ def tau_thru_layers(angle,depth,d_water,depth_traj,e_lep_in,xc_water,xc_rock,lep
             print('rho too small')
         
     if rho > 1.5: # we aren't in water yet
+        #print('WERE NOT IN WATER HELP')
         d_in = depth - depth_traj - d_water #propagate this far in rock
         
         part_type, d_f, e_fin, cthf, Pf = propagate_lep_rock(angle, e_lep, xc_rock, lep_ixc_rock, alpha_rock,

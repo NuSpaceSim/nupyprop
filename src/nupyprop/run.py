@@ -8,6 +8,7 @@ Created on Wed July 31 12:01:03 2024
 from nupyprop import propagation
 import numpy as np
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 
 def single_stat(energy, angle, nu_xc, nu_ixc, depth, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
@@ -84,7 +85,7 @@ def single_stat(energy, angle, nu_xc, nu_ixc, depth, depthE, dwater, xc_water, x
         Pout = Pi
         no_regen_tot = no_regen_tot + 1
         regen_tot = regen_tot + 1 #update the regen tau array once
-        #print('no regeneration, tau makes it out')
+        print('no regeneration, tau makes it out')
         #print('Pout w/ no regen = ', Pout)
         e_file.write(str(e_format.format(np.log10(etauf))) + '\n')
         p_file.write(str(p_format.format(Pout)) + '\n')
@@ -113,7 +114,7 @@ def single_stat(energy, angle, nu_xc, nu_ixc, depth, depthE, dwater, xc_water, x
             p_file.write(str(p_format.format(Pout)) + '\n')
             return no_regen_tot, regen_tot
         if regen_cnt > 6:
-            #print('regeneration exceeded 6')
+            print('regeneration exceeded 6')
             return no_regen_tot, regen_tot #only if regen > 6, break and go to run_stat for next iteraction
         
         etauf = ef2
@@ -162,11 +163,10 @@ def run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_r
     Pfilename = 'Pout_'+ str(format.format(np.log10(energy))) + '_' + str(angle) + '.dat'  
     no_regen_tot = 0
     regen_tot = 0
-    '''
     with open(Efilename, 'a') as e_file, open(Pfilename, 'a') as p_file:
         depth = depthE
         
-        for i in range(0,stats):
+        for i in tqdm(range(0,stats)):
             tempnrt, temprt = single_stat(energy, angle, nu_xc, nu_ixc, depth, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
             alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu, prop_type, 
             e_file, p_file)
@@ -176,7 +176,6 @@ def run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_r
     e_file.close()
     p_file.close()
     '''
-
     #PROPAGATE_NU DEBUGGING BLOCK
     part_type = []
     d_travel = []
@@ -232,7 +231,7 @@ def run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_r
     plt.suptitle('propagate_nu output for 10^10 GeV, 30 deg, 1e7 stats')
     plt.tight_layout()
     plt.show()
-
+    '''
     '''
     ### PROPAGATE_LEP_WATER BLOCK
     no_regen_tot = 1
@@ -242,8 +241,8 @@ def run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_r
     e_fin = []
     pcthf = []
     
-    for i in range(0,stats):
-        results = propagation.propagate_lep_water(energy,xc_water,lep_ixc_water,alpha_water,beta_water,dwater,lepton,                                       prop_type,cthi=.25,Pi=1)
+    for i in tqdm(range(0,stats)):
+        results = propagation.propagate_lep_water(energy,xc_water,lep_ixc_water,alpha_water,beta_water,dwater,lepton,prop_type,cthi=.25,Pi=1)
         part_id.append(results[0])
         d_fin.append(results[1])
         e_fin.append(results[2])
@@ -251,24 +250,40 @@ def run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_r
     
     count_ones = part_id.count(1)
     count_zeros = part_id.count(0)
+    
+    e_fin = np.array(e_fin)
+    d_fin = np.array(d_fin)
+    #print(np.mean(e_fin))
     #print(part_id)
-    #print('1s: ', count_ones,'0s: ', count_zeros)
-    #print(np.mean(d_fin))
-    #print(np.mean(e_fin),np.min(e_fin),np.max(e_fin))
-    #print(np.mean(pcthf))
-    ### PROPAGATE_LEP_ROCK BLOCK
-    no_regen_tot = 1
-    regen_tot = 1
-    part_id = []
-    d_fin = []
-    e_fin = []
-    cthf = []
-    Pf = []
-    depth_traj = depthE - idepth
-    for i in range(0,stats):
-        results = propagation.propagate_lep_rock(angle ,energy, xc_rock,lep_ixc_rock,
-                                                 alpha_rock, beta_rock,depthE,depth_traj,
-                                                 xalong,cdalong,idepth,lepton, prop_type)
+    decayed= np.where(np.array(part_id) ==0)[0]
+    print('decayed ', (len(decayed)/len(e_fin))*100)
+    print(min(e_fin), max(e_fin))
+    min_log = np.log10(min(e_fin))
+    max_log = np.log10(max(e_fin))
+    print(min_log)
+    print(max_log)
+    bins = np.logspace(min_log, max_log, num=35)
+    
+    
+    plt.hist(e_fin[decayed], bins=bins, color='skyblue', edgecolor='black',alpha=0.95)
+    plt.xlabel('Lepton Energy')
+    plt.ylabel('Frequency')
+    plt.title('lep_water e_fin for decayed taus | normal ctau | E_tau = 10^9')
+    plt.grid(True)
+    plt.xscale('log')
+    #plt.yscale('log')
+    #plt.xlim(0,max(e_fin) + 1000)
+    plt.legend()
+    plt.show()
+    
+    plt.hist(d_fin[decayed], bins=50, color='skyblue', edgecolor='black',alpha=0.95)
+    plt.xlabel('Distance traveled before decay, or total distance traveled (kmwe)')
+    plt.ylabel('Frequency')
+    plt.title('lep_water d_fin for decayed taus | normal ctau | E_tau = 10^9')
+    #plt.yscale('log')
+    plt.grid(True)
+    plt.legend()
+    plt.show()
     '''
     '''
     ###TAU_THRU_LAYERS BLOCK
@@ -298,6 +313,63 @@ def run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_r
     no_regen_tot=1 
     regen_tot = 1
     '''
-    print('no_regen', no_regen_tot)
-    print('regen', regen_tot)
+    '''
+    part_type = []
+    d_travel = []
+    e_fin = []
+    d_fin = []
+    pcthf = []
+    part_id = []
+    for i in tqdm(range(0,stats)):
+        ##print(i)
+        result2 = propagation.propagate_nu(energy,nu_xc,nu_ixc,depthE,fac_nu)
+        #part_type.append(result[0])
+        #d_travel.append(result[1])
+        #e_fin.append(result[2])
+        part_type = result2[0]
+        d_travel = result2[1]
+        e_fin2 = result2[2]
+        results = propagation.propagate_lep_water(e_fin2,xc_water,lep_ixc_water,alpha_water,beta_water,dwater,lepton,prop_type,cthi=.25,Pi=1)
+        part_id.append(results[0])
+        d_fin.append(results[1])
+        e_fin.append(results[2])
+        pcthf.append(results[3])
+    
+    
+    e_fin = np.array(e_fin)
+    d_fin = np.array(d_fin)
+    #print(np.mean(e_fin))
+    #print(part_id)
+    decayed= np.where(np.array(part_id) ==0)[0]
+    print('decayed ', (len(decayed)/len(e_fin))*100)
+    print(min(e_fin), max(e_fin))
+    min_log = np.log10(min(e_fin))
+    max_log = np.log10(max(e_fin))
+    print(min_log)
+    print(max_log)
+    bins = np.logspace(min_log, max_log, num=35)
+    
+    
+    plt.hist(e_fin[decayed], bins=bins, color='skyblue', edgecolor='black',alpha=0.95)
+    plt.xlabel('Lepton Energy')
+    plt.ylabel('Frequency')
+    plt.title('lep_water e_fin for decayed taus | normal ctau | E_tau = 10^9')
+    plt.grid(True)
+    plt.xscale('log')
+    #plt.yscale('log')
+    #plt.xlim(0,max(e_fin) + 1000)
+    plt.legend()
+    plt.show()
+    
+    plt.hist(d_fin[decayed], bins=50, color='skyblue', edgecolor='black',alpha=0.95)
+    plt.xlabel('Distance traveled before decay, or total distance traveled (kmwe)')
+    plt.ylabel('Frequency')
+    plt.title('lep_water d_fin for decayed taus | normal ctau | E_tau = 10^9')
+    #plt.yscale('log')
+    plt.grid(True)
+    plt.legend()
+    plt.show()
+    '''
+
+    print(no_regen_tot,regen_tot)
     return no_regen_tot,regen_tot
