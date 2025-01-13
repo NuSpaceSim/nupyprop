@@ -1,6 +1,6 @@
 nuPyProp
 ========
-**Note: Currently main_temp branch is the working branch of nuPyProp. It is coded only in Python language. Work is underway to make nuPyProp run faster and once that is done, main_temp will be merged with main.**
+**Note (01/13/2025): Currently main_temp branch is the working branch of nuPyProp. It is coded only in Python language. Work is underway to make nuPyProp run faster and once that is done, main_temp will be merged with main.**
 
 Propagate neutrinos through the earth.
 
