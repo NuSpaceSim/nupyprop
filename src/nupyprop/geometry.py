@@ -46,7 +46,7 @@ pola_df = pd.read_csv(ak135_density_path, delimiter='\t', comment='#', names=col
 
 depth_ak135, density_ak135 = pola_df['depth'].to_numpy(), pola_df['density'].to_numpy()
 
-print(f"depth, density = {depth_ak135, density_ak135}")
+#print(f"depth, density = {depth_ak135, density_ak135}")
 
 # ak135_density_data = np.genfromtxt("ak135_density.txt", skip_header=1)
 # depth_ak135 = ak135_density_data[:,0]

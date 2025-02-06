@@ -195,6 +195,7 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, earth_model, id
         eout_list = [] #to store final energies of exiting charged lepton
         for angle in sorted(angles):
             xalong, cdalong = Data.get_trajs('col', angle, idepth, earth_model) # initialize arrays here for each angle, to reduce a ton of overhead when tauthrulayers & regen are called
+            print("xalong= ", xalong)
 
             print("Neutrino Energy = 10^(%.2f) GeV, Earth Emergence Angle = %.2f degrees" % (energy, angle), flush=True)
 

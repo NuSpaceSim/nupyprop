@@ -421,8 +421,7 @@ def find_y(energy, ixc_arr, ip):
     search_arr = ixc_arr[:, energy_index, ip_id]
     #print(search_arr)
     dy = np.random.random()
-    print(f"len search arr and y = {dy, (search_arr), (yvals)}")
-    y = np.interp(dy, search_arr, yvals)
+    y = np.interp(dy, search_arr.flatten(), yvals)
     #print(y)
     # dy is the randomly sampled cross-section CDF value (between 0 & 1)
     # search_arr = cross-section CDF value array for energy_index
