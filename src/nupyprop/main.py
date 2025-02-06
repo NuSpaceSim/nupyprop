@@ -131,7 +131,7 @@ def init_ixc(nu_type, ch_lepton, nu_model, pn_model):
     return nu_ixc, lep_ixc_water, lep_ixc_rock
 
 
-def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, ch_lepton, fac_nu, stats, prop_type, elep_mode, htc_mode):
+def main(E_prop, angles, nu_type, cross_section_model, pn_model, earth_model, idepth, ch_lepton, fac_nu, stats, prop_type, elep_mode, htc_mode):
     '''
     Parameters
     ----------
@@ -145,6 +145,8 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, ch_lept
         Neutrino cross-section model.
     pn_model : str
         Photonuclear energy loss model.
+    earth_model : str
+        Earth density model.
     idepth : int
         Depth of water layer in km.
     ch_lepton : str
@@ -194,6 +196,8 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, ch_lept
         eout_list = [] #to store final energies of exiting charged lepton
         for angle in sorted(angles):
 
+            #####!!!!!! the part about prem vs ak135 choice goes here, this means get_trajs need to have distinction between these two models as well !!!!!!!!########
+            
             xalong, cdalong = Data.get_trajs('col', angle, idepth) # initialize arrays here for each angle, to reduce a ton of overhead when tauthrulayers & regen are called
 
             print("Neutrino Energy = 10^(%.2f) GeV, Earth Emergence Angle = %.2f degrees" % (energy, angle), flush=True)
