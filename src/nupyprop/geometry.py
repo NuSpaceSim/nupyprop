@@ -4,9 +4,9 @@
 Created on Wed May 26 11:55:30 2021
 
 @author: sam
-    
+
 Updated Wed April 10 14:02:27 2024
-    
+
 @author: luke
 """
 
@@ -22,6 +22,8 @@ import warnings
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 from scipy.integrate import cumulative_trapezoid
+import pandas as pd
+import importlib_resources
 
 warnings.filterwarnings('ignore')
 
@@ -37,15 +39,24 @@ rho_water = const.rho_water
 #Earth Emergence angles in steps of 0.1 degrees
 beta_arr = const.beta_arr
 
-ak135_density_data = np.genfromtxt("ak135_density.txt", skip_header=1)
-depth_ak135 = ak135_density_data[:,0]
-density_ak135 = ak135_density_data[:,1]
+# loading polarization file for tau-leptons
+ak135_density_path = importlib_resources.files('nupyprop.datafiles') / 'ak135_density.txt'
+column_names = ['depth', 'density']
+pola_df = pd.read_csv(ak135_density_path, delimiter='\t', comment='#', names=column_names)
+
+depth_ak135, density_ak135 = pola_df['depth'].to_numpy(), pola_df['density'].to_numpy()
+
+print(f"depth, density = {depth_ak135, density_ak135}")
+
+# ak135_density_data = np.genfromtxt("ak135_density.txt", skip_header=1)
+# depth_ak135 = ak135_density_data[:,0]
+# density_ak135 = ak135_density_data[:,1]
 
 def ak135density(Rin_array, idepth):
     """
     ak135 Earth density for multiple Earth radii at once.
     https://ses.cidp.edu.cn/Geophys-J-Int-1995-Kennett-108-24.pdf (Page 122)
-    
+
     Args:
         Rin_array (numpy.ndarray): Array of radii (km) where density is to be computed.
         idepth (int): Depth of water layer (km).
@@ -58,12 +69,12 @@ def ak135density(Rin_array, idepth):
     density_local = density_ak135
 
     depth1_array = Re - Rin_array  # Convert radius to depth
-    
+
     if idepth == 0:
         depth_local = depth_local[4:]
         density_local = density_local[4:]
-    
-    indices = np.searchsorted(depth_local, depth1_array) 
+
+    indices = np.searchsorted(depth_local, depth1_array)
 
     # Assign values based on depth
     density_result = density_local[indices]
@@ -78,9 +89,9 @@ def premdensity(Rin_array, idepth):
     PREM Earth density model. Computes density at multiple radii of Earth simultaneously. hep-ph/9512364v1 eq. 25
 
     Args:
-        Rin_array (float or ndarray): 
+        Rin_array (float or ndarray):
             Radius (in km) at which density is to be calculated.
-        idepth (integer): 
+        idepth (integer):
             Depth (in km) of water layer (sets the last layer).
 
     Returns:
@@ -116,7 +127,7 @@ def premdensity(Rin_array, idepth):
 
 def densityatx(x_array, beta_array, idepth, model_name):
     """Calculates the density at a distance x, for a given Earth emergence angle
-        1905.13223v2 fig. 2 for chord length. Takes multiple x and beta values. 
+        1905.13223v2 fig. 2 for chord length. Takes multiple x and beta values.
 
     Args:
         x_array (numpy.ndarray): Distances along the trajectory in km.
@@ -129,13 +140,13 @@ def densityatx(x_array, beta_array, idepth, model_name):
     """
     x_array = np.atleast_1d(x_array)
     beta_array = np.atleast_1d(beta_array)  # Force array conversion
-    
+
     # Compute trajectory length using vectorized operations
     chord_length = 2 * Re * np.sin(np.deg2rad(beta_array))
 
     # Compute radial distance using the law of cosines (vectorized)
     r2 = (chord_length - x_array) ** 2 + Re ** 2 - 2 * Re * (chord_length - x_array) * np.sin(np.deg2rad(beta_array))
-    
+
     r = np.sqrt(r2)
 
     # Small-angle approximation for low beta values (avoid precision issues)
@@ -143,12 +154,12 @@ def densityatx(x_array, beta_array, idepth, model_name):
     r[small_angle_mask] = Re * (1.0 + 0.5 * (x_array[small_angle_mask]**2 - chord_length[small_angle_mask] * x_array[small_angle_mask]) / Re**2)
 
     # Select density model and compute density
-    if model_name == "PREM":
+    if model_name == "prem":
         rho_at_x = premdensity(r, idepth)  # Assuming premdensity is also vectorized
     elif model_name == "ak135":
         rho_at_x = ak135density(r, idepth)
     else:
-        raise ValueError("Input model_name must be 'PREM' or 'ak135'.")
+        raise ValueError("Input model_name must be 'prem' or 'ak135'.")
 
     return r, rho_at_x
 
@@ -208,7 +219,7 @@ def trajlength(beta_deg):
 
 
 def PREMgramVSang(beta_deg, idepth, model_name):
-    ''' 
+    '''
     Computes column depth for given emergence angle using vectorized integration.
 
     Args:
@@ -223,6 +234,7 @@ def PREMgramVSang(beta_deg, idepth, model_name):
 
     # Compute chord length (vectorized)
     chord_length = 2 * Re * np.sin(beta_rad)
+    print(f"chord lenght = {chord_length}")
 
     # Define the integrand function (ensuring x is always an array)
     def integrand(x, beta):
@@ -231,14 +243,11 @@ def PREMgramVSang(beta_deg, idepth, model_name):
         return rho if np.isscalar(x) else rho[0]  # Return scalar if x is scalar
 
     # Perform integration for each beta value
-    col_depths = np.array([
-        integrate.quad(integrand, 0, cl, args=(b,), epsabs=1.49e-8, epsrel=1.49e-8)[0]
-        for cl, b in zip(chord_length, beta_deg)
-    ])
+    col_depths = quad(integrand, 0, chord_length, args=(beta_deg,), epsabs=1.49e-8, epsrel=1.49e-8)[0]
 
-    return col_depths * 1e5 if col_depths.shape else col_depths[0] * 1e5 
+    return col_depths * 1e5
 
-def columndepth(beta_deg, idepth):
+def columndepth(beta_deg, idepth, model_name):
     '''
 
     Parameters
@@ -247,7 +256,7 @@ def columndepth(beta_deg, idepth):
         Earth emergence angle (beta), in degrees.
     idepth : int
         Depth of water layer in km.
-    model_name : string 
+    model_name : string
         Earth density model name (PREM or ak135)
 
     Returns
@@ -274,7 +283,7 @@ def cdtot(x_v, beta_deg, idepth, model_name):
         Earth emergence angle (beta), in degrees.
     idepth : int
         Depth of water layer in km.
-    model_name : string 
+    model_name : string
         Earth density model name (PREM or ak135)
 
     Returns
@@ -319,7 +328,7 @@ def gen_col_trajs(idepth, model_name):
     # Compute column depth using cumulative integration
     cdalong =  np.asarray([quad(cdtot,0,j,args=(i,idepth,model_name))[0] for i,j in tqdm(zip(betad_fix, xalong), total=len(betad_fix), desc="Integrating cdalong")
     ])
-    
+
     #print("new code = ", betad_fix, xalong, len(xalong), cdalong, len(cdalong))
     return betad_fix, xalong, cdalong
 
@@ -387,7 +396,7 @@ def create_traj_table(idepth):
                             'beta':'Earth emergence angle, in degrees',
                             'xalong':'Distance in water, in km',
                             'cdalong':'Column depth at xalong, in g/cm^2'})
-    
+
     '''beta, xalong_prem, cdalong_prem = gen_col_trajs(idepth, model_name[0])
     col_table = Table([beta, xalong_prem, cdalong_prem], names=('beta', 'xalong_prem','cdalong_prem'), meta=col_meta)
 
@@ -395,13 +404,13 @@ def create_traj_table(idepth):
 
     xalong = np.asarray([ Data.get_trajs('col', b, idepth, out=False)[0] for b in beta_arr ])
     cdalong = np.asarray([ Data.get_trajs('col', b, idepth, out=False)[1] for b in beta_arr ])
-    
+
     beta, _, cdalong_ak135 = gen_col_trajs(idepth, model_name[1])
     #col_table_ak135 = Table([xalong_ak135, cdalong_ak135], names=('xalong_ak135','cdalong_ak135'), meta=col_meta)
 
     col_table = Table([beta, xalong.flatten(), cdalong.flatten(), cdalong_ak135], names=('beta', 'xalong','cdalong_prem','cdalong_ak135'), meta=col_meta)
     Data.add_trajs('col', int(idepth), col_table)
-    
+
     '''beta_water, chord, water = gen_water_trajs(idepth)
     water_meta = OrderedDict({'Description':'Water trajectories for water layer = %s km' % str(idepth),
                               'beta':'Earth emergence angle, in degrees',
@@ -413,13 +422,13 @@ def create_traj_table(idepth):
     return None
 
 if __name__ == "__main__":
-    #pass
+    pass
 
     #Rin = np.arange(0, 6372, 1)
     #Rin = np.flip(Rin)
 
-    '''den = ak135density(Rin,3)  
-    den_prem = premdensity(Rin,3) 
+    '''den = ak135density(Rin,3)
+    den_prem = premdensity(Rin,3)
 
     plt.plot(Rin, den, label="ak135")
     plt.plot(Rin, den_prem, label="PREM")
@@ -434,6 +443,8 @@ if __name__ == "__main__":
     plt.legend()
     plt.show()'''
 
-    create_traj_table(0)
-    
+    depths = [6,7,8,9,10]
+    for i in depths:
+        create_traj_table(i)
+
     #gen_col_trajs(0, "PREM")

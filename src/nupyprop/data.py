@@ -5,7 +5,7 @@ Created on Sat Sep 26 16:44:13 2020
 
 @author: sam
 """
-import nupyprop.constants as const 
+import nupyprop.constants as const
 
 import numpy as np
 from decimal import Decimal
@@ -105,7 +105,7 @@ def get_custom_path(data_type, part_type, model, arg):
             raise ModelError(fnm)
         return file
 
-def output_file(nu_type, ch_lepton, idepth, cross_section_model, pn_model, prop_type, stats, arg=None):
+def output_file(nu_type, ch_lepton, idepth, cross_section_model, pn_model, earth_model, prop_type, stats, arg=None):
     """gets the name of the output file based on input args
 
     Args:
@@ -114,6 +114,7 @@ def output_file(nu_type, ch_lepton, idepth, cross_section_model, pn_model, prop_
         idepth (int): depth of water layer, in km
         cross_section_model (str): neutrino cross-section model
         pn_model (str): photonuclear energy loss model
+        earth_model (str): Earth density model
         prop_type (str): type of energy loss mechanism; can be stochastic or continuous
         stats (int): statistics or number of neutrinos injected
         arg (str, optional): additional arguments at the end of the file name. Defaults to None.
@@ -127,9 +128,9 @@ def output_file(nu_type, ch_lepton, idepth, cross_section_model, pn_model, prop_
     if nu_type=='neutrino':nu_type='nu' # shorten output filename
     elif nu_type=='anti_neutrino':nu_type='anu' # shorten output filename
     if arg is None:
-        fnm = "output_%s_%s_%s_%s_%s_%s_%s.h5" % (nu_type,ch_lepton,idepth_str,cross_section_model,pn_model,prop_type,stats_str)
+        fnm = "output_%s_%s_%s_%s_%s_%s_%s_%s.h5" % (nu_type,ch_lepton,idepth_str,cross_section_model,pn_model,earth_model,prop_type,stats_str)
     else: # if a custom argument is present, it should be in the end of the filename
-        fnm = "output_%s_%s_%s_%s_%s_%s_%s_%s.h5" % (nu_type,ch_lepton,idepth_str,cross_section_model,pn_model,prop_type,stats_str,arg)
+        fnm = "output_%s_%s_%s_%s_%s_%s_%s_%s_%s.h5" % (nu_type,ch_lepton,idepth_str,cross_section_model,pn_model,earth_model,prop_type,stats_str,arg)
     return fnm
 
 def sign(avg_pola):
@@ -223,7 +224,7 @@ def add_trajs(type_traj, idepth, traj_table):
         traj_table.write(lookup_tables, path='Earth/%s/%skm' % (branch,str(idepth)), append=True, overwrite=True)
     return print("%s lookup table successfully created for idepth = %s" % (branch,str(idepth)))
 
-def get_trajs(type_traj, angle, idepth, out=False):
+def get_trajs(type_traj, angle, idepth, earth_model, out=False):
     """get trajectory values
 
     Args:
@@ -247,7 +248,11 @@ def get_trajs(type_traj, angle, idepth, out=False):
 
         sliced_table = traj_table[traj_table['beta']==angle]
         xalong = np.array(sliced_table['xalong'].T)
-        cdalong = np.array(sliced_table['cdalong'].T)
+
+        if earth_model == "PREM":
+            cdalong = np.array(sliced_table['cdalong_prem'].T)
+        else:
+            cdalong = np.array(sliced_table['cdalong_ak135'].T)
 
         if out:
             fnm = "%s_%.2fdeg_%skm.ecsv" % (type_traj,angle,idepth)
