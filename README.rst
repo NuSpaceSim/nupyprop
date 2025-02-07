@@ -80,6 +80,9 @@ described as follows:
     Can be from the pre-defined set of models (see pn-table_) or custom.
     Default is allm.
 
+8.  ``-earth`` or ``--earth_model``: Earth density model used.
+    Default is prem. Another option to choose is: ak135. 
+
 9.  ``-el`` or ``--energy_lepton``: option to print exiting charged lepton's final energy in
     output file.
     Default is no
