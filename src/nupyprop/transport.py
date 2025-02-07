@@ -419,10 +419,11 @@ def find_y(energy, ixc_arr, ip):
         ip_id = ip - 3  # Convert ip (3, 4, 5) to index (1, 2, 3) for brem, PP, PN, respectively
 
     search_arr = ixc_arr[:, energy_index, ip_id]
-    #print(search_arr)
+
     dy = np.random.random()
-    y = np.interp(dy, search_arr.flatten(), yvals)
-    #print(y)
+    #y = np.interp(dy, search_arr.flatten(), yvals)
+    y = np.interp(dy, search_arr, yvals)
+
     # dy is the randomly sampled cross-section CDF value (between 0 & 1)
     # search_arr = cross-section CDF value array for energy_index
     # yvals = array of min. y values from which the cross-section CDF is calculated (see models.py for calculation details)

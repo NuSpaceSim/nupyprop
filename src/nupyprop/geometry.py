@@ -39,70 +39,60 @@ rho_water = const.rho_water
 #Earth Emergence angles in steps of 0.1 degrees
 beta_arr = const.beta_arr
 
-# loading polarization file for tau-leptons
+# loading ak135 Earth density file
 ak135_density_path = importlib_resources.files('nupyprop.datafiles') / 'ak135_density.txt'
 column_names = ['depth', 'density']
 pola_df = pd.read_csv(ak135_density_path, delimiter='\t', comment='#', names=column_names)
 
 depth_ak135, density_ak135 = pola_df['depth'].to_numpy(), pola_df['density'].to_numpy()
 
-#print(f"depth, density = {depth_ak135, density_ak135}")
-
-# ak135_density_data = np.genfromtxt("ak135_density.txt", skip_header=1)
-# depth_ak135 = ak135_density_data[:,0]
-# density_ak135 = ak135_density_data[:,1]
-
-def ak135density(Rin_array, idepth):
+def ak135density(Rin, idepth):
     """
     ak135 Earth density for multiple Earth radii at once.
     https://ses.cidp.edu.cn/Geophys-J-Int-1995-Kennett-108-24.pdf (Page 122)
 
     Args:
-        Rin_array (numpy.ndarray): Array of radii (km) where density is to be computed.
+        Rin (float): Array of radii (km) where density is to be computed.
         idepth (int): Depth of water layer (km).
 
     Returns:
-        numpy.ndarray: Densities at the given radii (g/cm^3).
+        float: Densities at the given radii (g/cm^3).
     """
     # Create local copies to avoid modifying global variables
     depth_local = depth_ak135
     density_local = density_ak135
 
-    depth1_array = Re - Rin_array  # Convert radius to depth
+    depth1_array = Re - Rin  # Convert radius to depth
 
     if idepth == 0:
         depth_local = depth_local[4:]
         density_local = density_local[4:]
 
-    indices = np.searchsorted(depth_local, depth1_array)
-
-    # Assign values based on depth
-    density_result = density_local[indices]
-
-    # Apply idepth condition efficiently
-    density_result[depth1_array <= idepth] = density_local[0]
+    if depth1_array <= idepth:
+        return density_local[0]
+    else:
+        indices = np.searchsorted(depth_local, depth1_array)
+        density_result = density_local[indices]
 
     return density_result
 
-def premdensity(Rin_array, idepth):
+def premdensity(Rin, idepth):
     """
     PREM Earth density model. Computes density at multiple radii of Earth simultaneously. hep-ph/9512364v1 eq. 25
 
     Args:
-        Rin_array (float or ndarray):
+        Rin (float):
             Radius (in km) at which density is to be calculated.
         idepth (integer):
             Depth (in km) of water layer (sets the last layer).
 
     Returns:
-        ndarray: Density (in g/cm^3) at the specified radius (same shape as `Rin_array`).
+        float:
+            Density (in g/cm^3) at the specified radius
     """
-    # Ensure Rin_array is a NumPy array for vectorized operations
-    Rin_array = np.asarray(Rin_array)
-
     # Update last layer for water depth
     Rlay[9] = 6368.0 + (3.0 - int(idepth))
-    y = Rin_array / Re  # Normalize by Earth radius
+    y = Rin / Re  # Normalize by Earth radius
 
     # Define density expressions as NumPy functions
     densities = np.array([
@@ -119,39 +109,34 @@ def premdensity(Rin_array, idepth):
     ])
 
     # Use np.select() to apply the correct density function based on conditions
-    conditions = [(Rin_array <= Rlay[i]) | ((i == len(Rlay) - 1) & (Rin_array <= Rlay[-1] * 1.001)) for i in range(len(Rlay))]
+    conditions = [(Rin <= Rlay[i]) | ((i == len(Rlay) - 1) & (Rin <= Rlay[-1] * 1.001)) for i in range(len(Rlay))]
     edens = np.select(conditions, densities, default=0.0)  # Default to 0 if no condition matches
 
     return edens
 
-
-def densityatx(x_array, beta_array, idepth, model_name):
+def densityatx(x, beta, idepth, model_name):
     """Calculates the density at a distance x, for a given Earth emergence angle
         1905.13223v2 fig. 2 for chord length. Takes multiple x and beta values.
 
     Args:
-        x_array (numpy.ndarray): Distances along the trajectory in km.
-        beta_array (numpy.ndarray): Corresponding Earth emergence angles in degrees.
+        x (float): Distances along the trajectory in km.
+        beta (float): Corresponding Earth emergence angles in degrees.
         idepth (int): Depth of water layer in km.
         model_name (str): "PREM" or "ak135".
 
     Returns:
         tuple: (array of radii, array of densities).
     """
-    x_array = np.atleast_1d(x_array)
-    beta_array = np.atleast_1d(beta_array)  # Force array conversion
-
     # Compute trajectory length using vectorized operations
-    chord_length = 2 * Re * np.sin(np.deg2rad(beta_array))
+    chord_length = 2 * Re * np.sin(np.deg2rad(beta))
 
     # Compute radial distance using the law of cosines (vectorized)
-    r2 = (chord_length - x_array) ** 2 + Re ** 2 - 2 * Re * (chord_length - x_array) * np.sin(np.deg2rad(beta_array))
+    r2 = (chord_length - x) ** 2 + Re ** 2 - 2 * Re * (chord_length - x) * np.sin(np.deg2rad(beta))
 
-    r = np.sqrt(r2)
-
-    # Small-angle approximation for low beta values (avoid precision issues)
-    small_angle_mask = beta_array < 5.0
-    r[small_angle_mask] = Re * (1.0 + 0.5 * (x_array[small_angle_mask]**2 - chord_length[small_angle_mask] * x_array[small_angle_mask]) / Re**2)
+    if beta < 5.0:
+        r = Re*(1.0 + 0.5 *(x**2-chord_length*x)/Re**2)
+    else:
+        r = np.sqrt(r2)
 
     # Select density model and compute density
     if model_name == "prem":
@@ -223,7 +208,7 @@ def PREMgramVSang(beta_deg, idepth, model_name):
     Computes column depth for given emergence angle using vectorized integration.
 
     Args:
-        beta_deg (float or ndarray): Earth emergence angle(s) in degrees.
+        beta_deg (float): Earth emergence angle(s) in degrees.
         idepth (int): Depth of water layer in km.
         model_name (str): Earth density model name (PREM or ak135).
 
@@ -234,13 +219,12 @@ def PREMgramVSang(beta_deg, idepth, model_name):
 
     # Compute chord length (vectorized)
     chord_length = 2 * Re * np.sin(beta_rad)
-    print(f"chord lenght = {chord_length}")
 
     # Define the integrand function (ensuring x is always an array)
     def integrand(x, beta):
-        x_array = np.atleast_1d(x)  # Convert scalar x to an array
-        _, rho = densityatx(x_array, beta, idepth, model_name)
-        return rho if np.isscalar(x) else rho[0]  # Return scalar if x is scalar
+        #x_array = np.atleast_1d(x)  # Convert scalar x to an array
+        _, rho = densityatx(x, beta, idepth, model_name)
+        return rho #if np.isscalar(x) else rho[0]  # Return scalar if x is scalar
 
     # Perform integration for each beta value
     col_depths = quad(integrand, 0, chord_length, args=(beta_deg,), epsabs=1.49e-8, epsrel=1.49e-8)[0]
