@@ -4,12 +4,12 @@
 Created on Wed May  1 15:02:27 2024
 
 @author: Diksha Garg
-Comment: This code contains all the functions that are required in the propagation process of the particles. These functions will be called by the propagate.py code. 
+Comment: This code contains all the functions that are required in the propagation process of the particles. These functions will be called by the propagate.py code.
 """
 import numpy as np
 import pandas as pd
 import importlib_resources
-import nupyprop.constants as const 
+import nupyprop.constants as const
 
 rho_rock = const.rho_rock # rock density
 rho_iron = const.rho_iron # iron density
@@ -19,12 +19,12 @@ E_lep = const.E_lep # Lepton energy numpy array
 yvals = const.yvals # inelasticity from 1e-3 to 1
 
 # loading polarization file for tau-leptons
-polarization_path = importlib_resources.files('nupyprop.datafiles') / 'polarization_data.txt' 
+polarization_path = importlib_resources.files('nupyprop.datafiles') / 'polarization_data.txt'
 column_names = ['y', 'PCthp', 'P']
 pola_df = pd.read_csv(polarization_path, delimiter='\s+', comment='#', names=column_names)
 
 ypol, Pcthp, P = pola_df['y'].to_numpy(), pola_df['PCthp'].to_numpy(), pola_df['P'].to_numpy()
-        
+
 def cd2distd(xalong, cdalong, col_depth):
     '''
     Interpolate between column depth & distance in a medium.
@@ -47,16 +47,16 @@ def cd2distd(xalong, cdalong, col_depth):
     elif (col_depth > np.max(cdalong)):
        return np.max(xalong)
     else:
-       return np.interp(col_depth, cdalong, xalong) 
+       return np.interp(col_depth, cdalong, xalong)
 
 def get_rho_frac(rho):
-    ''' 
+    '''
     Calculates the correction/scaling fraction for material density between rock & iron.
 
     Args:
     rho (float):
         Density of material, in g/cm^3.
-    
+
     Returns:
     frac (float):
         Scaling factor for density change between rock & iron (for Bremmstrahlung & pair production).
@@ -85,7 +85,7 @@ def int_xc_nu(energy, nu_xc, fac_nu):
         2D array of neutrino cross-section values.
     fac_nu (float):
         Rescaling factor for SM neutrino cross-sections.
-     
+
     Returns:
     sig_cc (float):
         Interpolated CC cross-section value, in cm^2.
@@ -168,7 +168,7 @@ def int_beta(energy, beta_arr, rho):
         2D array of beta values, in cm^2/g.
     rho (float):
         Density of the material, in g/cm^3.
-    
+
     Returns:
     tot (float):
         Interpolated (& summed) value of beta, in cm^2/g.
@@ -200,10 +200,10 @@ def searchsorted(array, search_value):
     """
     # Ensure the array is sorted for searchsorted to work correctly
     array = np.sort(array)
-    
+
     # Use numpy's searchsorted to find the insertion point
     index = np.searchsorted(array, search_value, side='right') - 1
-    
+
     # Ensure index is within the valid range
     if index < 0:
         return 0  # Return the first index if the search value is less than the smallest element
@@ -224,16 +224,16 @@ def idecay(energy, distance, m_le, c_tau):
     """
     # Calculate the Lorentz factor
     gamma_val = energy / m_le
-    
+
     # Calculate the decay probability
     prob_decay = 1.0 - np.exp(-distance / (gamma_val * c_tau))
-    
+
     # Generate a random number between 0 and 1
     dy = np.random.random()
-    
+
     # Determine the decay status based on the probability
     decay = 0 if dy < prob_decay else 1
-    
+
     return decay
 
 def em_cont_part(E_init, alpha_val, beta_val, x, m_le):
@@ -254,7 +254,7 @@ def em_cont_part(E_init, alpha_val, beta_val, x, m_le):
         E_fin = E_init * (1 - beta_val * x) - alpha_val * x
     else:
         E_fin = E_init * np.exp(-beta_val * x) - alpha_val / beta_val * (1 - np.exp(-beta_val * x))
-    
+
     if E_fin < 0:
         E_fin = m_le
 
@@ -264,7 +264,7 @@ def int_depth_nu(energy, nu_xc, fac_nu):
     """
     Calculate neutrino interaction depth.
     int_depth = M/(N_A*sigma_tot)
-    
+
     Args:
         energy (float): Neutrino energy, in GeV.
         fac_nu (float): Rescaling factor for SM neutrino cross-sections.
@@ -306,11 +306,11 @@ def int_depth_lep(energy, xc_arr, rho, m_le, c_tau):
 
     # Calculate total EM and weak interactions
     sig_em = sig_brem + sig_pair + sig_pn
-    sig_weak = sig_cc + sig_nc 
+    sig_weak = sig_cc + sig_nc
 
     # Calculate the interaction depth
     x_int = 1.0 / (sig_em + sig_weak + decay_depth_inv)
-    
+
     return x_int
 
 def interaction_type_nu(energy, nu_xc, fac_nu):
@@ -337,13 +337,13 @@ def interaction_type_nu(energy, nu_xc, fac_nu):
 
     # Determine the interaction type based on the random number
     int_type = 0 if x <= cc_frac else 1  # 0 for CC, 1 for NC
-    
+
     return int_type
 
 def interaction_type_lep(energy, xc_arr, rho, m_le, c_tau):
     """
     Determine the type of charged lepton-nucleon interaction.
-    
+
     Args:
         energy (float): Charged lepton energy, in GeV.
         xc_arr (np.ndarray): 2D array containing N_A/A*charged lepton-nucleon cross-section values, in cm^2/g.
@@ -356,26 +356,26 @@ def interaction_type_lep(energy, xc_arr, rho, m_le, c_tau):
     """
     # Placeholders for CC and NC interactions (values can be read from a lookup table in the future)
     sig_cc, sig_nc = 0.0, 0.0
-    
+
     # Interpolate cross-section values for Bremmstrahlung, pair-production, and photonuclear interactions
     sig_brem, sig_pair, sig_pn = int_xc_lep(energy, xc_arr, rho)
-    
+
     # Calculate decay length and inverse decay depth
     decay_length = (energy / m_le) * c_tau
     decay_depth_inv = 1.0 / (decay_length * rho)
-    
+
     # Calculate total interaction depth for the lepton
     sig_em = sig_brem + sig_pair + sig_pn
     sig_weak = sig_cc + sig_nc
     int_lep = 1.0 / (sig_em + sig_weak + decay_depth_inv)
-    
+
     # Calculate fractions for different interaction types
     tot_frac = 1.0 / int_lep
     decay_frac = decay_depth_inv / tot_frac
     brem_frac = sig_brem / tot_frac
     pair_frac = sig_pair / tot_frac
     pn_frac = sig_pn / tot_frac
-    
+
     # Generate a random number and determine interaction type based on cumulative fractions
     y = np.random.random()
 
@@ -413,23 +413,24 @@ def find_y(energy, ixc_arr, ip):
     """
     if ip == 0 or ip == 1:  # for neutrinos
         energy_index = searchsorted(E_nu, energy)
-        ip_id = 0 if ip == 0 else 1 #ip_id=0 for CC and 1 for NC 
+        ip_id = 0 if ip == 0 else 1 #ip_id=0 for CC and 1 for NC
     else:  # for charged leptons
         energy_index = searchsorted(E_lep, energy)
         ip_id = ip - 3  # Convert ip (3, 4, 5) to index (1, 2, 3) for brem, PP, PN, respectively
-        
+
     search_arr = ixc_arr[:, energy_index, ip_id]
-    #print(search_arr)
+
     dy = np.random.random()
+    #y = np.interp(dy, search_arr.flatten(), yvals)
     y = np.interp(dy, search_arr, yvals)
-    #print(y)
+
     # dy is the randomly sampled cross-section CDF value (between 0 & 1)
     # search_arr = cross-section CDF value array for energy_index
     # yvals = array of min. y values from which the cross-section CDF is calculated (see models.py for calculation details)
     # y is the interpolated (yvals) value corresponding to the cross-section CDF value = dy; this y is responsible for stochastic energy losses
 
     y = min(y, 1.0) #such that y>1 never happens
-              
+
     return y
 
 def polarization(y, pin, theta_in):

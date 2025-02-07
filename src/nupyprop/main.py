@@ -9,7 +9,7 @@ Created on Mon Mar 15 14:04:46 2021
 import nupyprop.data as Data
 import nupyprop.geometry as Geometry
 import nupyprop.run as Run
-import nupyprop.constants as const 
+import nupyprop.constants as const
 
 import numpy as np
 from astropy.table import Table
@@ -131,7 +131,7 @@ def init_ixc(nu_type, ch_lepton, nu_model, pn_model):
     return nu_ixc, lep_ixc_water, lep_ixc_rock
 
 
-def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, ch_lepton, fac_nu, stats, prop_type, elep_mode, htc_mode):
+def main(E_prop, angles, nu_type, cross_section_model, pn_model, earth_model, idepth, ch_lepton, fac_nu, stats, prop_type, elep_mode, htc_mode):
     '''
     Parameters
     ----------
@@ -145,6 +145,8 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, ch_lept
         Neutrino cross-section model.
     pn_model : str
         Photonuclear energy loss model.
+    earth_model : str
+        Earth density model.
     idepth : int
         Depth of water layer in km.
     ch_lepton : str
@@ -183,28 +185,24 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, ch_lept
     else: # muon
         lepton_int = 2
 
-    out_file = Data.output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg=None)
+    out_file = Data.output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,earth_model,prop_type,stats,arg=None)
 
     start_time = time.time()
 
     print("The water -> rock transition occurs at %.2f degrees" % Geometry.find_interface(idepth)[0])
 
     for energy in sorted(E_prop):
-        # log_energy = np.log10(energy)
         eout_list = [] #to store final energies of exiting charged lepton
         for angle in sorted(angles):
-
-            xalong, cdalong = Data.get_trajs('col', angle, idepth) # initialize arrays here for each angle, to reduce a ton of overhead when tauthrulayers & regen are called
+            xalong, cdalong = Data.get_trajs('col', angle, idepth, earth_model) # initialize arrays here for each angle, to reduce a ton of overhead when tauthrulayers & regen are called
 
             print("Neutrino Energy = 10^(%.2f) GeV, Earth Emergence Angle = %.2f degrees" % (energy, angle), flush=True)
 
-            chord, water = Data.get_trajs('water', angle, idepth)
+            chord, water = Data.get_trajs('water', angle, idepth, earth_model)
             dwater = water*rho_water # depth in water [kmwe] in last or only section
-            depthE = Geometry.columndepth(angle, idepth)*1e-5 # column depth in kmwe
-            #print('before run.single_stat')
-            #print(dwater,depthE)
+            depthE = Geometry.columndepth(angle, idepth, earth_model)*1e-5 # column depth in kmwe
 
-            no_regen, regen = Run.run_stat_single(10**energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton_int, fac_nu, stats, prop_type_int)
+            no_regen, regen = Run.run_stat_single(10**energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton_int, fac_nu, stats, prop_type_int, earth_model)
 
             prob_no_regen = no_regen/float(stats)
             prob_regen = regen/float(stats)
@@ -212,9 +210,8 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, ch_lept
             if htc_mode == 'no': # HTC mode off
                 with open("pexit_%.2f.dat" % energy, "a") as pexit_file:
                     pexit_file.write("%.5e\t%.5e\t%.5e\t%.5e\n" % (10**energy,angle,prob_no_regen,prob_regen))
-                #testing
-                #print("Pout_{:.2f}_{:4.1f}.dat".format(energy,angle))
-                P_out = make_array(np.genfromtxt(str("Pout_{:.2f}_{:.1f}.dat".format(energy, angle)))) 
+
+                P_out = make_array(np.genfromtxt(str("Pout_{:.2f}_{:.1f}.dat".format(energy, angle))))
                 #polarization of the exiting charged leptons
                 if P_out.size==0:
                     P_avg = -1
