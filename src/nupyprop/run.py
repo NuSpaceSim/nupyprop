@@ -9,6 +9,7 @@ from nupyprop import propagation
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+from joblib import Parallel, delayed
 import nupyprop.constants as const
 
 batch_num = const.batch_num #batch size to divide the total stats
@@ -27,7 +28,7 @@ ypol, Pcthp, P = const.ypol, const.Pcthp, const.P
 
 def single_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
                 alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu,
-                prop_type, stats, e_file, p_file):
+                prop_type, stats): #, e_file, p_file):
     """Propagates a single ingoing neutrino event
 
     Args:
@@ -181,7 +182,7 @@ def run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_r
     regen_tot = 0
     with open(Efilename, 'a') as e_file, open(Pfilename, 'a') as p_file:
         #iparr, dtrarr, efarr = [], [], []
-        for i in tqdm(range(batch_num)):
+        '''for i in tqdm(range(batch_num)):
             tempnrt, temprt, ef = single_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
             alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu, prop_type, int(stats/batch_num),
             e_file, p_file)
@@ -189,27 +190,43 @@ def run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_r
             # dtrarr.append(temprt)
             # efarr.append(ef)
             #no_regen_tot = no_regen_tot + tempnrt
-            #regen_tot = regen_tot + temprt
+            #regen_tot = regen_tot + temprt'''
+
+        results = Parallel(n_jobs=batch_num)(
+            delayed(single_stat)(
+                energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock,
+                lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock,
+                xalong, cdalong, ithird, idepth, lepton, fac_nu, prop_type,
+                int(stats / batch_num)) #, e_file, p_file)
+            for _ in range(batch_num)
+            )
+
+        print("results done")
+
+    # Extract results if needed
+    tempnrt_list, temprt_list, ef_list = zip(*results)
 
     e_file.close()
     p_file.close()
 
-    '''plt.hist(np.asarray(iparr).flatten(), 50)
+    print("files done")
+
+    plt.hist(np.asarray(tempnrt_list).flatten(), 50)
     plt.xlabel("ip")
     plt.yscale('log')
     plt.title(f"Angle={angle}")
     plt.show()
 
-    plt.hist(np.asarray(dtrarr).flatten(), 50)
+    plt.hist(np.asarray(temprt_list).flatten(), 50)
     plt.xlabel("df")
     plt.yscale('log')
     plt.title(f"Angle={angle}")
     plt.show()
 
-    plt.hist(np.asarray(efarr).flatten(), 50)
+    plt.hist(np.asarray(ef_list).flatten(), 50)
     plt.xlabel("ef")
     plt.title(f"Angle={angle}")
     plt.loglog()
-    plt.show()'''
+    plt.show()
 
     return no_regen_tot,regen_tot
