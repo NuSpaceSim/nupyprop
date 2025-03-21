@@ -31,6 +31,9 @@ pn_models = ['allm', 'bb'] #for Photo-nuclear electromagnetic interaction
 #step size for continuous energy loss
 step_size = 4500 #in cm
 
+#Minimum energy threshold for neutrinos and charged leptons
+Emin = 1e3 #GeV
+
 #array of energies used in interpolation for cross-section and CDFs
 E_nu = np.logspace(3,12,91,base=10).astype(np.float64) #for neutrinos in GeV
 E_lep = np.logspace(0,12,121,base=10).astype(np.float64) #for charged leptons in GeV

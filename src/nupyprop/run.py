@@ -11,9 +11,9 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 
-def single_stat(energy, angle, nu_xc, nu_ixc, depth, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
+def single_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
                 alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu,
-                prop_type, e_file, p_file):
+                prop_type, stats, e_file, p_file):
     """Propagates a single ingoing neutrino event
 
     Args:
@@ -21,7 +21,6 @@ def single_stat(energy, angle, nu_xc, nu_ixc, depth, depthE, dwater, xc_water, x
         angle (_type_): Earth emergence angle (beta), in degrees.
         nu_xc (_type): 2D array containing neutrino CC & NC cross-section values, in cm^2.
         nu_ixc (_type_): 3D array containing neutrino integrated cross-section CDF values.
-        depth (_type_): Maximum column depth for neutrino propagation, in kmwe.
         depthE (_type_): Total column depth for a given Earth emergence angle, in kmwe.
         dwater (_type_): Column depth along the chord for a given Earth emergence angle, in kmwe.
         xc_water (_type_): 2D array containing N_A/A*charged lepton-nucleon cross-section values in water, in cm^2/g.
@@ -39,47 +38,50 @@ def single_stat(energy, angle, nu_xc, nu_ixc, depth, depthE, dwater, xc_water, x
         lepton (_type_): Type of charged lepton. 1=tau; 2=muon.
         fac_nu (_type_): Rescaling factor for SM cross-sections.
         prop_type (_type_): Type of energy loss propagation. 1=stochastic, 2=continuous.
+        stats (integer): Statistics or no. of ingoing neutrinos.
         u (_type_): File object for energies
         w (_type_): File object for Pout
-        
+
     Returns:
         no_regen_tot (integer): No. of outgoing leptons without regeneration
         regen_tot (integer): No. of outgoing leptons with regeneration
         Pout (float):
         e_out (float):
     """
-    
+
     e_format = "{:5.2f}"
     p_format = "{:8.5f}"
     regen_tot = 0
-    no_regen_tot = 0 
-    
+    no_regen_tot = 0
+
     depth0 = 0.0 #start with this each time
-    
+
     #tnu goes until neutrino either goes to dtot, or converts to a tau
     #print('depth= ', depth)
-    ip,dtr,ef = propagation.propagate_nu(energy, nu_xc, nu_ixc, depth, fac_nu)
-    
+    ip,dtr,ef = propagation.propagate_nu(energy, nu_xc, nu_ixc, depthE, fac_nu, stats)
+
+    return ip, dtr, ef
+
     #how far did the neutrino go? dtr is how far traveled
-    
-    depth0 = depth0 + dtr #how far is the neutrino on trajectory?
-    
-    dleft = depth - depth0 # how far is left for the neutrino to travel?
+
+    '''depth0 = depth0 + dtr #how far is the neutrino on trajectory?
+
+    dleft = depthE - depth0 # how far is left for the neutrino to travel?
 
     if ip == 0: # still a neutrino at the end of the road
         #print('first go is a neutrino')
         return no_regen_tot, regen_tot
-    
+
     regen_cnt = 1 # tau out after first interaction
-    
+
     etauin = ef
     #still need to propagate the tau, dolumn depth to go
-    ipp, dfinal, etauf, Pi =  propagation.tau_thru_layers(angle, depth, dwater, depth0, etauin, xc_water, xc_rock, lep_ixc_water,
+    ipp, dfinal, etauf, Pi =  propagation.tau_thru_layers(angle, depthE, dwater, depth0, etauin, xc_water, xc_rock, lep_ixc_water,
                                                          lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong,
                                                         idepth, lepton, prop_type)
-    
+
     #print('just propagated tau, ipp =', ipp, ' ipp=1: Tau, ipp=0: neutrino')
-    dleft = depth-dfinal
+    dleft = depthE-dfinal
 
     if ipp ==1 and dleft <= 0.0:
         Pout = Pi
@@ -90,21 +92,21 @@ def single_stat(energy, angle, nu_xc, nu_ixc, depth, depthE, dwater, xc_water, x
         e_file.write(str(e_format.format(np.log10(etauf))) + '\n')
         p_file.write(str(p_format.format(Pout)) + '\n')
         return no_regen_tot,regen_tot # break outside stat; continue is correct here
-    
-    
+
+
     #must be a neutrino. Is there still column depth to propagate?
     counter = 0
     ipp3 = 99 #dummy variable
     while dfinal < depthE and ipp3 != 1 and regen_cnt <=6:
         #print('in regeneration loop' , counter)
         etauin = etauf # regen finds neutrino energy
-        
-        ipp3, dtau2, ef2, Pint = propagation.regen(angle, etauin, depth, dwater, dfinal, nu_xc , nu_ixc, ithird, xc_water, xc_rock,
+
+        ipp3, dtau2, ef2, Pint = propagation.regen(angle, etauin, depthE, dwater, dfinal, nu_xc , nu_ixc, ithird, xc_water, xc_rock,
                                                     lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock,
                                                     xalong, cdalong, idepth, lepton, fac_nu, prop_type ,Pi)
         #print('after regeneration, Pint = ', Pint)
         #print('ipp3 =', ipp3, ' ipp3 =1: tau; ipp3 = 0 neutrino')
-        
+
         regen_cnt = regen_cnt + 1
         if ipp3 ==1: # then we are back to a tau at the end of the road
             regen_tot = regen_tot + 1
@@ -116,14 +118,14 @@ def single_stat(energy, angle, nu_xc, nu_ixc, depth, depthE, dwater, xc_water, x
         if regen_cnt > 6:
             print('regeneration exceeded 6')
             return no_regen_tot, regen_tot #only if regen > 6, break and go to run_stat for next iteraction
-        
+
         etauf = ef2
         dfinal = dtau2
         Pi = Pint
         counter = counter + 1
-    
-    return no_regen_tot,regen_tot
-            
+
+    return no_regen_tot,regen_tot'''
+
 def run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
                     alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu,
                     stats, prop_type):
@@ -152,224 +154,48 @@ def run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_r
         fac_nu (float): Rescaling factor for SM neutrino cross-sections.
         stats (integer): Statistics or no. of ingoing neutrinos.
         prop_type (integer): Type of energy loss propagation. 1=stochastic, 2=continuous.
-    
+
     Returns:
         no_regen_tot (integer): No. of outgoing charged leptons without regeneration.
         regen_tot (integer): No. of outgoing charged leptons with regeneration.
     """
-    
+
     format = "{:.2f}"
     Efilename = 'eout_'+ str(format.format(np.log10(energy))) + '_' + str(angle) + '.dat'
-    Pfilename = 'Pout_'+ str(format.format(np.log10(energy))) + '_' + str(angle) + '.dat'  
+    Pfilename = 'Pout_'+ str(format.format(np.log10(energy))) + '_' + str(angle) + '.dat'
     no_regen_tot = 0
     regen_tot = 0
     with open(Efilename, 'a') as e_file, open(Pfilename, 'a') as p_file:
-        depth = depthE
-        
-        for i in tqdm(range(0,stats)):
-            tempnrt, temprt = single_stat(energy, angle, nu_xc, nu_ixc, depth, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
-            alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu, prop_type, 
+        iparr, dtrarr, efarr = [], [], []
+        for i in tqdm(range(1)):
+            tempnrt, temprt, ef = single_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
+            alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu, prop_type, int(stats),
             e_file, p_file)
-            no_regen_tot = no_regen_tot + tempnrt
-            regen_tot = regen_tot + temprt
-            
+            iparr.append(tempnrt)
+            dtrarr.append(temprt)
+            efarr.append(ef)
+            #no_regen_tot = no_regen_tot + tempnrt
+            #regen_tot = regen_tot + temprt
+
     e_file.close()
     p_file.close()
-    '''
-    #PROPAGATE_NU DEBUGGING BLOCK
-    part_type = []
-    d_travel = []
-    e_fin = []
-    #print('depthE' , depthE)
-    for i in range(0,stats):
-        ##print(i)
-        result = propagation.propagate_nu(energy,nu_xc,nu_ixc,depthE,fac_nu)
-        part_type.append(result[0])
-        d_travel.append(result[1])
-        e_fin.append(result[2])
-            
-    
-    no_regen_tot =0
-    regen_tot = 0
-    part_type = np.array(part_type)
-    d_travel = np.array(d_travel)
-    e_fin = np.array(e_fin)
-    e_init = np.zeros_like(e_fin)
-    e_init[:] = energy
 
-    bin_edges = np.arange(0, d_travel.max() + 100, 100)
-    
-    count_ones = np.count_nonzero(part_type == 1)
-    count_zeros = np.count_nonzero(part_type == 0)
-    
-    print('1s: ', count_ones,'0s: ', count_zeros)
-    print(np.mean(d_travel))
-    print(np.mean(e_fin),np.min(e_fin),np.max(e_fin))
-    
-    fig, axs = plt.subplots(2,2, figsize=(10,8))
-    axs[0,0].hist(part_type, bins =[-0.5, 0.5, 1.5], edgecolor='black', rwidth=0.7)
-    axs[0,0].set_title('propagate_nu particle type')
-    axs[0,0].set_xlabel('0: neutrino or 1: charged lepton ')
-    #axs[0,0].set_ylabel('Normalized Counts')
+    plt.hist(np.asarray(iparr).flatten(), 50)
+    plt.xlabel("ip")
+    plt.yscale('log')
+    plt.title(f"Angle={angle}")
+    plt.show()
 
-    axs[0,1].hist(d_travel, bins=bin_edges, edgecolor = 'black')
-    axs[0,1].set_title('propagate_nu dtravel')
-    axs[0,1].set_xlabel('dtravel value')
-    axs[0,1].set_yscale('log')
-    #axs[0,1].set_ylabel('Normalized counts')
-    
-    axs[1,0].hist(e_init, bins = 3, edgecolor = 'black')
-    axs[1,0].set_title('propagate_nu initial energy')
-    axs[1,0].set_xlabel('e_init')
-    #axs[1,0].set_ylabel(' counts')
-    
-    axs[1,1].hist(e_fin, bins = 20, edgecolor = 'black')
-    axs[1,1].set_title('propagate_nu e_fin')
-    axs[1,1].set_xlabel('e_fin')
-    #axs[1,1].set_ylabel(' counts')
-    
-    plt.suptitle('propagate_nu output for 10^10 GeV, 30 deg, 1e7 stats')
-    plt.tight_layout()
+    plt.hist(np.asarray(dtrarr).flatten(), 50)
+    plt.xlabel("df")
+    plt.yscale('log')
+    plt.title(f"Angle={angle}")
     plt.show()
-    '''
-    '''
-    ### PROPAGATE_LEP_WATER BLOCK
-    no_regen_tot = 1
-    regen_tot = 1
-    part_id = []
-    d_fin = []
-    e_fin = []
-    pcthf = []
-    
-    for i in tqdm(range(0,stats)):
-        results = propagation.propagate_lep_water(energy,xc_water,lep_ixc_water,alpha_water,beta_water,dwater,lepton,prop_type,cthi=.25,Pi=1)
-        part_id.append(results[0])
-        d_fin.append(results[1])
-        e_fin.append(results[2])
-        pcthf.append(results[3])
-    
-    count_ones = part_id.count(1)
-    count_zeros = part_id.count(0)
-    
-    e_fin = np.array(e_fin)
-    d_fin = np.array(d_fin)
-    #print(np.mean(e_fin))
-    #print(part_id)
-    decayed= np.where(np.array(part_id) ==0)[0]
-    print('decayed ', (len(decayed)/len(e_fin))*100)
-    print(min(e_fin), max(e_fin))
-    min_log = np.log10(min(e_fin))
-    max_log = np.log10(max(e_fin))
-    print(min_log)
-    print(max_log)
-    bins = np.logspace(min_log, max_log, num=35)
-    
-    
-    plt.hist(e_fin[decayed], bins=bins, color='skyblue', edgecolor='black',alpha=0.95)
-    plt.xlabel('Lepton Energy')
-    plt.ylabel('Frequency')
-    plt.title('lep_water e_fin for decayed taus | normal ctau | E_tau = 10^9')
-    plt.grid(True)
-    plt.xscale('log')
-    #plt.yscale('log')
-    #plt.xlim(0,max(e_fin) + 1000)
-    plt.legend()
-    plt.show()
-    
-    plt.hist(d_fin[decayed], bins=50, color='skyblue', edgecolor='black',alpha=0.95)
-    plt.xlabel('Distance traveled before decay, or total distance traveled (kmwe)')
-    plt.ylabel('Frequency')
-    plt.title('lep_water d_fin for decayed taus | normal ctau | E_tau = 10^9')
-    #plt.yscale('log')
-    plt.grid(True)
-    plt.legend()
-    plt.show()
-    '''
-    '''
-    ###TAU_THRU_LAYERS BLOCK
-    depth0 = 0.0 #start with this each time
-    
-    #tnu goes until neutrino either goes to dtot, or converts to a tau
-    
-    ip,dtr,ef = propagation.propagate_nu(energy, nu_xc, nu_ixc, depthE, fac_nu)
-    
-    #how far did the neutrino go? dtr is how far traveled
-    
-    depth0 = depth0 + dtr #how far is the neutrino on trajectory?
-    
-    dleft = depthE - depth0 # how far is left for the neutrino to travel?
-    
-        
-    regen_cnt = 1 # tau out after first interaction
-    
-    etauin = ef
-    #still need to propagate the tau, dolumn depth to go
-    ipp, dfinal, etauf, Pi =  propagation.tau_thru_layers(angle, depthE, dwater, depth0, etauin, xc_water, xc_rock, lep_ixc_water,
-                                                         lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong,
-                                                         idepth, lepton, prop_type)
-    
-    dleft = depthE-dfinal
-      
-    no_regen_tot=1 
-    regen_tot = 1
-    '''
-    '''
-    part_type = []
-    d_travel = []
-    e_fin = []
-    d_fin = []
-    pcthf = []
-    part_id = []
-    for i in tqdm(range(0,stats)):
-        ##print(i)
-        result2 = propagation.propagate_nu(energy,nu_xc,nu_ixc,depthE,fac_nu)
-        #part_type.append(result[0])
-        #d_travel.append(result[1])
-        #e_fin.append(result[2])
-        part_type = result2[0]
-        d_travel = result2[1]
-        e_fin2 = result2[2]
-        results = propagation.propagate_lep_water(e_fin2,xc_water,lep_ixc_water,alpha_water,beta_water,dwater,lepton,prop_type,cthi=.25,Pi=1)
-        part_id.append(results[0])
-        d_fin.append(results[1])
-        e_fin.append(results[2])
-        pcthf.append(results[3])
-    
-    
-    e_fin = np.array(e_fin)
-    d_fin = np.array(d_fin)
-    #print(np.mean(e_fin))
-    #print(part_id)
-    decayed= np.where(np.array(part_id) ==0)[0]
-    print('decayed ', (len(decayed)/len(e_fin))*100)
-    print(min(e_fin), max(e_fin))
-    min_log = np.log10(min(e_fin))
-    max_log = np.log10(max(e_fin))
-    print(min_log)
-    print(max_log)
-    bins = np.logspace(min_log, max_log, num=35)
-    
-    
-    plt.hist(e_fin[decayed], bins=bins, color='skyblue', edgecolor='black',alpha=0.95)
-    plt.xlabel('Lepton Energy')
-    plt.ylabel('Frequency')
-    plt.title('lep_water e_fin for decayed taus | normal ctau | E_tau = 10^9')
-    plt.grid(True)
-    plt.xscale('log')
-    #plt.yscale('log')
-    #plt.xlim(0,max(e_fin) + 1000)
-    plt.legend()
-    plt.show()
-    
-    plt.hist(d_fin[decayed], bins=50, color='skyblue', edgecolor='black',alpha=0.95)
-    plt.xlabel('Distance traveled before decay, or total distance traveled (kmwe)')
-    plt.ylabel('Frequency')
-    plt.title('lep_water d_fin for decayed taus | normal ctau | E_tau = 10^9')
-    #plt.yscale('log')
-    plt.grid(True)
-    plt.legend()
-    plt.show()
-    '''
 
-    print(no_regen_tot,regen_tot)
+    plt.hist(np.asarray(efarr).flatten(), 50)
+    plt.xlabel("ef")
+    plt.title(f"Angle={angle}")
+    plt.loglog()
+    plt.show()
+
     return no_regen_tot,regen_tot

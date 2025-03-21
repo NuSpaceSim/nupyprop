@@ -1,11 +1,11 @@
-1#!/usr/bin/env python3
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Sat Sep 26 16:44:13 2020
 
 @author: sam
 """
-import nupyprop.constants as const 
+import nupyprop.constants as const
 
 import numpy as np
 from decimal import Decimal

@@ -9,7 +9,7 @@ Created on Mon Mar 15 14:04:46 2021
 import nupyprop.data as Data
 import nupyprop.geometry as Geometry
 import nupyprop.run as Run
-import nupyprop.constants as const 
+import nupyprop.constants as const
 
 import numpy as np
 from astropy.table import Table
@@ -201,8 +201,6 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, ch_lept
             chord, water = Data.get_trajs('water', angle, idepth)
             dwater = water*rho_water # depth in water [kmwe] in last or only section
             depthE = Geometry.columndepth(angle, idepth)*1e-5 # column depth in kmwe
-            #print('before run.single_stat')
-            #print(dwater,depthE)
 
             no_regen, regen = Run.run_stat_single(10**energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton_int, fac_nu, stats, prop_type_int)
 
@@ -214,7 +212,7 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, idepth, ch_lept
                     pexit_file.write("%.5e\t%.5e\t%.5e\t%.5e\n" % (10**energy,angle,prob_no_regen,prob_regen))
                 #testing
                 #print("Pout_{:.2f}_{:4.1f}.dat".format(energy,angle))
-                P_out = make_array(np.genfromtxt(str("Pout_{:.2f}_{:.1f}.dat".format(energy, angle)))) 
+                P_out = make_array(np.genfromtxt(str("Pout_{:.2f}_{:.1f}.dat".format(energy, angle))))
                 #polarization of the exiting charged leptons
                 if P_out.size==0:
                     P_avg = -1
