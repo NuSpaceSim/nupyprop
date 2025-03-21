@@ -8,6 +8,10 @@ Created on Wed June 19 15:21:03 2024
 import numpy as np
 import nupyprop.transport as transport
 import nupyprop.geometry as geometry
+import nupyprop.constants as const
+
+rho_water = const.rho_water #density of water, in g/cm3
+step_size = const.step_size #step size for continuous energy loss, in cm
 
 def propagate_nu(e_init, nu_xc, nu_ixc, depth_max, fac_nu, stats, Emin, E_nu, E_lep, yvals):
     '''
@@ -86,7 +90,7 @@ def propagate_nu(e_init, nu_xc, nu_ixc, depth_max, fac_nu, stats, Emin, E_nu, E_
     return part_type, d_travel, e_fin
 
 
-def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in, lepton, prop_type, cthi, Pi):
+def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in, lepton, prop_type, cthi, Pi, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P):
     """Propagates a charged lepton in water inside the Earth
 
     Args:
@@ -100,6 +104,20 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
         prop_type (integer): Type of energy loss propagation. 1=stochastic, 2=continuous
         cthi (float): costheta value obtained from tau EM interaction with rock
         Pi (float): Degree of Polarization obtained from tau EM interaction with rock
+        Emin : float
+            Minimum threshold energy for leptons, in GeV
+        E_nu : np.ndarray
+            Array of neutrino energiesm in GeV
+        E_lep : np.ndarray
+            Array of charged lepton energies, in GeV
+        yvals : np.ndarray
+            Array of min. y values from which the cross-section CDF is calculated
+        ypol : float array
+            Predefined inelasticity array
+        Pcthp :
+            np.cos(theta_P), where theta_P is the polar angle of the spin vector in tau rest frame
+        P : float array
+            Magnitude of polarization vector, defining the degree of polarization
 
     Returns:
         part_id (integer): Type of outgoing charged lepton. 0=decayed; 1=not decayed; 2=don't count
@@ -107,7 +125,6 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
         e_fin (float): Final energy of the charged lepton, in GeV
         pcthf (float): Final polarization after EM interaction of the tau lepton
     """
-    e_min = 1e3 #Minimum tau energy, in GeV
     part_id = 1 #Start with tau that's obviously not decayed
 
     x_total = d_in*1e5 # kmwe to cmwe
@@ -128,13 +145,13 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
         Pin = Pi
         theta_in = np.arccos(cthi)
 
-        while (e_lep > e_min):
+        while (e_lep > Emin):
 
-            if e_lep <= e_min:
+            if e_lep <= Emin:
                 break #taken care of outside the while loop
 
             r = np.random.random()
-            int_depth = transport.int_depth_lep(e_lep,xc_water,const.rho_water,m_le,c_tau)
+            int_depth = transport.int_depth_lep(e_lep,xc_water,rho_water,m_le,c_tau)
             x = -1*int_depth*np.log(r) #basically the step size
             # prob of interaction = exp(-x/int_depth)
 
@@ -144,40 +161,40 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
             if (x_f >= x_total): #already past maximum depth but still a tau
                 x_step = x_total -x_0 #backtrack one step
 
-                alpha = transport.int_alpha(e_lep,alpha_water)
-                beta = transport.int_beta(e_lep,beta_water,const.rho_water)
+                alpha = transport.int_alpha(e_lep,alpha_water, E_lep)
+                beta = transport.int_beta(e_lep,beta_water,rho_water, E_lep)
 
                 e_fin = e_lep - (e_lep*beta + alpha)*x_step
                 d_fin=d_in
 
-                if (e_fin <= e_min): #tau has decayed
+                if (e_fin <= Emin): #tau has decayed
                     d_fin = d_in
-                    e_fin = e_min
+                    e_fin = Emin
                     part_id = 2 # don't count
 
                 pcthf = Pin*np.cos(theta_in)
                 return part_id,d_fin,e_fin,pcthf
 
             x_0 = x_f #update x_0 and keep going
-            alpha = transport.int_alpha(e_lep, alpha_water)
-            beta = transport.int_beta(e_lep,beta_water,const.rho_water)
+            alpha = transport.int_alpha(e_lep, alpha_water, E_lep)
+            beta = transport.int_beta(e_lep,beta_water,rho_water, E_lep)
 
             e_int = e_lep - (e_lep*beta + alpha)*x #find some intermediate energy to get reasonable values of energy between inital and final energy, a la MUSIC
 
-            if (e_int <= e_min):
-                e_int = e_min
+            if (e_int <= Emin):
+                e_int = Emin
 
             e_avg = 10.0**((np.log10(e_lep)+np.log10(e_int))/2.0) #avg of 10^7 & 10^8 is 10^7.5
 
-            alpha = transport.int_alpha(e_avg,alpha_water)
-            beta = transport.int_beta(e_avg,beta_water,const.rho_water)
+            alpha = transport.int_alpha(e_avg,alpha_water, E_lep)
+            beta = transport.int_beta(e_avg,beta_water,rho_water, E_lep)
 
             e_int = transport.em_cont_part(e_lep,alpha,beta,x,m_le)
 
-            if (e_int <= e_min): # below min energy
+            if (e_int <= Emin): # below min energy
                 break #taken care of outside while loop
 
-            int_type = transport.interaction_type_lep(e_int,xc_water,const.rho_water,m_le,c_tau)
+            int_type = transport.interaction_type_lep(e_int,xc_water,rho_water,m_le,c_tau)
 
             if (int_type == 2): # tau decayed
                 part_id = 0
@@ -195,14 +212,14 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
             e_fin = e_lep
 
             if (int_type ==5):
-                Pout, theta_out = transport.polarization(y,Pin,theta_in)
+                Pout, theta_out = transport.polarization(y,Pin,theta_in, ypol, Pcthp, P)
                 Pin = Pout
                 theta_in = theta_out
 
-        #Now outside the while loop, e_lep has to be <= e_min
-        if (e_lep <= e_min):
+        #Now outside the while loop, e_lep has to be <= Emin
+        if (e_lep <= Emin):
             d_fin = d_in # max distance in water
-            e_fin = e_min
+            e_fin = Emin
             part_id = 2 # don't count this
             pcthf=Pin*np.cos(theta_in)
             return part_id,d_fin,e_fin,pcthf
@@ -211,24 +228,24 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
         else: # continuous energy loss
             #print('in else statement continuous energy loss')
 
-            j_max = int(x_total/(const.step_size*const.rho_water)) # we will get close to exit
+            j_max = int(x_total/(step_size*rho_water)) # we will get close to exit
 
             #not sure if this should be j_max +1 or j_max +2 bc of fortran not 0 indexing
             for i in range(0,j_max +2): #takes care of the integer truncation issue
-                if (e_lep < e_min): #taken care of outside the do while loop
+                if (e_lep < Emin): #taken care of outside the do while loop
                     break
 
-                delta_x = const.step_size * const.rho_water #distance goes into decay
+                delta_x = step_size * rho_water #distance goes into decay
                 x_f = x_0 + delta_x
                 #does the particle decay over this distance?
-                part_id = transport.idecay(e_lep,const.step_size,m_le,c_tau)
+                part_id = transport.idecay(e_lep,step_size,m_le,c_tau)
 
                 if part_id ==0 : #we are all done
                     e_fin = e_lep
                     d_fin = d_in
                 else: # fine the new energy; assume alpha and beta are total values, not cut values
-                    alpha = transport.int_alpha(e_lep,alpha_water)
-                    beta = transport.int_beta(e_lep,beta_water,const.rho_water)
+                    alpha = transport.int_alpha(e_lep,alpha_water, E_lep)
+                    beta = transport.int_beta(e_lep,beta_water,rho_water, E_lep)
 
                     e_fin = e_lep - (e_lep*beta + alpha)*delta_x
                     d_fin = x_f/1e5
@@ -244,23 +261,23 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
                 if x_step > 0.0: # last little energy loss
                     e_fin = e_lep - (e_lep * beta + alpha)*x_step #take care of that last little dx
                 else:
-                    if (d_fin <= e_min):
-                        e_fin = e_min
+                    if (d_fin <= Emin):
+                        e_fin = Emin
                         d_fin = d_in
                         part_id = 2
                     elif e_fin > e_init:
                         e_fin = e_init #sanity check
-            #outside the while e_lep has to be < e_min
-            if e_lep <= e_min:
+            #outside the while e_lep has to be < Emin
+            if e_lep <= Emin:
                 d_fin = d_in
-                d_fin = e_min
+                d_fin = Emin
                 part_id = 2 #don't count this
                 return part_id,d_fin,e_fin,pcthf
 
 #    return part_id, d_fin, e_fin, pcthf
 
 def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d_entry,
-                       d_in, xalong, cdalong, idepth, lepton, prop_type):
+                       d_in, xalong, cdalong, idepth, lepton, prop_type, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P):
     """Propagates a charged lepton in rock & iron inside the Earth
 
     Args:
@@ -277,6 +294,20 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
         idepth (Integer): Depth of water layer in km.
         lepton (Integer): Type of charged lepton. 1=tau; 2=muon.
         prop_type (Integer): Type of energy loss propagation. 1=stochastic, 2=continuous.
+        Emin : float
+            Minimum threshold energy for leptons, in GeV
+        E_nu : np.ndarray
+            Array of neutrino energiesm in GeV
+        E_lep : np.ndarray
+            Array of charged lepton energies, in GeV
+        yvals : np.ndarray
+            Array of min. y values from which the cross-section CDF is calculated
+        ypol : float array
+            Predefined inelasticity array
+        Pcthp :
+            np.cos(theta_P), where theta_P is the polar angle of the spin vector in tau rest frame
+        P : float array
+            Magnitude of polarization vector, defining the degree of polarization
 
     Returns:
         part_id (Integer): Type of outgoing charged lepton. 0=decayed; 1=not decayed; 2=don't count.
@@ -286,7 +317,6 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
         Pf (Float): Final degree of polarization after EM interaction of the tau lepton.
 
     """
-    e_min = 1e3 #min tau energy, in GeV
     part_id = 1 #start with tau
     col_depth = d_entry*1e5 #how far in
     d_max = d_in*1e5 # how much to go, in cmwe
@@ -306,7 +336,7 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
         Pin = 1.0
         theta_in = 0.0
 
-        while e_lep > e_min:
+        while e_lep > Emin:
             cnt = cnt + 1
             x_interp = transport.cd2distd(xalong,cdalong,col_depth)
             r,rho = geometry.densityatx(x_interp,angle,idepth)
@@ -322,8 +352,8 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
             if x_f > d_max: #already past max depth
                 #go to 30
                 d_rem = d_max - x_0
-                alpha = transport.int_alpha(e_lep, alpha_rock)
-                beta = transport.int_beta(e_lep, beta_rock, rho)
+                alpha = transport.int_alpha(e_lep, alpha_rock, E_lep)
+                beta = transport.int_beta(e_lep, beta_rock, rho, E_lep)
                 e_fin = e_lep - (e_lep*beta + alpha)*d_rem
                 d_fin = d_max/1e5
                 if e_fin > e_init:
@@ -335,25 +365,25 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
                 return part_id,d_fin,e_fin,cthf,Pf
 
             x_0 = x_f #update x_0 and keep going
-            alpha = transport.int_alpha(e_lep, alpha_rock)
-            beta = transport.int_beta(e_lep, beta_rock, rho)
+            alpha = transport.int_alpha(e_lep, alpha_rock, E_lep)
+            beta = transport.int_beta(e_lep, beta_rock, rho, E_lep)
             e_int = e_lep - (e_lep*beta + alpha)*x #find some intermediate energy to get reasonable values of energy between inital and final energy, a la MUSIC
 
-            if e_int <= e_min:
-                e_int = e_min
+            if e_int <= Emin:
+                e_int = Emin
 
             e_avg = 10.0**((np.log10(e_lep) + np.log10(e_int))/2) # does this work ?
 
-            alpha = transport.int_alpha(e_avg, alpha_rock)
-            beta = transport.int_beta(e_avg, beta_rock, rho)
+            alpha = transport.int_alpha(e_avg, alpha_rock, E_lep)
+            beta = transport.int_beta(e_avg, beta_rock, rho, E_lep)
 
             e_int = transport.em_cont_part(e_lep, alpha, beta, x, m_le) # get the continuous energy
 
-            if e_int <= e_min:# is it below minimum energy now ?
+            if e_int <= Emin:# is it below minimum energy now ?
                 #print('below min energy')
                 e_fin = e_int
                 d_fin = d_max/1e5
-                e_fin = e_min
+                e_fin = Emin
                 part_id = 0
                 #print('too small to handle')
                 #print('pcthf = ', Pin*np.cos(theta_in))
@@ -382,14 +412,14 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
 
             # This routine will run for only PN interaction
             if (int_type ==5):
-                Pout, theta_out = transport.polarization(y,Pin,theta_in)
+                Pout, theta_out = transport.polarization(y,Pin,theta_in, ypol, Pcthp, P)
                 Pin = Pout
                 theta_in = theta_out
-        #outside the while loop, e_lep has to be < e_min
-        if e_lep <= e_min: #only continuous energy loss
+        #outside the while loop, e_lep has to be < Emin
+        if e_lep <= Emin: #only continuous energy loss
             #print('ENERGY TOO LOW')
             d_fin = d_max/1e5
-            e_fin = e_min
+            e_fin = Emin
             part_id = 0 #dayed or no_count?? should be decayed
             Pf = Pin
             cthf = np.cos(theta_in)
@@ -398,7 +428,7 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
     else: #continuous energy loss
 
         d_0 = 0.0
-        delta_x = const.step_size # for now, not adaptive, distance into decay, cm; works for taus
+        delta_x = step_size # for now, not adaptive, distance into decay, cm; works for taus
 
         x_interp = transport.cd2distd(xalong, cdalong, col_depth) # find how far we are along the chord for a given beta
         r, rho = geometry.densityatx(x_interp, angle, idepth) # find rho at x
@@ -412,7 +442,7 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
 
         for i in range(j_max +2):
 
-            if e_lep < e_min:
+            if e_lep < Emin:
                 break
 
             x_interp = transport.cd2distd(xalong, cdalong, col_depth) # find how far we are along the chord for a given beta
@@ -430,8 +460,8 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
                 d_fin = d_0/1e5
                 return part_id,d_fin,e_fin,cthf,Pf
             else: #find the new energy; assume alpha and beta are total values, not cut values
-                alpha = transport.int_alpha(e_lep, alpha_rock)
-                beta = transport.int_beta(e_lep, beta_rock, rho)
+                alpha = transport.int_alpha(e_lep, alpha_rock, E_lep)
+                beta = transport.int_beta(e_lep, beta_rock, rho, E_lep)
                 e_lep = e_lep - (e_lep*beta + alpha)*delta_d
                 d_fin = d_0/1e5 #updating the d_final
                 e_fin = e_lep
@@ -444,8 +474,8 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
                 d_fin = d_in
                 return part_id,d_fin,e_fin,cthf,Pf
             else:
-                if e_fin <= e_min:
-                    e_fin = e_min
+                if e_fin <= Emin:
+                    e_fin = Emin
                     d_fin = d_in
                     part_id = 2
                 elif e_fin > e_init:
@@ -453,9 +483,9 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
 
                 return part_id,d_fin,e_fin,cthf,Pf
 
-        if e_lep <= e_min: #only continuous energy loss
+        if e_lep <= Emin: #only continuous energy loss
             d_fin = d_in
-            e_fin = e_min
+            e_fin = Emin
             part_id =2 #don't count this
             return part_id,d_fin,e_fin,cthf,Pf
         elif cnt >= j_max:
@@ -466,7 +496,7 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
 
 
 def tau_thru_layers(angle,depth,d_water,depth_traj,e_lep_in,xc_water,xc_rock,lep_ixc_water,lep_ixc_rock,alpha_water,
-                       alpha_rock,beta_water,beta_rock,xalong,cdalong,idepth,lepton,prop_type):
+                       alpha_rock,beta_water,beta_rock,xalong,cdalong,idepth,lepton,prop_type, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P):
     """
 
     Args:
@@ -488,6 +518,20 @@ def tau_thru_layers(angle,depth,d_water,depth_traj,e_lep_in,xc_water,xc_rock,lep
         idepth (Integer): Depth of water layer in km.
         lepton (Integer): Type of charged lepton. 1=tau; 2=muon.
         prop_type (Integer): Type of energy loss propagation. 1=stochastic, 2=continuous.
+        Emin : float
+            Minimum threshold energy for leptons, in GeV
+        E_nu : np.ndarray
+            Array of neutrino energiesm in GeV
+        E_lep : np.ndarray
+            Array of charged lepton energies, in GeV
+        yvals : np.ndarray
+            Array of min. y values from which the cross-section CDF is calculated
+        ypol : float array
+            Predefined inelasticity array
+        Pcthp :
+            np.cos(theta_P), where theta_P is the polar angle of the spin vector in tau rest frame
+        P : float array
+            Magnitude of polarization vector, defining the degree of polarization
 
     Returns:
         part_type (Integer): Type of outgoing charged lepton. 0=decayed, 1=not decayed.
@@ -506,7 +550,7 @@ def tau_thru_layers(angle,depth,d_water,depth_traj,e_lep_in,xc_water,xc_rock,lep
         return part_type, d_fin,e_fin,None
 
     if (depth-depth_traj) < d_water:
-        rho = const.rho_water
+        rho = rho_water
     else:
         x = transport.cd2distd(xalong, cdalong, col_depth)
         r, rho = geometry.densityatx(x, angle, idepth) # find rho at x
@@ -522,7 +566,7 @@ def tau_thru_layers(angle,depth,d_water,depth_traj,e_lep_in,xc_water,xc_rock,lep
 
         part_type, d_f, e_fin, cthf, Pf = propagate_lep_rock(angle, e_lep, xc_rock, lep_ixc_rock, alpha_rock,
                                                              beta_rock, depth_traj, d_in, xalong, cdalong,
-                                                             idepth, lepton,prop_type)
+                                                             idepth, lepton,prop_type, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P)
         depth_traj = depth_traj + d_f
 
         if part_type == 1 and idepth != 0: #still a tau; added and clause on 3/18
@@ -535,7 +579,7 @@ def tau_thru_layers(angle,depth,d_water,depth_traj,e_lep_in,xc_water,xc_rock,lep
             cthi = cthf
 
             part_type, d_f, e_fin, pcthf = propagate_lep_water(e_lep, xc_water, lep_ixc_water, alpha_water,
-                                                               beta_water, d_in, lepton, prop_type, cthi, Pi)
+                                                               beta_water, d_in, lepton, prop_type, cthi, Pi, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P)
 
             depth_traj = depth_traj + d_f
             d_fin = depth_traj
@@ -551,7 +595,7 @@ def tau_thru_layers(angle,depth,d_water,depth_traj,e_lep_in,xc_water,xc_rock,lep
         cthi = np.cos(0.0)
 
         part_type,d_f,e_fin,pcthf = propagate_lep_water(e_lep, xc_water, lep_ixc_water, alpha_water, beta_water, d_in, lepton,
-                                                        prop_type, cthi, Pi)
+                                                        prop_type, cthi, Pi, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P)
         depth_traj = depth_traj + d_f
         d_fin = depth_traj
         return part_type,d_fin,e_fin,pcthf
@@ -597,7 +641,7 @@ def distnu(r, ithird, Pin):
 
 def regen(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, xc_rock,
           ixc_water, ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, idepth,
-          lepton, fac_nu, prop_type, Pin):
+          lepton, fac_nu, prop_type, Pin, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P):
     """Regeneration loop, should take a pin and also throw out pout. pin will be used by distnu and the pout
        it throws will be used by the regen again as input in the single_stat() function.
 
@@ -625,6 +669,20 @@ def regen(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, 
         fac_nu (float): Rescaling factor for SM neutrino cross-sections.
         prop_type (integer): Type of energy loss propagation. 1=stochastic, 2=continuous.
         Pin (float): tau's polarization input from tau passing thru layers
+        Emin : float
+            Minimum threshold energy for leptons, in GeV
+        E_nu : np.ndarray
+            Array of neutrino energiesm in GeV
+        E_lep : np.ndarray
+            Array of charged lepton energies, in GeV
+        yvals : np.ndarray
+            Array of min. y values from which the cross-section CDF is calculated
+        ypol : float array
+            Predefined inelasticity array
+        Pcthp :
+            np.cos(theta_P), where theta_P is the polar angle of the spin vector in tau rest frame
+        P : float array
+            Magnitude of polarization vector, defining the degree of polarization
 
     Returns:
         part_type (integer): Type of outgoing particle. 0=neutrino; 3=exit.
@@ -648,7 +706,7 @@ def regen(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, 
     d_exit = d_lep #we are starting this far into the Earth with a neutrino
     int_part = 0 # starting with a neutrino with energy e_nu; change later to string
 
-    int_part, dtr, etau2 = propagate_nu(e_nu, nu_xc, nu_ixc, d_left, fac_nu)
+    int_part, dtr, etau2 = propagate_nu(e_nu, nu_xc, nu_ixc, d_left, fac_nu, Emin, E_nu, E_lep, yvals)
     #print('int part after propagate_nu', int_part)
     if int_part != 1: # neutrinos at the end
         d_exit = depth
@@ -671,7 +729,7 @@ def regen(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, 
     #we have a tau with room to travel for tauthrulayers
 
     part_type, d_exit, e_fin, Pi = tau_thru_layers(angle, depth, d_water, d_lep, etau2, xc_water, xc_rock, ixc_water, ixc_rock,
-         alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, idepth, lepton, prop_type)
+         alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, idepth, lepton, prop_type, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P)
 
     Pout = Pi
 

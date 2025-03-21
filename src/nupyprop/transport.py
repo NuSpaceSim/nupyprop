@@ -7,23 +7,11 @@ Created on Wed May  1 15:02:27 2024
 Comment: This code contains all the functions that are required in the propagation process of the particles. These functions will be called by the propagate.py code.
 """
 import numpy as np
-import pandas as pd
-import importlib_resources
 import nupyprop.constants as const
 
-# rho_rock = const.rho_rock # rock density
-# rho_iron = const.rho_iron # iron density
-
-# E_nu = const.E_nu # Neutrino energy numpy array
-# E_lep = const.E_lep # Lepton energy numpy array
-# yvals = const.yvals # inelasticity from 1e-3 to 1
-
-# # loading polarization file for tau-leptons
-# polarization_path = importlib_resources.files('nupyprop.datafiles') / 'polarization_data.txt'
-# column_names = ['y', 'PCthp', 'P']
-# pola_df = pd.read_csv(polarization_path, delimiter='\s+', comment='#', names=column_names)
-
-# ypol, Pcthp, P = pola_df['y'].to_numpy(), pola_df['PCthp'].to_numpy(), pola_df['P'].to_numpy()
+N_A = const.N_A # Avogadro's number
+rho_rock = const.rho_rock # rock density
+rho_iron = const.rho_iron # iron density
 
 def cd2distd(xalong, cdalong, col_depth):
     '''
@@ -107,24 +95,28 @@ def int_xc_nu(energy, nu_xc, fac_nu, E_nu):
 
     return sig_cc, sig_nc
 
-def int_xc_lep(energy, xc_arr, rho):
+def int_xc_lep(energy, xc_arr, rho, E_lep):
     '''
     Interpolate between lepton energy & cross-section values.
 
-    Args:
-    energy (float):
+    Parameters
+    -----------
+    energy : float
         Energy value to interpolate at, in GeV.
-    xc_arr (numpy.ndarray):
+    xc_arr : numpy.ndarray
         2D array of N_A/A*charged lepton cross-section values, in cm^2/g.
-    rho (float):
+    rho : float
         Density of the material, in g/cm^3.
+    E_lep : np.ndarray
+        Array of charged lepton energies, in GeV
 
-    Returns:
-    sig_brem (float):
+    Returns
+    ----------
+    sig_brem : float
         Interpolated cross-section value for Bremmstrahlung, in cm^2/g.
-    sig_pair (float):
+    sig_pair : float
         Interpolated cross-section value for pair production, in cm^2/g.
-    sig_pn (float):
+    sig_pn : float
         Interpolated cross-section value for photonuclear, in cm^2/g.
     '''
 
@@ -143,38 +135,46 @@ def int_xc_lep(energy, xc_arr, rho):
 
     return sig_brem, sig_pair, sig_pn
 
-def int_alpha(energy, alpha_sig):
+def int_alpha(energy, alpha_sig, E_lep):
     """
     Interpolate between charged lepton energy & ionization energy loss values.
 
-    Args:
-    energy (float):
+    Parameters
+    ----------
+    energy : float
         Energy value to interpolate at, in GeV.
-    alpha_sig (numpy.ndarray):
+    alpha_sig : numpy.ndarray
         1D array of ionization energy loss, in (GeV*cm^2)/g.
+    E_lep : np.ndarray
+        Array of charged lepton energies, in GeV
 
-    Returns:
-    alpha (float):
+    Returns
+    ----------
+    alpha : float
         Interpolated ionization energy loss value, in (GeV*cm^2)/g.
     """
     # Perform interpolation
     alpha = np.interp(energy, E_lep, alpha_sig)
     return alpha
 
-def int_beta(energy, beta_arr, rho):
+def int_beta(energy, beta_arr, rho, E_lep):
     """
     Interpolate between charged lepton energy & beta (energy loss parameter) values.
 
-    Args:
-    energy (float):
+    Parameters
+    -----------
+    energy : float
         Energy value to interpolate at, in GeV.
-    beta_arr (numpy.ndarray):
+    beta_arr : numpy.ndarray
         2D array of beta values, in cm^2/g.
-    rho (float):
+    rho : float
         Density of the material, in g/cm^3.
+    E_lep : np.ndarray
+        Array of charged lepton energies, in GeV
 
-    Returns:
-    tot (float):
+    Returns
+    ---------
+    tot : float
         Interpolated (& summed) value of beta, in cm^2/g.
     """
     # Get scaling factors based on material density
@@ -189,29 +189,29 @@ def int_beta(energy, beta_arr, rho):
     tot = (frac * brem) + (frac * pair) + (frac_pn * pn)
     return tot
 
-def searchsorted(array, search_value):
-    """
-    Given an array and a value, returns the index of the element that is closest to, but less than, the given value.
+# def searchsorted(array, search_value):
+#     """
+#     Given an array and a value, returns the index of the element that is closest to, but less than, the given value.
 
-    Uses a binary search algorithm provided by numpy.
+#     Uses a binary search algorithm provided by numpy.
 
-    Args:
-    array (numpy.ndarray): Input array.
-    search_value (float): Value to search for.
+#     Args:
+#     array (numpy.ndarray): Input array.
+#     search_value (float): Value to search for.
 
-    Returns:
-    int: Index of the element closest to, but less than, the given value.
-    """
-    # Ensure the array is sorted for searchsorted to work correctly
-    array = np.sort(array)
+#     Returns:
+#     int: Index of the element closest to, but less than, the given value.
+#     """
+#     # Ensure the array is sorted for searchsorted to work correctly
+#     array = np.sort(array)
 
-    # Use numpy's searchsorted to find the insertion point
-    index = np.searchsorted(array, search_value, side='right') - 1
+#     # Use numpy's searchsorted to find the insertion point
+#     index = np.searchsorted(array, search_value, side='right') - 1
 
-    # Ensure index is within the valid range
-    if index < 0:
-        return 0  # Return the first index if the search value is less than the smallest element
-    return index
+#     # Ensure index is within the valid range
+#     if index < 0:
+#         return 0  # Return the first index if the search value is less than the smallest element
+#     return index
 
 def idecay(energy, distance, m_le, c_tau):
     """
@@ -287,24 +287,34 @@ def int_depth_nu(energy, nu_xc, fac_nu, E_nu):
     """
     sig_cc, sig_nc = int_xc_nu(energy, nu_xc, fac_nu, E_nu)
     sig_weak = sig_cc + sig_nc # weak interactions
-    x_int = 1.0 / (const.N_A * sig_weak)
+    x_int = 1.0 / (N_A * sig_weak)
 
     return x_int
 
-def int_depth_lep(energy, xc_arr, rho, m_le, c_tau):
+def int_depth_lep(energy, xc_arr, rho, m_le, c_tau, E_lep):
     """
     Calculate charged lepton interaction depth.
     int_depth = M/((N_A/A)*sigma_tot + 1/(gamma*c*tau*rho)); here we need rho to convert decay distance to decay depth
 
-    Args:
-        energy (float): Charged lepton energy, in GeV.
-        xc_arr (np.ndarray): 2D array containing N_A/A*charged lepton-nucleon cross-section values, in cm^2/g.
-        rho (float): Density of material, in g/cm^3.
-        m_le (float): Mass of charged lepton, in GeV.
-        c_tau (float): Decay length of charged lepton, in cm.
+    Parameters
+    ----------
+    energy : float
+        Charged lepton energy, in GeV.
+    xc_arr : np.ndarray
+        2D array containing N_A/A*charged lepton-nucleon cross-section values, in cm^2/g.
+    rho : float
+         Density of material, in g/cm^3.
+    m_le float
+        Mass of charged lepton, in GeV.
+    c_tau : float
+        Decay length of charged lepton, in cm.
+    E_lep : np.ndarray
+        Array of charged lepton energies, in GeV
 
-    Returns:
-        float: Charged lepton interaction length, in g/cm^2.
+    Returns
+    ----------
+    x_int : float
+        Charged lepton interaction length, in g/cm^2.
     """
     # Initialize CC and NC cross-sections
     sig_cc, sig_nc = 0.0, 0.0
@@ -314,7 +324,7 @@ def int_depth_lep(energy, xc_arr, rho, m_le, c_tau):
     decay_depth_inv = 1.0 / (decay_length * rho)
 
     # Get interpolated cross-section values for brem, pair production, and photonuclear interactions
-    sig_brem, sig_pair, sig_pn = int_xc_lep(energy, xc_arr, rho)
+    sig_brem, sig_pair, sig_pn = int_xc_lep(energy, xc_arr, rho, E_lep)
 
     # Calculate total EM and weak interactions
     sig_em = sig_brem + sig_pair + sig_pn
@@ -360,25 +370,35 @@ def interaction_type_nu(energy, nu_xc, fac_nu, E_nu):
 
     return int_type
 
-def interaction_type_lep(energy, xc_arr, rho, m_le, c_tau):
+def interaction_type_lep(energy, xc_arr, rho, m_le, c_tau, E_lep):
     """
     Determine the type of charged lepton-nucleon interaction.
 
-    Args:
-        energy (float): Charged lepton energy, in GeV.
-        xc_arr (np.ndarray): 2D array containing N_A/A*charged lepton-nucleon cross-section values, in cm^2/g.
-        rho (float): Density of material, in g/cm^3.
-        m_le (float): Mass of charged lepton, in GeV.
-        c_tau (float): Decay length of charged lepton, in cm.
+    Parameters
+    ----------
+    energy : float
+        Charged lepton energy, in GeV.
+    xc_arr : np.ndarray
+        2D array containing N_A/A*charged lepton-nucleon cross-section values, in cm^2/g.
+    rho : float
+        Density of material, in g/cm^3.
+    m_le : float
+        Mass of charged lepton, in GeV.
+    c_tau : float
+        Decay length of charged lepton, in cm.
+    E_lep : np.ndarray
+        Array of charged lepton energies, in GeV
 
-    Returns:
-        int: Type of lepton interaction. 2=decay; 3=Bremmstrahlung; 4=pair-production; 5=photonuclear; 6=CC/NC (placeholder).
+    Returns
+    ---------
+    int_type : int
+        Type of lepton interaction. 2=decay; 3=Bremmstrahlung; 4=pair-production; 5=photonuclear; 6=CC/NC (placeholder).
     """
     # Placeholders for CC and NC interactions (values can be read from a lookup table in the future)
     sig_cc, sig_nc = 0.0, 0.0
 
     # Interpolate cross-section values for Bremmstrahlung, pair-production, and photonuclear interactions
-    sig_brem, sig_pair, sig_pn = int_xc_lep(energy, xc_arr, rho)
+    sig_brem, sig_pair, sig_pn = int_xc_lep(energy, xc_arr, rho, E_lep)
 
     # Calculate decay length and inverse decay depth
     decay_length = (energy / m_le) * c_tau
@@ -463,14 +483,25 @@ def find_y(energy, ixc_arr, ip, E_nu, E_lep, yvals):
 
     return y
 
-def polarization(y, pin, theta_in):
+def polarization(y, pin, theta_in, ypol, Pcthp, P):
     '''
-    Calculate polarization after scattering.
+    Calculate polarization after electromagnetic scattering of tau-leptons.
+    Based on https://arxiv.org/pdf/2205.05629, D. Garg, et al.
 
-    Args:
-    y (float): Inelasticity, y = (E_init - E_final) / E_init.
-    pin (float): Initial momentum magnitude.
-    theta_in (float): Initial polar angle in radians.
+    Parameters
+    -----------
+    y float:
+        Inelasticity, y = (E_init - E_final) / E_init.
+    pin float:
+        Initial momentum magnitude.
+    theta_in float:
+        Initial polar angle in radians.
+    ypol : float array
+        Predefined inelasticity array
+    Pcthp :
+        np.cos(theta_P), where theta_P is the polar angle of the spin vector in tau rest frame
+    P : float array
+        Magnitude of polarization vector, defining the degree of polarization
 
     Returns:
     float: pout, Final momentum magnitude.

@@ -9,6 +9,8 @@ import scipy.constants as scc
 import pandas as pd
 import importlib_resources
 
+batch_num = 4 ##batch size to divide the total stats
+
 #useful constants
 N_A = 6.0221409e+23 # Avogadro's number in units of 1/mole
 

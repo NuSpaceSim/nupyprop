@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 import nupyprop.constants as const
 
+batch_num = const.batch_num #batch size to divide the total stats
+
 Emin = const.Emin #min threshold energy for leptons
 
 rho_rock = const.rho_rock # rock density
@@ -90,7 +92,7 @@ def single_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock,
     #still need to propagate the tau, dolumn depth to go
     ipp, dfinal, etauf, Pi =  propagation.tau_thru_layers(angle, depthE, dwater, depth0, etauin, xc_water, xc_rock, lep_ixc_water,
                                                          lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong,
-                                                        idepth, lepton, prop_type)
+                                                        idepth, lepton, prop_type, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P)
 
     #print('just propagated tau, ipp =', ipp, ' ipp=1: Tau, ipp=0: neutrino')
     dleft = depthE-dfinal
@@ -115,7 +117,7 @@ def single_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock,
 
         ipp3, dtau2, ef2, Pint = propagation.regen(angle, etauin, depthE, dwater, dfinal, nu_xc , nu_ixc, ithird, xc_water, xc_rock,
                                                     lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock,
-                                                    xalong, cdalong, idepth, lepton, fac_nu, prop_type ,Pi)
+                                                    xalong, cdalong, idepth, lepton, fac_nu, prop_type ,Pi, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P)
         #print('after regeneration, Pint = ', Pint)
         #print('ipp3 =', ipp3, ' ipp3 =1: tau; ipp3 = 0 neutrino')
 
@@ -179,9 +181,9 @@ def run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_r
     regen_tot = 0
     with open(Efilename, 'a') as e_file, open(Pfilename, 'a') as p_file:
         iparr, dtrarr, efarr = [], [], []
-        for i in tqdm(range(4)):
+        for i in tqdm(range(batch_num)):
             tempnrt, temprt, ef = single_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
-            alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu, prop_type, int(stats/4),
+            alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu, prop_type, int(stats/batch_num),
             e_file, p_file)
             iparr.append(tempnrt)
             dtrarr.append(temprt)
