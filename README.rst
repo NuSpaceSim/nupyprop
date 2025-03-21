@@ -80,16 +80,19 @@ described as follows:
     Can be from the pre-defined set of models (see pn-table_) or custom.
     Default is allm.
 
-9.  ``-el`` or ``--energy_lepton``: option to print exiting charged lepton's final energy in
+9.  ``-earth`` or ``--earth_model``: Earth density model used.
+    Default is prem. Another option to choose is: ak135. 
+
+10.  ``-el`` or ``--energy_lepton``: option to print exiting charged lepton's final energy in
     output file.
     Default is no
 
-10.  ``-f`` or ``--fac_nu``: rescaling factor for BSM cross-sections. Default is 1.
+11.  ``-f`` or ``--fac_nu``: rescaling factor for BSM cross-sections. Default is 1.
 
-11. ``-s`` or ``--stats``: statistics or no. of injected neutrinos. Default is 1e7
+12. ``-s`` or ``--stats``: statistics or no. of injected neutrinos. Default is 1e7
     neutrinos.
     
-12. ``-htc`` or ``--htc_mode``: High throughput computing mode. If set to yes,
+13. ``-htc`` or ``--htc_mode``: High throughput computing mode. If set to yes,
     the code will be optimized to run in high throughput computing mode.
     Default is no.
     
@@ -103,7 +106,7 @@ code after it has finished running. In the terminal, run ``vitables``
 (optional dependency) and open the output_*.h5 file to view the output
 results.
 
-output_*.h5 naming convention is as follows: **output_A_B_Ckm_D_E_F_G**,
+output_*.h5 naming convention is as follows: **output_A_B_Ckm_D_E_F_G_H**,
 where
 
 | A = Neutrino type: nu is for neutrino & anu is for anti-neutrino.
@@ -111,8 +114,9 @@ where
 | C = idepth: depth of water layer (in km).
 | D = Neutrino (or anti-neutrino) cross-section model.
 | E = Charged lepton photonuclear energy loss model.
-| F = Energy loss type: can be stochastic or continuous.
-| G = Statistics (ie. no. of neutrinos/anti-neutrinos injected).
+| F = Earth density model.
+| G = Energy loss type: can be stochastic or continuous.
+| H = Statistics (ie. no. of neutrinos/anti-neutrinos injected).
 
 Model Tables
 ------------
@@ -136,7 +140,7 @@ Model Tables
    |                   nCTEQ15                  | `Phys. Rev. D 93, 085037 <https://journals.aps.org/prd/abstract/10.1103/PhysRevD.93.085037>`_,   |
    |                                            | `Phys. Rev. D 81, 114012 <https://journals.aps.org/prd/abstract/10.1103/PhysRevD.81.114012>`_    |
    +--------------------------------------------+--------------------------------------------------------------------------------------------------+
-   |                User Defined                | See `nuPyProp tutorial repository <https://research-git.uiowa.edu/spatel31/nupyprop_tutorial>`__ |
+   |                User Defined                | See `nuPyProp tutorial repository <https://github.com/NuSpaceSim/nupyprop/tree/main_temp/tutorial>`__ |
    +--------------------------------------------+--------------------------------------------------------------------------------------------------+
    
 
@@ -158,7 +162,19 @@ Model Tables
    |     Capella, Kaidalov, Merino, Tran (CKMT)    | `Eur. Phys. J. C 10, 153 <https://arxiv.org/abs/hep-ph/9806367>`_                               |
    |                                               | `Phys. Rev. D 63, 094020 <https://journals.aps.org/prd/abstract/10.1103/PhysRevD.63.094020>`_   |
    +-----------------------------------------------+-------------------------------------------------------------------------------------------------+
-   |                  User Defined                 | See `nuPyProp tutorial repository <https://research-git.uiowa.edu/spatel31/nupyprop_tutorial>`__|
+   |                  User Defined                 | See `nuPyProp tutorial repository <https://github.com/NuSpaceSim/nupyprop/tree/main_temp/tutorial>`__|
+   +-----------------------------------------------+-------------------------------------------------------------------------------------------------+
+
+.. _earth-model:
+
+   +-----------------------------------------------+-------------------------------------------------------------------------------------------------+
+   | Earth density Model                           |                                            Reference                                            |
+   +===============================================+=================================================================================================+
+   |    Preliminary Earth Reference Model (PREM)   | `A.M. Dziewonski and D.L. Anderson; Preliminary reference earth model, Phys of the Earth        |
+   |                                               |  and Planetary Interiors 25 (1981) 297 `_                                                       |                                        
+   +-----------------------------------------------+-------------------------------------------------------------------------------------------------+
+   |              ak135                            | `B.L.N. Kennett, E.R. Engdahl and R. Buland; Constraints on seismic velocities in the earth     |
+   |                                               | from travel-times, Geophysical Journal International 122 (1995) 108`__                           |                                       
    +-----------------------------------------------+-------------------------------------------------------------------------------------------------+
 
 Code Execution Timing Tables

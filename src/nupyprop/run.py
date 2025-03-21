@@ -28,7 +28,7 @@ ypol, Pcthp, P = const.ypol, const.Pcthp, const.P
 
 def single_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
                 alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu,
-                prop_type, stats): #, e_file, p_file):
+                prop_type, stats, earth_model): #, e_file, p_file):
     """Propagates a single ingoing neutrino event
 
     Args:
@@ -54,6 +54,7 @@ def single_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock,
         fac_nu (_type_): Rescaling factor for SM cross-sections.
         prop_type (_type_): Type of energy loss propagation. 1=stochastic, 2=continuous.
         stats (integer): Statistics or no. of ingoing neutrinos.
+        earth_model (str): Earth density model, prem or ak135.
         u (_type_): File object for energies
         w (_type_): File object for Pout
 
@@ -93,7 +94,7 @@ def single_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock,
     #still need to propagate the tau, dolumn depth to go
     ipp, dfinal, etauf, Pi =  propagation.tau_thru_layers(angle, depthE, dwater, depth0, etauin, xc_water, xc_rock, lep_ixc_water,
                                                          lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong,
-                                                        idepth, lepton, prop_type, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P)
+                                                        idepth, lepton, prop_type, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P, earth_model)
 
     #print('just propagated tau, ipp =', ipp, ' ipp=1: Tau, ipp=0: neutrino')
     dleft = depthE-dfinal
@@ -102,7 +103,6 @@ def single_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock,
         Pout = Pi
         no_regen_tot = no_regen_tot + 1
         regen_tot = regen_tot + 1 #update the regen tau array once
-        print('no regeneration, tau makes it out')
         #print('Pout w/ no regen = ', Pout)
         e_file.write(str(e_format.format(np.log10(etauf))) + '\n')
         p_file.write(str(p_format.format(Pout)) + '\n')
@@ -118,7 +118,9 @@ def single_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock,
 
         ipp3, dtau2, ef2, Pint = propagation.regen(angle, etauin, depthE, dwater, dfinal, nu_xc , nu_ixc, ithird, xc_water, xc_rock,
                                                     lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock,
-                                                    xalong, cdalong, idepth, lepton, fac_nu, prop_type ,Pi, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P)
+                                                    xalong, cdalong, idepth, lepton, fac_nu, prop_type ,Pi, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P,
+                                                    earth_model)
+
         #print('after regeneration, Pint = ', Pint)
         #print('ipp3 =', ipp3, ' ipp3 =1: tau; ipp3 = 0 neutrino')
 
@@ -143,7 +145,7 @@ def single_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock,
 
 def run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
                     alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu,
-                    stats, prop_type):
+                    stats, prop_type, earth_model):
     """run a loop for all ingoing neutrinos
 
     Args:
@@ -169,6 +171,7 @@ def run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_r
         fac_nu (float): Rescaling factor for SM neutrino cross-sections.
         stats (integer): Statistics or no. of ingoing neutrinos.
         prop_type (integer): Type of energy loss propagation. 1=stochastic, 2=continuous.
+        earth_model (str): Earth density model, prem or ak135.
 
     Returns:
         no_regen_tot (integer): No. of outgoing charged leptons without regeneration.
@@ -197,7 +200,7 @@ def run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_r
                 energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock,
                 lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock,
                 xalong, cdalong, ithird, idepth, lepton, fac_nu, prop_type,
-                int(stats / batch_num)) #, e_file, p_file)
+                int(stats / batch_num), earth_model) #, e_file, p_file)
             for _ in range(batch_num)
             )
 

@@ -89,7 +89,6 @@ def propagate_nu(e_init, nu_xc, nu_ixc, depth_max, fac_nu, stats, Emin, E_nu, E_
 
     return part_type, d_travel, e_fin
 
-
 def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in, lepton, prop_type, cthi, Pi, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P):
     """Propagates a charged lepton in water inside the Earth
 
@@ -168,6 +167,7 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
                 d_fin=d_in
 
                 if (e_fin <= Emin): #tau has decayed
+
                     d_fin = d_in
                     e_fin = Emin
                     part_id = 2 # don't count
@@ -176,6 +176,7 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
                 return part_id,d_fin,e_fin,pcthf
 
             x_0 = x_f #update x_0 and keep going
+
             alpha = transport.int_alpha(e_lep, alpha_water, E_lep)
             beta = transport.int_beta(e_lep,beta_water,rho_water, E_lep)
 
@@ -218,6 +219,7 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
 
         #Now outside the while loop, e_lep has to be <= Emin
         if (e_lep <= Emin):
+
             d_fin = d_in # max distance in water
             e_fin = Emin
             part_id = 2 # don't count this
@@ -277,7 +279,7 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
 #    return part_id, d_fin, e_fin, pcthf
 
 def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d_entry,
-                       d_in, xalong, cdalong, idepth, lepton, prop_type, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P):
+                       d_in, xalong, cdalong, idepth, lepton, prop_type, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P, earth_model):
     """Propagates a charged lepton in rock & iron inside the Earth
 
     Args:
@@ -308,6 +310,8 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
             np.cos(theta_P), where theta_P is the polar angle of the spin vector in tau rest frame
         P : float array
             Magnitude of polarization vector, defining the degree of polarization
+        earth_model : str
+            Earth density model, prem or ak135.
 
     Returns:
         part_id (Integer): Type of outgoing charged lepton. 0=decayed; 1=not decayed; 2=don't count.
@@ -339,7 +343,7 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
         while e_lep > Emin:
             cnt = cnt + 1
             x_interp = transport.cd2distd(xalong,cdalong,col_depth)
-            r,rho = geometry.densityatx(x_interp,angle,idepth)
+            r,rho = geometry.densityatx(x_interp,angle,idepth, earth_model)
 
             dy = np.random.random()
             int_len = transport.int_depth_lep(e_lep, xc_rock, rho, m_le, c_tau)
@@ -431,7 +435,7 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
         delta_x = step_size # for now, not adaptive, distance into decay, cm; works for taus
 
         x_interp = transport.cd2distd(xalong, cdalong, col_depth) # find how far we are along the chord for a given beta
-        r, rho = geometry.densityatx(x_interp, angle, idepth) # find rho at x
+        r, rho = geometry.densityatx(x_interp, angle, idepth, earth_model) # find rho at x
 
         j_max = int(d_max/(rho*delta_x))
 
@@ -441,12 +445,11 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
             return part_id,d_fin,e_fin,cthf,Pf
 
         for i in range(j_max +2):
-
             if e_lep < Emin:
                 break
 
             x_interp = transport.cd2distd(xalong, cdalong, col_depth) # find how far we are along the chord for a given beta
-            r, rho = geometry.densityatx(x_interp, angle, idepth) # find rho at x
+            r, rho = geometry.densityatx(x_interp, angle, idepth, earth_model) # find rho at x
 
             delta_d = delta_x * rho
             x_0 = x_0 + delta_x
@@ -496,7 +499,7 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
 
 
 def tau_thru_layers(angle,depth,d_water,depth_traj,e_lep_in,xc_water,xc_rock,lep_ixc_water,lep_ixc_rock,alpha_water,
-                       alpha_rock,beta_water,beta_rock,xalong,cdalong,idepth,lepton,prop_type, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P):
+                       alpha_rock,beta_water,beta_rock,xalong,cdalong,idepth,lepton,prop_type, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P, earth_model):
     """
 
     Args:
@@ -532,6 +535,8 @@ def tau_thru_layers(angle,depth,d_water,depth_traj,e_lep_in,xc_water,xc_rock,lep
             np.cos(theta_P), where theta_P is the polar angle of the spin vector in tau rest frame
         P : float array
             Magnitude of polarization vector, defining the degree of polarization
+        earth_model : str
+            Earth density model, prem or ak135.
 
     Returns:
         part_type (Integer): Type of outgoing charged lepton. 0=decayed, 1=not decayed.
@@ -553,7 +558,7 @@ def tau_thru_layers(angle,depth,d_water,depth_traj,e_lep_in,xc_water,xc_rock,lep
         rho = rho_water
     else:
         x = transport.cd2distd(xalong, cdalong, col_depth)
-        r, rho = geometry.densityatx(x, angle, idepth) # find rho at x
+        r, rho = geometry.densityatx(x, angle, idepth, earth_model) # find rho at x
 
         if rho <= 0.0:
             print('rho is 0')
@@ -566,7 +571,8 @@ def tau_thru_layers(angle,depth,d_water,depth_traj,e_lep_in,xc_water,xc_rock,lep
 
         part_type, d_f, e_fin, cthf, Pf = propagate_lep_rock(angle, e_lep, xc_rock, lep_ixc_rock, alpha_rock,
                                                              beta_rock, depth_traj, d_in, xalong, cdalong,
-                                                             idepth, lepton,prop_type, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P)
+                                                             idepth, lepton,prop_type, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P, earth_model)
+
         depth_traj = depth_traj + d_f
 
         if part_type == 1 and idepth != 0: #still a tau; added and clause on 3/18
@@ -641,7 +647,7 @@ def distnu(r, ithird, Pin):
 
 def regen(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, xc_rock,
           ixc_water, ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, idepth,
-          lepton, fac_nu, prop_type, Pin, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P):
+          lepton, fac_nu, prop_type, Pin, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P, earth_model):
     """Regeneration loop, should take a pin and also throw out pout. pin will be used by distnu and the pout
        it throws will be used by the regen again as input in the single_stat() function.
 
@@ -683,6 +689,8 @@ def regen(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, 
             np.cos(theta_P), where theta_P is the polar angle of the spin vector in tau rest frame
         P : float array
             Magnitude of polarization vector, defining the degree of polarization
+        earth_model : str
+            Earth density model, prem or ak135.
 
     Returns:
         part_type (integer): Type of outgoing particle. 0=neutrino; 3=exit.
@@ -729,7 +737,8 @@ def regen(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, 
     #we have a tau with room to travel for tauthrulayers
 
     part_type, d_exit, e_fin, Pi = tau_thru_layers(angle, depth, d_water, d_lep, etau2, xc_water, xc_rock, ixc_water, ixc_rock,
-         alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, idepth, lepton, prop_type, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P)
+         alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, idepth, lepton, prop_type, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P,
+         earth_model)
 
     Pout = Pi
 

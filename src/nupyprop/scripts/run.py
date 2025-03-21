@@ -103,6 +103,17 @@ def get_parser():
     )
 
     parser.add_argument(
+        "-earth",
+        "--earth_model",
+        dest="earth_model",
+        nargs="?",
+        type=str,
+        const="prem",
+        default="prem",
+        help="Earth density model; default is prem. Other option is ak135",
+    )
+
+    parser.add_argument(
         "-el",
         "--energy_lepton",
         dest="energy_lepton_id",
@@ -163,6 +174,7 @@ def main():
     type_loss = str(args.loss_type)
     cross_section_model = str(args.xc_model_id)
     pn_model = str(args.pn_model_id)
+    earth_model = str(args.earth_model)
     energy_lepton = str(args.energy_lepton_id)
     fac_nu = float(args.fac_nu_val)
     stats = int(args.stats_val)
@@ -170,16 +182,17 @@ def main():
 
 
     param_data = [["Parameter Name", "Value"],
-        ["Charged Lepton", ch_lepton.capitalize()],
-        ["Neutrino Matter/Type", nu_type.capitalize()],
-        ["Depth of Water Layer [km]", idepth],
-        ["Energy Loss Propagation", type_loss.capitalize()],
-        ["Neutrino Cross Section Model", str.upper(cross_section_model)],
-        ["Charged Lepton Photonuclear Energy Loss Model", str.upper(pn_model)],
-        ["Print Final Energy", energy_lepton.capitalize()],
-        ["SM Neutrino Cross Section Scaling Factor", fac_nu],
-        ["Statistics", '{:.0e}'.format(stats)],
-        ["HTC Mode", htc_mode.capitalize()]]
+                  ["Charged Lepton", ch_lepton.capitalize()],
+                  ["Neutrino Matter/Type", nu_type.capitalize()],
+                  ["Depth of Water Layer [km]", idepth],
+                  ["Energy Loss Propagation", type_loss.capitalize()],
+                  ["Neutrino Cross Section Model", str.upper(cross_section_model)],
+                  ["Charged Lepton Photonuclear Energy Loss Model", str.upper(pn_model)],
+                  ["Earth Density Model", str.upper(earth_model)],
+                  ["Print Final Energy", energy_lepton.capitalize()],
+                  ["SM Neutrino Cross Section Scaling Factor", fac_nu],
+                  ["Statistics", '{:.0e}'.format(stats)],
+                  ["HTC Mode", htc_mode.capitalize()]]
 
     print(tabulate(param_data, headers='firstrow', showindex='always',tablefmt='fancy_grid'))
 
@@ -189,6 +202,7 @@ def main():
         nu_type,
         cross_section_model,
         pn_model,
+        earth_model,
         idepth,
         ch_lepton,
         fac_nu,

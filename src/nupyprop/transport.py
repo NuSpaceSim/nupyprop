@@ -490,11 +490,11 @@ def polarization(y, pin, theta_in, ypol, Pcthp, P):
 
     Parameters
     -----------
-    y float:
+    y : float
         Inelasticity, y = (E_init - E_final) / E_init.
-    pin float:
+    pin : float
         Initial momentum magnitude.
-    theta_in float:
+    theta_in : float
         Initial polar angle in radians.
     ypol : float array
         Predefined inelasticity array
@@ -503,9 +503,12 @@ def polarization(y, pin, theta_in, ypol, Pcthp, P):
     P : float array
         Magnitude of polarization vector, defining the degree of polarization
 
-    Returns:
-    float: pout, Final momentum magnitude.
-    float: theta_out, Final polar angle in radians.
+    Returns
+    ---------
+    pout : float
+        Final momentum magnitude.
+    theta_out : float
+        Final polar angle in radians.
     '''
     if y < 0.01:
         pout, theta_out = pin, theta_in
