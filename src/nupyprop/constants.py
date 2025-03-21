@@ -6,6 +6,8 @@ comment: This file contains all the required constants for nupyprop
 
 import numpy as np
 import scipy.constants as scc
+import pandas as pd
+import importlib_resources
 
 #useful constants
 N_A = 6.0221409e+23 # Avogadro's number in units of 1/mole
@@ -45,4 +47,9 @@ yvals = np.logspace(0,-3,31).astype(np.float64) #goes from 1 to 1e-3
 #Earth layers considered in PREM - Earth density model
 Rlay = np.array([1221.5, 3480.0, 5701.0, 5771.0, 5971.0, 6151.0, 6346.6, 6356.0, 6368.0, 6371.0])
 
+# loading polarization file for tau-leptons
+polarization_path = importlib_resources.files('nupyprop.datafiles') / 'polarization_data.txt'
+column_names = ['y', 'PCthp', 'P']
+pola_df = pd.read_csv(polarization_path, delimiter=r'\s+', comment='#', names=column_names)
 
+ypol, Pcthp, P = pola_df['y'].to_numpy(), pola_df['PCthp'].to_numpy(), pola_df['P'].to_numpy()

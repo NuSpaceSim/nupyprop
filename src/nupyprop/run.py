@@ -9,7 +9,19 @@ from nupyprop import propagation
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+import nupyprop.constants as const
 
+Emin = const.Emin #min threshold energy for leptons
+
+rho_rock = const.rho_rock # rock density
+rho_iron = const.rho_iron # iron density
+
+E_nu = const.E_nu # Neutrino energy numpy array
+E_lep = const.E_lep # Lepton energy numpy array
+yvals = const.yvals # inelasticity from 1e-3 to 1
+
+#variables for tau-lepton polarization
+ypol, Pcthp, P = const.ypol, const.Pcthp, const.P
 
 def single_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
                 alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu,
@@ -58,7 +70,7 @@ def single_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock,
 
     #tnu goes until neutrino either goes to dtot, or converts to a tau
     #print('depth= ', depth)
-    ip,dtr,ef = propagation.propagate_nu(energy, nu_xc, nu_ixc, depthE, fac_nu, stats)
+    ip, dtr, ef = propagation.propagate_nu(energy, nu_xc, nu_ixc, depthE, fac_nu, stats, Emin, E_nu, E_lep, yvals)
 
     return ip, dtr, ef
 
@@ -167,9 +179,9 @@ def run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_r
     regen_tot = 0
     with open(Efilename, 'a') as e_file, open(Pfilename, 'a') as p_file:
         iparr, dtrarr, efarr = [], [], []
-        for i in tqdm(range(1)):
+        for i in tqdm(range(4)):
             tempnrt, temprt, ef = single_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
-            alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu, prop_type, int(stats),
+            alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu, prop_type, int(stats/4),
             e_file, p_file)
             iparr.append(tempnrt)
             dtrarr.append(temprt)

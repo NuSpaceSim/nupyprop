@@ -6,90 +6,10 @@ Created on Wed June 19 15:21:03 2024
 """
 
 import numpy as np
-import pandas as pd
-import importlib_resources
-import nupyprop.constants as const
 import nupyprop.transport as transport
 import nupyprop.geometry as geometry
 
-min_energy_thres = const.Emin #min threshold energy for leptons
-
-rho_rock = const.rho_rock # rock density
-rho_iron = const.rho_iron # iron density
-
-E_nu = const.E_nu # Neutrino energy numpy array
-E_lep = const.E_lep # Lepton energy numpy array
-yvals = const.yvals # inelasticity from 1e-3 to 1
-
-# loading polarization file for tau-leptons
-polarization_path = importlib_resources.files('nupyprop.datafiles') / 'polarization_data.txt'
-column_names = ['y', 'PCthp', 'P']
-pola_df = pd.read_csv(polarization_path, delimiter='\s+', comment='#', names=column_names)
-
-ypol, Pcthp, P = pola_df['y'].to_numpy(), pola_df['PCthp'].to_numpy(), pola_df['P'].to_numpy()
-
-#def propagate_nu(e_init, nu_xc, nu_ixc, depth_max, fac_nu):
-
-'''
-Propagates a neutrino inside the Earth.
-
-Parameters
-----------
-e_init : float
-    Inital neutrino energy, in GeV
-nu_xc : np.ndarray
-    2D array containing neutrino CC & NC cross-section values, in cm^2
-nu_ixc : np.ndarray
-    3D array containing neutrino integrated cross-section CDF values
-depth_max : float
-    Maximum column depth for neutrino propagation, in kmwe
-fac_nu : float
-    Rescaling factor for SM neutrino cross-sections
-
-Returns
--------
-part_type : integer
-    Type of outgoing particle. 0 = neutrino; 1 = charged lepton
-d_travel : float
-    Distance traveled until converted to charged lepton or total distance traveled by neutrino (if no conversion to charged lepton), in kmwe
-e_fin : float
-    Final neutrino energy, in GeV
-'''
-'''
-    part_type = 0
-    e_fin = e_init
-    x_0 = 0.0 #starting depth in kmwe
-    d_travel = depth_max
-
-    while e_fin > 1e3:
-        r = np.random.random()
-        int_depth = transport.int_depth_nu(e_fin, nu_xc, fac_nu)
-        x = -1*int_depth*np.log(r) # prob of interaction=exp(-x/int_depth)
-        x_0 += x * 1e-5  # tracking total column depth traveled, kmwe
-
-        if (x_0 > depth_max): #total col depth exceeded
-            return part_type, depth_max, e_fin
-
-        int_type = transport.interaction_type_nu(e_fin, nu_xc, fac_nu) #CC or NC interaction
-
-        if part_type == 0 and int_type == 0:
-            part_type = 1 #neutrino converted to charged lepton
-
-        y = transport.find_y(e_fin, nu_ixc, int_type)
-
-        e_fin *= (1-y) #Energy Transfer y = (E_i-E_f)/E_i
-
-        if (part_type == 1): #converted to charged lepton
-            d_travel = x_0 #kmwe
-            return part_type, d_travel, e_fin
-
-        d_travel = x_0 #kmwe
-
-    return part_type, d_travel, e_fin
-'''
-
-def propagate_nu(e_init, nu_xc, nu_ixc, depth_max, fac_nu, n_iter):
-
+def propagate_nu(e_init, nu_xc, nu_ixc, depth_max, fac_nu, stats, Emin, E_nu, E_lep, yvals):
     '''
     Propagates a neutrino inside the Earth.
 
@@ -105,8 +25,16 @@ def propagate_nu(e_init, nu_xc, nu_ixc, depth_max, fac_nu, n_iter):
         Maximum column depth for neutrino propagation, in kmwe
     fac_nu : float
         Rescaling factor for SM neutrino cross-sections
-    n_iter : int
+    stats : int
         Number of iterations to evaluate
+    Emin : float
+        Minimum threshold energy for leptons, in GeV
+    E_nu : np.ndarray
+        Array of neutrino energiesm in GeV
+    E_lep : np.ndarray
+        Array of charged lepton energies, in GeV
+    yvals : np.ndarray
+        Array of min. y values from which the cross-section CDF is calculated
 
     Returns
     -------
@@ -117,28 +45,24 @@ def propagate_nu(e_init, nu_xc, nu_ixc, depth_max, fac_nu, n_iter):
     e_fin : float array
         Final neutrino energy, in GeV
     '''
-    part_type = np.zeros(n_iter, dtype=int)  # 0 = neutrino, 1 = charged lepton
-    e_fin = np.full(n_iter, e_init, dtype=np.float32)  # Initialize all with e_init
-    x_0 = np.zeros(n_iter, dtype=np.float32)  # Depth in kmwe
-    d_travel = np.full(n_iter, depth_max, dtype=np.float32)  # Default to depth_max in kmwe
+    part_type = np.zeros(stats, dtype=int)  # 0 = neutrino, 1 = charged lepton
+    e_fin = np.full(stats, e_init, dtype=np.float32)  # Initialize all with e_init
+    x_0 = np.zeros(stats, dtype=np.float32)  # Depth in kmwe
+    d_travel = np.full(stats, depth_max, dtype=np.float32)  # Default to depth_max in kmwe
 
-    active = np.ones(n_iter, dtype=bool)  # Track active simulations
+    active = np.ones(stats, dtype=bool)  # Track active simulations
 
-    print("depth max = ", depth_max)
     while np.any(active):  # Continue until all neutrinos stop
-        r = np.random.random(n_iter)
+        r = np.random.random(stats)
         int_depth = transport.int_depth_nu(e_fin, nu_xc, fac_nu, E_nu)
         step_size = -int_depth * np.log(r) * 1e-5 # in kmwe
 
         x_0[active] += step_size[active]
-        print(f"x_0 = {x_0}")
 
         # Check which simulations exceeded total column depth
         exceeded = (x_0 > depth_max) & active
         part_type[exceeded] = 0  # Mark as neutrino (default)
         active[exceeded] = False  # Stop these simulations
-        print("active after exceeded = ", active)
-        print("part type = ", part_type)
 
         # Compute interaction type
         int_type = transport.interaction_type_nu(e_fin, nu_xc, fac_nu, E_nu)
@@ -147,20 +71,17 @@ def propagate_nu(e_init, nu_xc, nu_ixc, depth_max, fac_nu, n_iter):
 
         # Compute energy loss
         y_fraction = transport.find_y(e_fin, nu_ixc, int_type, E_nu, E_lep, yvals)
-        e_fin *= (1 - y_fraction)
+        e_fin[active] *= (1 - y_fraction[active])
 
         # Check for charged leptons
         new_leptons = (part_type == 1) & active
         d_travel[new_leptons] = x_0[new_leptons]  # Update travel distances
         active[new_leptons] = False  # Stop these simulations
-        print("active after new leptons = ", active)
-        print("part type = ", part_type)
 
         # Check which events should stop due to energy loss
-        energy_depleted = (e_fin <= min_energy_thres) & active
+        energy_depleted = (e_fin <= Emin) & active
+        d_travel[energy_depleted] = x_0[energy_depleted]
         active[energy_depleted] = False  # Stop simulations
-        print("active after energy depleted = ", active)
-        print("part type = ", part_type)
 
     return part_type, d_travel, e_fin
 
