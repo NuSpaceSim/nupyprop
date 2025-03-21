@@ -180,21 +180,21 @@ def run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_r
     no_regen_tot = 0
     regen_tot = 0
     with open(Efilename, 'a') as e_file, open(Pfilename, 'a') as p_file:
-        iparr, dtrarr, efarr = [], [], []
+        #iparr, dtrarr, efarr = [], [], []
         for i in tqdm(range(batch_num)):
             tempnrt, temprt, ef = single_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
             alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu, prop_type, int(stats/batch_num),
             e_file, p_file)
-            iparr.append(tempnrt)
-            dtrarr.append(temprt)
-            efarr.append(ef)
+            # iparr.append(tempnrt)
+            # dtrarr.append(temprt)
+            # efarr.append(ef)
             #no_regen_tot = no_regen_tot + tempnrt
             #regen_tot = regen_tot + temprt
 
     e_file.close()
     p_file.close()
 
-    plt.hist(np.asarray(iparr).flatten(), 50)
+    '''plt.hist(np.asarray(iparr).flatten(), 50)
     plt.xlabel("ip")
     plt.yscale('log')
     plt.title(f"Angle={angle}")
@@ -210,6 +210,6 @@ def run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_r
     plt.xlabel("ef")
     plt.title(f"Angle={angle}")
     plt.loglog()
-    plt.show()
+    plt.show()'''
 
     return no_regen_tot,regen_tot
