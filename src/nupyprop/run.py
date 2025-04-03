@@ -8,7 +8,6 @@ Created on Wed July 31 12:01:03 2024
 from nupyprop import propagation
 import numpy as np
 import matplotlib.pyplot as plt
-from tqdm import tqdm
 from joblib import Parallel, delayed
 import nupyprop.constants as const
 
@@ -29,7 +28,8 @@ ypol, Pcthp, P = const.ypol, const.Pcthp, const.P
 def single_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
                 alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu,
                 prop_type, stats, earth_model): #, e_file, p_file):
-    """Propagates a single ingoing neutrino event
+    '''
+    Propagates a single ingoing neutrino event
 
     Args:
         energy (_type_): Incoming neutrino energy, in GeV.
@@ -63,7 +63,7 @@ def single_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock,
         regen_tot (integer): No. of outgoing leptons with regeneration
         Pout (float):
         e_out (float):
-    """
+    '''
 
     e_format = "{:5.2f}"
     p_format = "{:8.5f}"
@@ -146,37 +146,40 @@ def single_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock,
 def run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
                     alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu,
                     stats, prop_type, earth_model):
-    """run a loop for all ingoing neutrinos
+    '''
+    Run a loop for all ingoing neutrinos
 
-    Args:
-        energy (float): Incoming neutrino energy, in GeV.
-        angle (float): Earth emergence angle (beta), in degrees.
-        nu_xc (np.ndarray): 2D array containing neutrino CC & NC cross-section values, in cm^2.
-        nu_ixc (np.ndarray): 3D array containing neutrino integrated cross-section CDF values.
-        depthE (float): Total column depth for a given Earth emergence angle, in kmwe.
-        dwater (float): Column depth along the chord for a given Earth emergence angle, in kmwe.
-        xc_water (np.ndarray): 2D array containing N_A/A*charged lepton-nucleon cross-section values in water, in cm^2/g.
-        xc_rock (np.ndarray): 2D array containing N_A/A*charged lepton-nucleon cross-section values in rock, in cm^2/g.
-        lep_ixc_water (np.ndarray): 3D array containing charged lepton integrated cross-section CDF values in water.
-        lep_ixc_rock (np.ndarray): 3D array containing lepton integrated cross-section CDF values in rock.
-        alpha_water (np.ndarray): 1D array containing ionization energy loss values in water, in (GeV*cm^2)/g.
-        alpha_rock (np.ndarray): 1D array containing ionization energy loss values in rock, in (GeV*cm^2)/g.
-        beta_water (np.ndarray): 2D array of beta values in water, in cm^2/g.
-        beta_rock (np.ndarray): 2D array of beta values in rock, in cm^2/g.
-        xalong (np.ndarray): 1D array containing distance in water, in km.
-        cdalong (np.ndarray): 1D array containing column depth at xalong, in g/cm^2.
-        ithird (integer): Choice for neutrino -> charged lepton energy fraction selection.
-        idepth (integer): Depth of water layer in km.
-        lepton (integer): Type of charged lepton. 1=tau; 2=muon.
-        fac_nu (float): Rescaling factor for SM neutrino cross-sections.
-        stats (integer): Statistics or no. of ingoing neutrinos.
-        prop_type (integer): Type of energy loss propagation. 1=stochastic, 2=continuous.
-        earth_model (str): Earth density model, prem or ak135.
+    Parameters
+    ----------
+    energy (float): Incoming neutrino energy, in GeV.
+    angle (float): Earth emergence angle (beta), in degrees.
+    nu_xc (np.ndarray): 2D array containing neutrino CC & NC cross-section values, in cm^2.
+    nu_ixc (np.ndarray): 3D array containing neutrino integrated cross-section CDF values.
+    depthE (float): Total column depth for a given Earth emergence angle, in kmwe.
+    dwater (float): Column depth along the chord for a given Earth emergence angle, in kmwe.
+    xc_water (np.ndarray): 2D array containing N_A/A*charged lepton-nucleon cross-section values in water, in cm^2/g.
+    xc_rock (np.ndarray): 2D array containing N_A/A*charged lepton-nucleon cross-section values in rock, in cm^2/g.
+    lep_ixc_water (np.ndarray): 3D array containing charged lepton integrated cross-section CDF values in water.
+    lep_ixc_rock (np.ndarray): 3D array containing lepton integrated cross-section CDF values in rock.
+    alpha_water (np.ndarray): 1D array containing ionization energy loss values in water, in (GeV*cm^2)/g.
+    alpha_rock (np.ndarray): 1D array containing ionization energy loss values in rock, in (GeV*cm^2)/g.
+    beta_water (np.ndarray): 2D array of beta values in water, in cm^2/g.
+    beta_rock (np.ndarray): 2D array of beta values in rock, in cm^2/g.
+    xalong (np.ndarray): 1D array containing distance in water, in km.
+    cdalong (np.ndarray): 1D array containing column depth at xalong, in g/cm^2.
+    ithird (integer): Choice for neutrino -> charged lepton energy fraction selection.
+    idepth (integer): Depth of water layer in km.
+    lepton (integer): Type of charged lepton. 1=tau; 2=muon.
+    fac_nu (float): Rescaling factor for SM neutrino cross-sections.
+    stats (integer): Statistics or no. of ingoing neutrinos.
+    prop_type (integer): Type of energy loss propagation. 1=stochastic, 2=continuous.
+    earth_model (str): Earth density model, prem or ak135.
 
-    Returns:
-        no_regen_tot (integer): No. of outgoing charged leptons without regeneration.
-        regen_tot (integer): No. of outgoing charged leptons with regeneration.
-    """
+    Returns
+    --------
+    no_regen_tot (integer): No. of outgoing charged leptons without regeneration.
+    regen_tot (integer): No. of outgoing charged leptons with regeneration.
+    '''
 
     format = "{:.2f}"
     Efilename = 'eout_'+ str(format.format(np.log10(energy))) + '_' + str(angle) + '.dat'
@@ -204,29 +207,25 @@ def run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_r
             for _ in range(batch_num)
             )
 
-        print("results done")
-
     # Extract results if needed
     tempnrt_list, temprt_list, ef_list = zip(*results)
 
     e_file.close()
     p_file.close()
 
-    print("files done")
-
-    plt.hist(np.asarray(tempnrt_list).flatten(), 50)
+    plt.hist(np.concatenate(tempnrt_list), 50)
     plt.xlabel("ip")
     plt.yscale('log')
     plt.title(f"Angle={angle}")
     plt.show()
 
-    plt.hist(np.asarray(temprt_list).flatten(), 50)
+    plt.hist(np.concatenate(temprt_list), 50)
     plt.xlabel("df")
     plt.yscale('log')
     plt.title(f"Angle={angle}")
     plt.show()
 
-    plt.hist(np.asarray(ef_list).flatten(), 50)
+    plt.hist(np.concatenate(ef_list), 50)
     plt.xlabel("ef")
     plt.title(f"Angle={angle}")
     plt.loglog()

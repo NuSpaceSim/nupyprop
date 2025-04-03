@@ -65,7 +65,6 @@ def propagate_nu(e_init, nu_xc, nu_ixc, depth_max, fac_nu, stats, Emin, E_nu, E_
 
         # Check which simulations exceeded total column depth
         exceeded = (x_0 > depth_max) & active
-        part_type[exceeded] = 0  # Mark as neutrino (default)
         active[exceeded] = False  # Stop these simulations
 
         # Compute interaction type
@@ -87,10 +86,13 @@ def propagate_nu(e_init, nu_xc, nu_ixc, depth_max, fac_nu, stats, Emin, E_nu, E_
         d_travel[energy_depleted] = x_0[energy_depleted]
         active[energy_depleted] = False  # Stop simulations
 
-    return part_type, d_travel, e_fin
+    final_mask = ~((e_fin <= Emin) | (part_type == 0)) #this will eliminate charged leptons with energy < Emin and neutrinos
+
+    return part_type[final_mask], d_travel[final_mask], e_fin[final_mask]
 
 def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in, lepton, prop_type, cthi, Pi, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P):
-    """Propagates a charged lepton in water inside the Earth
+    '''
+    Propagates a charged lepton in water inside the Earth
 
     Args:
         e_init (float): Initial energy of the charged lepton, in GeV
@@ -123,7 +125,7 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
         d_fin (float): Distance traveled before charged lepton decays or total distance traveled by charged lepton, in kmwe
         e_fin (float): Final energy of the charged lepton, in GeV
         pcthf (float): Final polarization after EM interaction of the tau lepton
-    """
+    '''
     part_id = 1 #Start with tau that's obviously not decayed
 
     x_total = d_in*1e5 # kmwe to cmwe
@@ -280,47 +282,68 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
 
 def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d_entry,
                        d_in, xalong, cdalong, idepth, lepton, prop_type, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P, earth_model):
-    """Propagates a charged lepton in rock & iron inside the Earth
+    '''
+    Propagates a charged lepton in rock & iron inside the Earth
 
-    Args:
-        angle (Float): Earth emergence angle (beta)
-        e_init (Float): Initial energy of charged lepton, in GeV.
-        xc_rock (np.ndarray): 2D array containing N_A/A*charged lepton-nucleon cross-section values in rock, in cm^2/g.
-        lep_ixc (np.ndarray): 3D array containing charged lepton integrated cross-section CDF values in rock.
-        alpha_rock (np.ndarray): 1D array containing ionization energy loss values in rock, in (GeV*cm^2)/g.
-        beta_rock (np.ndarray): 2D array of beta values in rock, in cm^2/g.
-        d_entry (Float): Column depth along the chord for a given Earth emergence angle, in kmwe.
-        d_in (Float): How much distance in rock/iron the charged lepton is supposed to travel, in kmwe.
-        xalong (Float): 1D array containing distance in water, in km.
-        cdalong (Float): 1D array containing column depth at xalong, in g/cm^2.
-        idepth (Integer): Depth of water layer in km.
-        lepton (Integer): Type of charged lepton. 1=tau; 2=muon.
-        prop_type (Integer): Type of energy loss propagation. 1=stochastic, 2=continuous.
-        Emin : float
-            Minimum threshold energy for leptons, in GeV
-        E_nu : np.ndarray
-            Array of neutrino energiesm in GeV
-        E_lep : np.ndarray
-            Array of charged lepton energies, in GeV
-        yvals : np.ndarray
-            Array of min. y values from which the cross-section CDF is calculated
-        ypol : float array
-            Predefined inelasticity array
-        Pcthp :
-            np.cos(theta_P), where theta_P is the polar angle of the spin vector in tau rest frame
-        P : float array
-            Magnitude of polarization vector, defining the degree of polarization
-        earth_model : str
-            Earth density model, prem or ak135.
+    Parameters
+    ----------
+    angle : float
+        Earth emergence angle (beta)
+    e_init : float
+        Initial energy of charged lepton, in GeV.
+    xc_rock : np.ndarray
+        2D array containing N_A/A*charged lepton-nucleon cross-section values in rock, in cm^2/g.
+    lep_ixc : np.ndarray
+        3D array containing charged lepton integrated cross-section CDF values in rock.
+    alpha_rock : np.ndarray
+        1D array containing ionization energy loss values in rock, in (GeV*cm^2)/g.
+    beta_rock : np.ndarray
+        2D array of beta values in rock, in cm^2/g.
+    d_entry : float
+        Column depth along the chord for a given Earth emergence angle, in kmwe.
+    d_in : float
+        How much distance in rock/iron the charged lepton is supposed to travel, in kmwe.
+    xalong : float
+        1D array containing distance in water, in km.
+    cdalong : float
+        1D array containing column depth at xalong, in g/cm^2.
+    idepth : integer
+        Depth of water layer in km.
+    lepton : integer
+        Type of charged lepton. 1=tau; 2=muon.
+    prop_type : integer
+        Type of energy loss propagation. 1=stochastic, 2=continuous.
+    Emin : float
+        Minimum threshold energy for leptons, in GeV
+    E_nu : np.ndarray
+        Array of neutrino energiesm in GeV
+    E_lep : np.ndarray
+        Array of charged lepton energies, in GeV
+    yvals : np.ndarray
+        Array of min. y values from which the cross-section CDF is calculated
+    ypol : float 1D array
+        Predefined inelasticity array
+    Pcthp : float 1D array
+        np.cos(theta_P), where theta_P is the polar angle of the spin vector in tau rest frame
+    P : float 1D array
+        Magnitude of polarization vector, defining the degree of polarization
+    earth_model : str
+        Earth density model, prem or ak135.
 
-    Returns:
-        part_id (Integer): Type of outgoing charged lepton. 0=decayed; 1=not decayed; 2=don't count.
-        d_fin (Float): Distance traveled before charged lepton decays or total distance traveled by charged lepton, in kmwe
-        e_fin (Float): Final charged lepton energy, in GeV.
-        cthf (Float): Final costheta after EM interaction of the tau lepton.
-        Pf (Float): Final degree of polarization after EM interaction of the tau lepton.
+    Returns
+    --------
+    part_id : integer
+        Type of outgoing charged lepton. 0=decayed; 1=not decayed; 2=don't count.
+    d_fin : float
+        Distance traveled before charged lepton decays or total distance traveled by charged lepton, in kmwe
+    e_fin : float
+        Final charged lepton energy, in GeV.
+    cthf : float
+        Final costheta after EM interaction of the tau lepton.
+    Pf : float
+        Final degree of polarization after EM interaction of the tau lepton.
+    '''
 
-    """
     part_id = 1 #start with tau
     col_depth = d_entry*1e5 #how far in
     d_max = d_in*1e5 # how much to go, in cmwe
@@ -343,7 +366,7 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
         while e_lep > Emin:
             cnt = cnt + 1
             x_interp = transport.cd2distd(xalong,cdalong,col_depth)
-            r,rho = geometry.densityatx(x_interp,angle,idepth, earth_model)
+            _, rho = geometry.densityatx(x_interp,angle,idepth, earth_model)
 
             dy = np.random.random()
             int_len = transport.int_depth_lep(e_lep, xc_rock, rho, m_le, c_tau)
@@ -500,7 +523,7 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
 
 def tau_thru_layers(angle,depth,d_water,depth_traj,e_lep_in,xc_water,xc_rock,lep_ixc_water,lep_ixc_rock,alpha_water,
                        alpha_rock,beta_water,beta_rock,xalong,cdalong,idepth,lepton,prop_type, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P, earth_model):
-    """
+    '''
 
     Args:
         angle (Float): Earth emergence angle (beta), in degrees.
@@ -543,7 +566,7 @@ def tau_thru_layers(angle,depth,d_water,depth_traj,e_lep_in,xc_water,xc_rock,lep
         d_fin (Float): Distance traveled before charged lepton decays or total distance traveled by charged lepton, in kmwe.
         e_fin (Float): Outgoing charged lepton energy, in GeV.
         pcthf (FLoat): Final polarization after EM interaction of the tau lepton
-    """
+    '''
     d_fin = depth_traj
     col_depth = depth_traj*1e5 #g/cm^2
     e_lep = e_lep_in # so e_lep_in doesn't change
@@ -610,7 +633,8 @@ def tau_thru_layers(angle,depth,d_water,depth_traj,e_lep_in,xc_water,xc_rock,lep
     return part_type,d_fin,e_fin,pcthf
 
 def distnu(r, ithird, Pin):
-    """Determines the neutrino energy from tau decay. The energy fraction is determined by tau energy CDF
+    '''
+    Determines the neutrino energy from tau decay. The energy fraction is determined by tau energy CDF
     approximated by leptonic decay channel. Approximate (good enough) for taus; exact for muons
 
     Args:
@@ -620,7 +644,7 @@ def distnu(r, ithird, Pin):
 
     Returns:
         dist_val (Float): Energy fraction , y = E_nu_tau/E_tau
-    """
+    '''
     #P = -1.0 * Pin, -1 = fully LH polarized; 0 = fully unpolarized tau
     def fnu(y):
 
@@ -648,7 +672,8 @@ def distnu(r, ithird, Pin):
 def regen(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, xc_rock,
           ixc_water, ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, idepth,
           lepton, fac_nu, prop_type, Pin, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P, earth_model):
-    """Regeneration loop, should take a pin and also throw out pout. pin will be used by distnu and the pout
+    '''
+    Regeneration loop, should take a pin and also throw out pout. pin will be used by distnu and the pout
        it throws will be used by the regen again as input in the single_stat() function.
 
     Args:
@@ -697,7 +722,7 @@ def regen(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, 
         d_exit (float): Distance traveled before charged lepton decays or total distance traveled by charged lepton, in kmwe.
         e_fin (float): Final particle energy, in GeV.
         Pout (float): Tau's polarization output from regen function
-    """
+    '''
     r = np.random.random()
     frac = distnu(r,ithird,Pin) # that pola input goes here as input and cal. the neutrino energy
     e_nu = frac*e_lep

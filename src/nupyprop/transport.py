@@ -136,7 +136,7 @@ def int_xc_lep(energy, xc_arr, rho, E_lep):
     return sig_brem, sig_pair, sig_pn
 
 def int_alpha(energy, alpha_sig, E_lep):
-    """
+    '''
     Interpolate between charged lepton energy & ionization energy loss values.
 
     Parameters
@@ -152,13 +152,13 @@ def int_alpha(energy, alpha_sig, E_lep):
     ----------
     alpha : float
         Interpolated ionization energy loss value, in (GeV*cm^2)/g.
-    """
+    '''
     # Perform interpolation
     alpha = np.interp(energy, E_lep, alpha_sig)
     return alpha
 
 def int_beta(energy, beta_arr, rho, E_lep):
-    """
+    '''
     Interpolate between charged lepton energy & beta (energy loss parameter) values.
 
     Parameters
@@ -176,7 +176,7 @@ def int_beta(energy, beta_arr, rho, E_lep):
     ---------
     tot : float
         Interpolated (& summed) value of beta, in cm^2/g.
-    """
+    '''
     # Get scaling factors based on material density
     frac, frac_pn = get_rho_frac(rho)
 
@@ -265,7 +265,7 @@ def em_cont_part(E_init, alpha_val, beta_val, x, m_le):
     return E_fin
 
 def int_depth_nu(energy, nu_xc, fac_nu, E_nu):
-    """
+    '''
     Calculate neutrino interaction depth.
     int_depth = M/(N_A*sigma_tot)
 
@@ -284,7 +284,7 @@ def int_depth_nu(energy, nu_xc, fac_nu, E_nu):
     ----------
     x_int : float array
         Neutrino interaction depth, in cm^2/g.
-    """
+    '''
     sig_cc, sig_nc = int_xc_nu(energy, nu_xc, fac_nu, E_nu)
     sig_weak = sig_cc + sig_nc # weak interactions
     x_int = 1.0 / (N_A * sig_weak)
@@ -292,7 +292,7 @@ def int_depth_nu(energy, nu_xc, fac_nu, E_nu):
     return x_int
 
 def int_depth_lep(energy, xc_arr, rho, m_le, c_tau, E_lep):
-    """
+    '''
     Calculate charged lepton interaction depth.
     int_depth = M/((N_A/A)*sigma_tot + 1/(gamma*c*tau*rho)); here we need rho to convert decay distance to decay depth
 
@@ -315,7 +315,7 @@ def int_depth_lep(energy, xc_arr, rho, m_le, c_tau, E_lep):
     ----------
     x_int : float
         Charged lepton interaction length, in g/cm^2.
-    """
+    '''
     # Initialize CC and NC cross-sections
     sig_cc, sig_nc = 0.0, 0.0
 
@@ -336,7 +336,7 @@ def int_depth_lep(energy, xc_arr, rho, m_le, c_tau, E_lep):
     return x_int
 
 def interaction_type_nu(energy, nu_xc, fac_nu, E_nu):
-    """
+    '''
     Determine the type of neutrino-nucleon interaction.
 
     Parameters
@@ -354,7 +354,7 @@ def interaction_type_nu(energy, nu_xc, fac_nu, E_nu):
     ----------
     int_type : int array
         Type of neutrino interaction. 0=CC; 1=NC.
-    """
+    '''
     # Interpolate CC & NC cross-section values
     sig_cc, sig_nc = int_xc_nu(energy, nu_xc, fac_nu, E_nu)
 
@@ -371,7 +371,7 @@ def interaction_type_nu(energy, nu_xc, fac_nu, E_nu):
     return int_type
 
 def interaction_type_lep(energy, xc_arr, rho, m_le, c_tau, E_lep):
-    """
+    '''
     Determine the type of charged lepton-nucleon interaction.
 
     Parameters
@@ -393,7 +393,7 @@ def interaction_type_lep(energy, xc_arr, rho, m_le, c_tau, E_lep):
     ---------
     int_type : int
         Type of lepton interaction. 2=decay; 3=Bremmstrahlung; 4=pair-production; 5=photonuclear; 6=CC/NC (placeholder).
-    """
+    '''
     # Placeholders for CC and NC interactions (values can be read from a lookup table in the future)
     sig_cc, sig_nc = 0.0, 0.0
 
@@ -437,7 +437,7 @@ def interaction_type_lep(energy, xc_arr, rho, m_le, c_tau, E_lep):
     return int_type
 
 def find_y(energy, ixc_arr, ip, E_nu, E_lep, yvals):
-    """
+    '''
     Stochastic determination of neutrino/lepton inelasticity.
 
     Parameters
@@ -459,7 +459,7 @@ def find_y(energy, ixc_arr, ip, E_nu, E_lep, yvals):
     ----------
     y : float array
         Inelasticity, y = (E_init-E_final)/E_initial.
-    """
+    '''
     # Determine energy index based on interaction type
     is_neutrino = (ip == 0) | (ip == 1)  # Mask for neutrinos
 
