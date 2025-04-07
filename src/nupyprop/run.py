@@ -166,28 +166,28 @@ def run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_r
     with open(Efilename, 'a') as e_file, open(Pfilename, 'a') as p_file:
         depth = depthE
 
-        # results = Parallel(n_jobs=4, backend="loky")(delayed(single_stat)(
-        #     energy, angle, nu_xc, nu_ixc, depth, depthE, dwater, xc_water,
-        #     xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock,
-        #     beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton,
-        #     fac_nu, prop_type, earth_model) for i in range(int(stats))
-        #     )
+        results = Parallel(n_jobs=4, backend="loky")(delayed(single_stat)(
+            energy, angle, nu_xc, nu_ixc, depth, depthE, dwater, xc_water,
+            xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock,
+            beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton,
+            fac_nu, prop_type, earth_model) for i in range(int(stats))
+            )
 
-        # print("all done with dask run.py")
+        print("all done with dask run.py")
 
-        # tempnrt, temprt = zip(*results)
-        # print(np.sum(tempnrt))
-        # no_regen_tot = no_regen_tot + np.sum(tempnrt)
-        # regen_tot = regen_tot + np.sum(temprt)
+        tempnrt, temprt = zip(*results)
+        print(np.sum(tempnrt))
+        no_regen_tot = no_regen_tot + np.sum(tempnrt)
+        regen_tot = regen_tot + np.sum(temprt)
 
-        # print("All done with processing data")
+        print("All done with processing data")
 
-        for i in tqdm(range(0,stats)):
-            tempnrt, temprt = single_stat(energy, angle, nu_xc, nu_ixc, depth, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
-            alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu, prop_type, earth_model)
-            #e_file, p_file)
-            no_regen_tot = no_regen_tot + tempnrt
-            regen_tot = regen_tot + temprt
+        # for i in tqdm(range(0,stats)):
+        #     tempnrt, temprt = single_stat(energy, angle, nu_xc, nu_ixc, depth, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
+        #     alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu, prop_type, earth_model)
+        #     #e_file, p_file)
+        #     no_regen_tot = no_regen_tot + tempnrt
+        #     regen_tot = regen_tot + temprt
 
     e_file.close()
     p_file.close()
