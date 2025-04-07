@@ -7,13 +7,12 @@ Created on Wed July 31 12:01:03 2024
 
 from nupyprop import propagation
 import numpy as np
-import matplotlib.pyplot as plt
 from tqdm import tqdm
-
+from joblib import Parallel, delayed
 
 def single_stat(energy, angle, nu_xc, nu_ixc, depth, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
                 alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu,
-                prop_type, earth_model, e_file, p_file):
+                prop_type, earth_model): #, e_file, p_file):
     """Propagates a single ingoing neutrino event
 
     Args:
@@ -87,8 +86,8 @@ def single_stat(energy, angle, nu_xc, nu_ixc, depth, depthE, dwater, xc_water, x
         no_regen_tot = no_regen_tot + 1
         regen_tot = regen_tot + 1 #update the regen tau array once
         #print('Pout w/ no regen = ', Pout)
-        e_file.write(str(e_format.format(np.log10(etauf))) + '\n')
-        p_file.write(str(p_format.format(Pout)) + '\n')
+        #e_file.write(str(e_format.format(np.log10(etauf))) + '\n')
+        #p_file.write(str(p_format.format(Pout)) + '\n')
         return no_regen_tot,regen_tot # break outside stat; continue is correct here
 
 
@@ -110,8 +109,8 @@ def single_stat(energy, angle, nu_xc, nu_ixc, depth, depthE, dwater, xc_water, x
             regen_tot = regen_tot + 1
             Pout = Pint
             #print('back to tau after regenewrated neutrino, exiting, P = ', Pout)
-            e_file.write(str(e_format.format(np.log10(etauf))) + '\n')
-            p_file.write(str(p_format.format(Pout)) + '\n')
+            #e_file.write(str(e_format.format(np.log10(etauf))) + '\n')
+            #p_file.write(str(p_format.format(Pout)) + '\n')
             return no_regen_tot, regen_tot
         if regen_cnt > 6:
             print('regeneration exceeded 6')
@@ -167,10 +166,26 @@ def run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_r
     with open(Efilename, 'a') as e_file, open(Pfilename, 'a') as p_file:
         depth = depthE
 
+        # results = Parallel(n_jobs=4, backend="loky")(delayed(single_stat)(
+        #     energy, angle, nu_xc, nu_ixc, depth, depthE, dwater, xc_water,
+        #     xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock,
+        #     beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton,
+        #     fac_nu, prop_type, earth_model) for i in range(int(stats))
+        #     )
+
+        # print("all done with dask run.py")
+
+        # tempnrt, temprt = zip(*results)
+        # print(np.sum(tempnrt))
+        # no_regen_tot = no_regen_tot + np.sum(tempnrt)
+        # regen_tot = regen_tot + np.sum(temprt)
+
+        # print("All done with processing data")
+
         for i in tqdm(range(0,stats)):
             tempnrt, temprt = single_stat(energy, angle, nu_xc, nu_ixc, depth, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
-            alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu, prop_type, earth_model,
-            e_file, p_file)
+            alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu, prop_type, earth_model)
+            #e_file, p_file)
             no_regen_tot = no_regen_tot + tempnrt
             regen_tot = regen_tot + temprt
 

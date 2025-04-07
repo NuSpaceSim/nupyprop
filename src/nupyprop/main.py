@@ -204,10 +204,14 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, earth_model, id
 
             no_regen, regen = Run.run_stat_single(10**energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton_int, fac_nu, stats, prop_type_int, earth_model)
 
+            print("back in main loop line 207 main.py")
+
             prob_no_regen = no_regen/float(stats)
             prob_regen = regen/float(stats)
 
-            if htc_mode == 'no': # HTC mode off
+            print("probabilities = ", prob_no_regen, prob_regen)
+
+            '''if htc_mode == 'no': # HTC mode off
                 with open("pexit_%.2f.dat" % energy, "a") as pexit_file:
                     pexit_file.write("%.5e\t%.5e\t%.5e\t%.5e\n" % (10**energy,angle,prob_no_regen,prob_regen))
 
@@ -271,7 +275,10 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, earth_model, id
         print(f"It took {end_time-start_time:.2f} seconds to compute")
 
         if htc_mode== 'no': print("Done!")
-        else: print("Done!") # for HTC mode on
+        else: print("Done!") # for HTC mode on'''
+
+    end_time = time.time()
+    print(f"It took {end_time-start_time:.2f} seconds to compute")
 
     return None
 
