@@ -234,7 +234,7 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
                 if x_step > 0.0: # last little energy loss
                     e_fin = e_lep - (e_lep * beta + alpha)*x_step #take care of that last little dx
                 else:
-                    if (d_fin <= e_min):
+                    if (e_fin <= e_min):
                         e_fin = e_min
                         d_fin = d_in
                         part_id = 2
@@ -243,7 +243,7 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
             #outside the while e_lep has to be < e_min
             if e_lep <= e_min:
                 d_fin = d_in
-                d_fin = e_min
+                e_fin = e_min
                 part_id = 2 #don't count this
                 return part_id,d_fin,e_fin,pcthf
 
