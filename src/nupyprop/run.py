@@ -9,6 +9,7 @@ from nupyprop import propagation
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+from joblib import Parallel, delayed
 
 
 def single_stat(energy, angle, nu_xc, nu_ixc, depth, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
@@ -57,72 +58,79 @@ def single_stat(energy, angle, nu_xc, nu_ixc, depth, depthE, dwater, xc_water, x
 
     depth0 = 0.0 #start with this each time
 
-    #tnu goes until neutrino either goes to dtot, or converts to a tau
-    #print('depth= ', depth)
-    ip,dtr,ef = propagation.propagate_nu(energy, nu_xc, nu_ixc, depth, fac_nu)
+    cthi, Pi = 1,1
+    d_in = dwater
 
-    #how far did the neutrino go? dtr is how far traveled
+    part_id, d_fin, e_fin, _ = propagation.propagate_lep_water(energy, xc_water, lep_ixc_water, alpha_water, beta_water, d_in, lepton, prop_type, cthi, Pi)
 
-    depth0 = depth0 + dtr #how far is the neutrino on trajectory?
+    return part_id, d_fin, e_fin
 
-    dleft = depth - depth0 # how far is left for the neutrino to travel?
+    # #tnu goes until neutrino either goes to dtot, or converts to a tau
+    # #print('depth= ', depth)
+    # ip,dtr,ef = propagation.propagate_nu(energy, nu_xc, nu_ixc, depth, fac_nu)
 
-    if ip == 0: # still a neutrino at the end of the road
-        #print('first go is a neutrino')
-        return no_regen_tot, regen_tot
+    # #how far did the neutrino go? dtr is how far traveled
 
-    regen_cnt = 1 # tau out after first interaction
+    # depth0 = depth0 + dtr #how far is the neutrino on trajectory?
 
-    etauin = ef
-    #still need to propagate the tau, dolumn depth to go
-    ipp, dfinal, etauf, Pi =  propagation.tau_thru_layers(angle, depth, dwater, depth0, etauin, xc_water, xc_rock, lep_ixc_water,
-                                                         lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong,
-                                                        idepth, lepton, prop_type, earth_model)
+    # dleft = depth - depth0 # how far is left for the neutrino to travel?
 
-    #print('just propagated tau, ipp =', ipp, ' ipp=1: Tau, ipp=0: neutrino')
-    dleft = depth-dfinal
+    # if ip == 0: # still a neutrino at the end of the road
+    #     #print('first go is a neutrino')
+    #     return no_regen_tot, regen_tot
 
-    if ipp ==1 and dleft <= 0.0:
-        Pout = Pi
-        no_regen_tot = no_regen_tot + 1
-        regen_tot = regen_tot + 1 #update the regen tau array once
-        #print('Pout w/ no regen = ', Pout)
-        e_file.write(str(e_format.format(np.log10(etauf))) + '\n')
-        p_file.write(str(p_format.format(Pout)) + '\n')
-        return no_regen_tot,regen_tot # break outside stat; continue is correct here
+    # regen_cnt = 1 # tau out after first interaction
+
+    # etauin = ef
+    # #still need to propagate the tau, dolumn depth to go
+    # ipp, dfinal, etauf, Pi =  propagation.tau_thru_layers(angle, depth, dwater, depth0, etauin, xc_water, xc_rock, lep_ixc_water,
+    #                                                      lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong,
+    #                                                     idepth, lepton, prop_type, earth_model)
+
+    # #print('just propagated tau, ipp =', ipp, ' ipp=1: Tau, ipp=0: neutrino')
+    # dleft = depth-dfinal
+
+    # if ipp ==1 and dleft <= 0.0:
+    #     Pout = Pi
+    #     no_regen_tot = no_regen_tot + 1
+    #     regen_tot = regen_tot + 1 #update the regen tau array once
+    #     #print('Pout w/ no regen = ', Pout)
+    #     e_file.write(str(e_format.format(np.log10(etauf))) + '\n')
+    #     p_file.write(str(p_format.format(Pout)) + '\n')
+    #     return no_regen_tot,regen_tot # break outside stat; continue is correct here
 
 
-    #must be a neutrino. Is there still column depth to propagate?
-    counter = 0
-    ipp3 = 99 #dummy variable
-    while dfinal < depthE and ipp3 != 1 and regen_cnt <=6:
-        #print('in regeneration loop' , counter)
-        etauin = etauf # regen finds neutrino energy
+    # #must be a neutrino. Is there still column depth to propagate?
+    # counter = 0
+    # ipp3 = 99 #dummy variable
+    # while dfinal < depthE and ipp3 != 1 and regen_cnt <=6:
+    #     #print('in regeneration loop' , counter)
+    #     etauin = etauf # regen finds neutrino energy
 
-        ipp3, dtau2, ef2, Pint = propagation.regen(angle, etauin, depth, dwater, dfinal, nu_xc , nu_ixc, ithird, xc_water, xc_rock,
-                                                    lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock,
-                                                    xalong, cdalong, idepth, lepton, fac_nu, prop_type, earth_model, Pi)
-        #print('after regeneration, Pint = ', Pint)
-        #print('ipp3 =', ipp3, ' ipp3 =1: tau; ipp3 = 0 neutrino')
+    #     ipp3, dtau2, ef2, Pint = propagation.regen(angle, etauin, depth, dwater, dfinal, nu_xc , nu_ixc, ithird, xc_water, xc_rock,
+    #                                                 lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock,
+    #                                                 xalong, cdalong, idepth, lepton, fac_nu, prop_type, earth_model, Pi)
+    #     #print('after regeneration, Pint = ', Pint)
+    #     #print('ipp3 =', ipp3, ' ipp3 =1: tau; ipp3 = 0 neutrino')
 
-        regen_cnt = regen_cnt + 1
-        if ipp3 ==1: # then we are back to a tau at the end of the road
-            regen_tot = regen_tot + 1
-            Pout = Pint
-            #print('back to tau after regenewrated neutrino, exiting, P = ', Pout)
-            e_file.write(str(e_format.format(np.log10(etauf))) + '\n')
-            p_file.write(str(p_format.format(Pout)) + '\n')
-            return no_regen_tot, regen_tot
-        if regen_cnt > 6:
-            print('regeneration exceeded 6')
-            return no_regen_tot, regen_tot #only if regen > 6, break and go to run_stat for next iteraction
+    #     regen_cnt = regen_cnt + 1
+    #     if ipp3 ==1: # then we are back to a tau at the end of the road
+    #         regen_tot = regen_tot + 1
+    #         Pout = Pint
+    #         #print('back to tau after regenewrated neutrino, exiting, P = ', Pout)
+    #         e_file.write(str(e_format.format(np.log10(etauf))) + '\n')
+    #         p_file.write(str(p_format.format(Pout)) + '\n')
+    #         return no_regen_tot, regen_tot
+    #     if regen_cnt > 6:
+    #         print('regeneration exceeded 6')
+    #         return no_regen_tot, regen_tot #only if regen > 6, break and go to run_stat for next iteraction
 
-        etauf = ef2
-        dfinal = dtau2
-        Pi = Pint
-        counter = counter + 1
+    #     etauf = ef2
+    #     dfinal = dtau2
+    #     Pi = Pint
+    #     counter = counter + 1
 
-    return no_regen_tot,regen_tot
+    # return no_regen_tot,regen_tot
 
 def run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
                     alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu,
@@ -164,18 +172,47 @@ def run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_r
     Pfilename = 'Pout_'+ str(format.format(np.log10(energy))) + '_' + str(angle) + '.dat'
     no_regen_tot = 0
     regen_tot = 0
+
+    part_id_arr, d_fin_arr, e_fin_arr = np.zeros(stats), np.zeros(stats), np.zeros(stats)
+
     with open(Efilename, 'a') as e_file, open(Pfilename, 'a') as p_file:
         depth = depthE
 
         for i in tqdm(range(0,stats)):
-            tempnrt, temprt = single_stat(energy, angle, nu_xc, nu_ixc, depth, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
+            # tempnrt, temprt = single_stat(energy, angle, nu_xc, nu_ixc, depth, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
+            # alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu, prop_type, earth_model,
+            # e_file, p_file)
+            # no_regen_tot = no_regen_tot + tempnrt
+            # regen_tot = regen_tot + temprt
+
+
+            part_id, d_fin, e_fin = single_stat(energy, angle, nu_xc, nu_ixc, depth, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
             alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu, prop_type, earth_model,
             e_file, p_file)
-            no_regen_tot = no_regen_tot + tempnrt
-            regen_tot = regen_tot + temprt
+
+            part_id_arr[i] = part_id
+            d_fin_arr[i] = d_fin
+            e_fin_arr[i] = e_fin
 
     e_file.close()
     p_file.close()
+
+    #d_fin_arr = np.round(d_fin_arr)
+    sorted_indices = np.argsort(d_fin_arr)
+
+    d_fin_arr = d_fin_arr[sorted_indices]
+    part_id_arr = part_id_arr[sorted_indices]
+    e_fin_arr = e_fin_arr[sorted_indices]
+
+    print(d_fin_arr)
+    print("number of unique elements = ", len(np.unique(d_fin_arr)))
+    print("part = ", part_id_arr)
+
+    data = np.stack([d_fin_arr, e_fin_arr], axis=1)
+    np.savetxt(f"distances_{np.log10(energy)}.dat", data, delimiter="\t")
+
+    return part_id_arr, d_fin_arr, e_fin_arr
+
     '''
     #PROPAGATE_NU DEBUGGING BLOCK
     part_type = []

@@ -202,76 +202,78 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, earth_model, id
             dwater = water*rho_water # depth in water [kmwe] in last or only section
             depthE = Geometry.columndepth(angle, idepth, earth_model)*1e-5 # column depth in kmwe
 
-            no_regen, regen = Run.run_stat_single(10**energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton_int, fac_nu, stats, prop_type_int, earth_model)
+            part_id_arr, d_fin_arr, e_fin_arr = Run.run_stat_single(10**energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton_int, fac_nu, stats, prop_type_int, earth_model)
 
-            prob_no_regen = no_regen/float(stats)
-            prob_regen = regen/float(stats)
+        #     no_regen, regen = Run.run_stat_single(10**energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton_int, fac_nu, stats, prop_type_int, earth_model)
 
-            if htc_mode == 'no': # HTC mode off
-                with open("pexit_%.2f.dat" % energy, "a") as pexit_file:
-                    pexit_file.write("%.5e\t%.5e\t%.5e\t%.5e\n" % (10**energy,angle,prob_no_regen,prob_regen))
+        #     prob_no_regen = no_regen/float(stats)
+        #     prob_regen = regen/float(stats)
 
-                P_out = make_array(np.genfromtxt(str("Pout_{:.2f}_{:.1f}.dat".format(energy, angle))))
-                #polarization of the exiting charged leptons
-                if P_out.size==0:
-                    P_avg = -1
-                else:
-                    P_avg = Data.sign(np.mean(P_out))  # avg of polarization of the exiting charged leptons
+        #     if htc_mode == 'no': # HTC mode off
+        #         with open("pexit_%.2f.dat" % energy, "a") as pexit_file:
+        #             pexit_file.write("%.5e\t%.5e\t%.5e\t%.5e\n" % (10**energy,angle,prob_no_regen,prob_regen))
 
-                with open("polarization_%.2f.dat" % energy, "a") as pola_file:
-                    pola_file.write("%.5e\t%.5e\t%.5e\n" % (10**energy,angle,P_avg))
+        #         P_out = make_array(np.genfromtxt(str("Pout_{:.2f}_{:.1f}.dat".format(energy, angle))))
+        #         #polarization of the exiting charged leptons
+        #         if P_out.size==0:
+        #             P_avg = -1
+        #         else:
+        #             P_avg = Data.sign(np.mean(P_out))  # avg of polarization of the exiting charged leptons
 
-                if elep_mode == 'yes':
-                    print("Printing final lepton energies in the output file.")
-                    e_out = make_array(np.genfromtxt(str("eout_{:.2f}_{:.1f}.dat".format(energy, angle))))
-                    e_out = Data.patch_for_astropy(e_out)
-                    Data.add_clep_out(ch_lepton, energy, angle, e_out, out_file)
+        #         with open("polarization_%.2f.dat" % energy, "a") as pola_file:
+        #             pola_file.write("%.5e\t%.5e\t%.5e\n" % (10**energy,angle,P_avg))
 
-                # exiting lepton's final energy for CDFs
-                eout_vals = np.genfromtxt("eout_{:.2f}_{:.1f}.dat".format(energy, angle))
-                eout_vals = np.insert(eout_vals, 0, angle)
-                eout_list.append(eout_vals)
+        #         if elep_mode == 'yes':
+        #             print("Printing final lepton energies in the output file.")
+        #             e_out = make_array(np.genfromtxt(str("eout_{:.2f}_{:.1f}.dat".format(energy, angle))))
+        #             e_out = Data.patch_for_astropy(e_out)
+        #             Data.add_clep_out(ch_lepton, energy, angle, e_out, out_file)
 
-            else: # HTC mode on. Post-processing can be done using data.process_htc_out
-                with open("pexit_%.2f_%.1f.dat" % (energy,angle), "w") as pexit_file:
-                    pexit_file.write("%.5e\t%.5e\t%.5e\t%.5e\n" % (10**energy,angle,prob_no_regen,prob_regen))
+        #         # exiting lepton's final energy for CDFs
+        #         eout_vals = np.genfromtxt("eout_{:.2f}_{:.1f}.dat".format(energy, angle))
+        #         eout_vals = np.insert(eout_vals, 0, angle)
+        #         eout_list.append(eout_vals)
 
-                    eout_name = "eout_{:.2f}_{:4.1f}.dat".format(energy, angle)
-                    Pout_name = "Pout_{:.2f}_{:4.1f}.dat".format(energy, angle)
-                    os.rename(eout_name, "eout_{:.2f}_{:.1f}.dat".format(energy, angle))
-                    os.rename(Pout_name, "Pout_{:.2f}_{:.1f}.dat".format(energy, angle))
+        #     else: # HTC mode on. Post-processing can be done using data.process_htc_out
+        #         with open("pexit_%.2f_%.1f.dat" % (energy,angle), "w") as pexit_file:
+        #             pexit_file.write("%.5e\t%.5e\t%.5e\t%.5e\n" % (10**energy,angle,prob_no_regen,prob_regen))
 
-        # end of for loop for angles
-        if htc_mode == 'no': # HTC mode off; do some post-processing
-            # Pexit of charged leptons
-            p_angle, p_noregen, p_regen = np.genfromtxt("pexit_%.2f.dat" % energy, usecols=(1,2,3), unpack=True)
+        #             eout_name = "eout_{:.2f}_{:4.1f}.dat".format(energy, angle)
+        #             Pout_name = "Pout_{:.2f}_{:4.1f}.dat".format(energy, angle)
+        #             os.rename(eout_name, "eout_{:.2f}_{:.1f}.dat".format(energy, angle))
+        #             os.rename(Pout_name, "Pout_{:.2f}_{:.1f}.dat".format(energy, angle))
 
-            p_angle = Data.patch_for_astropy(p_angle)
-            p_noregen = Data.patch_for_astropy(p_noregen)
-            p_regen = Data.patch_for_astropy(p_regen)
+        # # end of for loop for angles
+        # if htc_mode == 'no': # HTC mode off; do some post-processing
+        #     # Pexit of charged leptons
+        #     p_angle, p_noregen, p_regen = np.genfromtxt("pexit_%.2f.dat" % energy, usecols=(1,2,3), unpack=True)
 
-            Data.add_pexit(ch_lepton, energy, p_angle, p_noregen, p_regen, out_file)
-            file_cleaner('p_exit')  # remove p_exit files
+        #     p_angle = Data.patch_for_astropy(p_angle)
+        #     p_noregen = Data.patch_for_astropy(p_noregen)
+        #     p_regen = Data.patch_for_astropy(p_regen)
 
-            # Avg polarization of the exiting charged leptons
-            pola_angle, avg_pola = np.genfromtxt("polarization_%.2f.dat" % energy, usecols=(1,2), unpack=True)
+        #     Data.add_pexit(ch_lepton, energy, p_angle, p_noregen, p_regen, out_file)
+        #     file_cleaner('p_exit')  # remove p_exit files
 
-            pola_angle = Data.patch_for_astropy(pola_angle)
-            avg_pola = Data.patch_for_astropy(avg_pola)
+        #     # Avg polarization of the exiting charged leptons
+        #     pola_angle, avg_pola = np.genfromtxt("polarization_%.2f.dat" % energy, usecols=(1,2), unpack=True)
 
-            Data.add_polarization(ch_lepton, energy, pola_angle, avg_pola, out_file)
-            file_cleaner('P_out') # remove P_out files
-            file_cleaner('polarization') #remove polarization_* files
+        #     pola_angle = Data.patch_for_astropy(pola_angle)
+        #     avg_pola = Data.patch_for_astropy(avg_pola)
 
-            # energy CDFs for the exiting charged leptons
-            Data.add_cdf(ch_lepton, energy, eout_list, out_file, htc_mode=False, arg=None) # adds the binned cdf values for all neutrino energies and angles to the output file.
-            file_cleaner('e_out') # remove e_out files
+        #     Data.add_polarization(ch_lepton, energy, pola_angle, avg_pola, out_file)
+        #     file_cleaner('P_out') # remove P_out files
+        #     file_cleaner('polarization') #remove polarization_* files
 
-        end_time = time.time()
-        print(f"It took {end_time-start_time:.2f} seconds to compute")
+        #     # energy CDFs for the exiting charged leptons
+        #     Data.add_cdf(ch_lepton, energy, eout_list, out_file, htc_mode=False, arg=None) # adds the binned cdf values for all neutrino energies and angles to the output file.
+        #     file_cleaner('e_out') # remove e_out files
 
-        if htc_mode== 'no': print("Done!")
-        else: print("Done!") # for HTC mode on
+        # end_time = time.time()
+        # print(f"It took {end_time-start_time:.2f} seconds to compute")
+
+        # if htc_mode== 'no': print("Done!")
+        # else: print("Done!") # for HTC mode on
 
     return None
 

@@ -97,7 +97,7 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
         e_fin (float): Final energy of the charged lepton, in GeV
         pcthf (float): Final polarization after EM interaction of the tau lepton
     """
-    e_min = 1e3 #Minimum tau energy, in GeV
+    e_min = 380*1e6 #Minimum tau energy, in GeV
     part_id = 1 #Start with tau that's obviously not decayed
 
     x_total = d_in*1e5 # kmwe to cmwe
@@ -105,7 +105,8 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
     e_fin = e_init #in case the first interaction is too far
     x_0 = 0.0 #haven't gone anywhere yet; initiate tracker
     pcthf =0
-#    print('in rock')
+
+    d_fin = d_in #temp flag
     if lepton == 1:
         m_le = 1.77682 #m_tau in GeV
         # change c_tau to whatever it is times 10^6
@@ -132,7 +133,7 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
             d_fin = x_f/1e5 #make sure it is not past the old number, in kmwe
 
             if (x_f >= x_total): #already past maximum depth but still a tau
-                x_step = x_total -x_0 #backtrack one step
+                x_step = x_total - x_0 #backtrack one step
 
                 alpha = transport.int_alpha(e_lep,alpha_water)
                 beta = transport.int_beta(e_lep,beta_water,const.rho_water)
@@ -146,7 +147,7 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
                     part_id = 2 # don't count
 
                 pcthf = Pin*np.cos(theta_in)
-                return part_id,d_fin,e_fin,pcthf
+                return part_id, d_fin, e_fin, pcthf
 
             x_0 = x_f #update x_0 and keep going
             alpha = transport.int_alpha(e_lep, alpha_water)
@@ -191,12 +192,12 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
 
         #Now outside the while loop, e_lep has to be <= e_min
         if (e_lep <= e_min):
-            d_fin = d_in # max distance in water
+            #d_fin = d_in # max distance in water
+            d_fin = x_f/1e5 #temp flag
             e_fin = e_min
             part_id = 2 # don't count this
             pcthf=Pin*np.cos(theta_in)
             return part_id,d_fin,e_fin,pcthf
-
 
         else: # continuous energy loss
             #print('in else statement continuous energy loss')
@@ -215,8 +216,9 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
 
                 if part_id ==0 : #we are all done
                     e_fin = e_lep
-                    d_fin = d_in
-                else: # fine the new energy; assume alpha and beta are total values, not cut values
+                    #d_fin = d_in
+                    d_fin = x_f/1e5 #temp flag
+                else: # find the new energy; assume alpha and beta are total values, not cut values
                     alpha = transport.int_alpha(e_lep,alpha_water)
                     beta = transport.int_beta(e_lep,beta_water,const.rho_water)
 
@@ -234,7 +236,7 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
                 if x_step > 0.0: # last little energy loss
                     e_fin = e_lep - (e_lep * beta + alpha)*x_step #take care of that last little dx
                 else:
-                    if (d_fin <= e_min):
+                    if (e_fin <= e_min):
                         e_fin = e_min
                         d_fin = d_in
                         part_id = 2
@@ -242,8 +244,8 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
                         e_fin = e_init #sanity check
             #outside the while e_lep has to be < e_min
             if e_lep <= e_min:
-                d_fin = d_in
-                d_fin = e_min
+                d_fin = x_f/1e5
+                e_fin = e_min
                 part_id = 2 #don't count this
                 return part_id,d_fin,e_fin,pcthf
 
@@ -538,7 +540,7 @@ def tau_thru_layers(angle,depth,d_water,depth_traj,e_lep_in,xc_water,xc_rock,lep
             return part_type,d_fin,e_fin,pcthf
 
     else:
-        d_in =depth - depth_traj
+        d_in = depth - depth_traj
         Pi = 1.0
         cthi = np.cos(0.0)
 
