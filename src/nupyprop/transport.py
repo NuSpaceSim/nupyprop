@@ -4,7 +4,8 @@
 Created on Wed May  1 15:02:27 2024
 
 @author: Diksha Garg
-Comment: This code contains all the functions that are required in the propagation process of the particles. These functions will be called by the propagate.py code.
+Comment: This code contains all the functions that are required in the propagation process of the particles. 
+         These functions will be called by the propagate.py code.
 """
 import numpy as np
 import nupyprop.constants as const
