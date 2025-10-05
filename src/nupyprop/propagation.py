@@ -198,54 +198,54 @@ def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in
             return part_id,d_fin,e_fin,pcthf
 
 
-        else: # continuous energy loss
-            #print('in else statement continuous energy loss')
+    else: # continuous energy loss
+        #print('in else statement continuous energy loss')
 
-            j_max = int(x_total/(const.step_size*const.rho_water)) # we will get close to exit
+        j_max = int(x_total/(const.step_size*const.rho_water)) # we will get close to exit
 
-            #not sure if this should be j_max +1 or j_max +2 bc of fortran not 0 indexing
-            for i in range(0,j_max +2): #takes care of the integer truncation issue
-                if (e_lep < e_min): #taken care of outside the do while loop
+        #not sure if this should be j_max +1 or j_max +2 bc of fortran not 0 indexing
+        for i in range(0,j_max +2): #takes care of the integer truncation issue
+            if (e_lep < e_min): #taken care of outside the do while loop
+                break
+
+            delta_x = const.step_size * const.rho_water #distance goes into decay
+            x_f = x_0 + delta_x
+            #does the particle decay over this distance?
+            part_id = transport.idecay(e_lep,const.step_size,m_le,c_tau)
+
+            if part_id ==0 : #we are all done
+                e_fin = e_lep
+                d_fin = d_in
+            else: # fine the new energy; assume alpha and beta are total values, not cut values
+                alpha = transport.int_alpha(e_lep,alpha_water)
+                beta = transport.int_beta(e_lep,beta_water,const.rho_water)
+
+                e_fin = e_lep - (e_lep*beta + alpha)*delta_x
+                d_fin = x_f/1e5
+                x_0 = x_f
+                e_lep = e_fin
+
+                if (i >= j_max):
                     break
 
-                delta_x = const.step_size * const.rho_water #distance goes into decay
-                x_f = x_0 + delta_x
-                #does the particle decay over this distance?
-                part_id = transport.idecay(e_lep,const.step_size,m_le,c_tau)
 
-                if part_id ==0 : #we are all done
-                    e_fin = e_lep
+        if i >= j_max:
+            x_step = x_total - x_f #backtrack a little
+            if x_step > 0.0: # last little energy loss
+                e_fin = e_lep - (e_lep * beta + alpha)*x_step #take care of that last little dx
+            else:
+                if (e_fin <= e_min):
+                    e_fin = e_min
                     d_fin = d_in
-                else: # fine the new energy; assume alpha and beta are total values, not cut values
-                    alpha = transport.int_alpha(e_lep,alpha_water)
-                    beta = transport.int_beta(e_lep,beta_water,const.rho_water)
-
-                    e_fin = e_lep - (e_lep*beta + alpha)*delta_x
-                    d_fin = x_f/1e5
-                    x_0 = x_f
-                    e_lep = e_fin
-
-                    if (i >= j_max):
-                        break
-
-
-            if i >= j_max:
-                x_step = x_total - x_f #backtrack a little
-                if x_step > 0.0: # last little energy loss
-                    e_fin = e_lep - (e_lep * beta + alpha)*x_step #take care of that last little dx
-                else:
-                    if (e_fin <= e_min):
-                        e_fin = e_min
-                        d_fin = d_in
-                        part_id = 2
-                    elif e_fin > e_init:
-                        e_fin = e_init #sanity check
-            #outside the while e_lep has to be < e_min
-            if e_lep <= e_min:
-                d_fin = d_in
-                e_fin = e_min
-                part_id = 2 #don't count this
-                return part_id,d_fin,e_fin,pcthf
+                    part_id = 2
+                elif e_fin > e_init:
+                    e_fin = e_init #sanity check
+        #outside the while e_lep has to be < e_min
+        if e_lep <= e_min:
+            d_fin = d_in
+            e_fin = e_min
+            part_id = 2 #don't count this
+            return part_id,d_fin,e_fin,pcthf
 
 #    return part_id, d_fin, e_fin, pcthf
 

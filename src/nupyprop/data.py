@@ -173,7 +173,7 @@ def replace_elements(old_arr, new_arr):
     arr = np.vstack((old_arr, new_arr))
     return arr
 
-def add_attributes(nu_type, ch_lepton, idepth, cross_section_model, pn_model, prop_type, stats, arg=None):
+def add_attributes(nu_type, ch_lepton, idepth, cross_section_model, pn_model, earth_model, prop_type, stats, arg=None):
     """adds attributes to output file
 
     Args:
@@ -189,7 +189,7 @@ def add_attributes(nu_type, ch_lepton, idepth, cross_section_model, pn_model, pr
     Returns:
         None
     """
-    out_file = output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg)
+    out_file = output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,earth_model,prop_type,stats,arg)
     if nu_type=='neutrino':nu_type='nu' # nu for neutrino and anu for anti-neutrino
     else:nu_type='anu'
     with h5py.File(out_file, 'a') as hf:
@@ -198,6 +198,7 @@ def add_attributes(nu_type, ch_lepton, idepth, cross_section_model, pn_model, pr
         hf.attrs['idepth'] = idepth
         hf.attrs['cross_section_model'] = cross_section_model
         hf.attrs['pn_model'] = pn_model
+        hf.attrs['earth_model'] = earth_model
         hf.attrs['prop_type'] = prop_type
         hf.attrs['stats'] = int(stats)
     return None
@@ -685,7 +686,7 @@ def add_pexit(ch_lepton, energy, p_angle, p_noregen, p_regen, out_file, arg=None
 
     return None
 
-def get_pexit(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, out=False, arg=None):
+def get_pexit(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, earth_model, prop_type, stats, out=False, arg=None):
     """get charged lepton exit probability values
 
     Args:
@@ -706,7 +707,7 @@ def get_pexit(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model,
             2D numpy array of shape (2,x) containing charged lepton exit probability values without
             regeneration and including regeneration; x is the number of Earth emergence angles.
     """
-    in_file = output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg)
+    in_file = output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,earth_model,prop_type,stats,arg)
 
     pexit_table = Table.read(in_file, path='Exit_Probability/%s' % np.log10(energy))
 
@@ -718,7 +719,7 @@ def get_pexit(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model,
     if out:
         if nu_type=='neutrino':nu_type='nu'
         else:nu_type='anu'
-        fnm = "pexit_%s_%s_%sGeV_%skm_%s_%s_%s_%s.ecsv" % (nu_type, ch_lepton, np.log10(energy), idepth, cross_section_model, pn_model, prop_type, sci_str(stats))
+        fnm = "pexit_%s_%s_%sGeV_%skm_%s_%s_%s_%s.ecsv" % (nu_type, ch_lepton, np.log10(energy), idepth, cross_section_model, pn_model, earth_model, prop_type, sci_str(stats))
         ascii.write(pexit_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
         return print('Exit probability data saved to file %s' % fnm)
 
@@ -747,7 +748,7 @@ def add_clep_out(ch_lepton, energy, angle, e_out, out_file, arg=None):
     clep_table.write(out_file, path='CLep_out_energies/%s/%s' % (energy,angle), append=True, overwrite=True)
     return None
 
-def get_clep_out(nu_type, ch_lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, out=False, arg=None):
+def get_clep_out(nu_type, ch_lepton, energy, angle, idepth, cross_section_model, pn_model, earth_model, prop_type, stats, out=False, arg=None):
     """get charged lepton outgoing energy values
 
     Args:
@@ -769,7 +770,7 @@ def get_clep_out(nu_type, ch_lepton, energy, angle, idepth, cross_section_model,
             1D numpy array of shape (x,) containing outgoing charged lepton energy values, in GeV;
             x is the number of outgoing charged leptons
     """
-    in_file = output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg)
+    in_file = output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,earth_model,prop_type,stats,arg)
 
     e_out = Table.read(in_file, 'CLep_out_energies/%s/%s' % (np.log10(energy),angle))
     out_lep = 10**(np.asarray(e_out['lep_energy'])) # changed 13/7/21
@@ -780,7 +781,7 @@ def get_clep_out(nu_type, ch_lepton, energy, angle, idepth, cross_section_model,
         clep_meta = OrderedDict({'Description':'Outgoing %s energies' % ch_lepton,
                                 'lep_energy':'Outgoing %s energy, in GeV'})
         clep_table = Table([out_lep], names=('lep_energy',), meta=clep_meta)
-        fnm = "CLep_out_%s_%s_%sGeV_%sdeg_%skm_%s_%s_%s_%s.ecsv" % (nu_type, ch_lepton, np.log10(energy), angle, idepth, cross_section_model, pn_model, prop_type, sci_str(stats))
+        fnm = "CLep_out_%s_%s_%sGeV_%sdeg_%skm_%s_%s_%s_%s.ecsv" % (nu_type, ch_lepton, np.log10(energy), angle, idepth, cross_section_model, pn_model, earth_model, prop_type, sci_str(stats))
         ascii.write(clep_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
         return print('Outgoing %s energy data saved to file %s' % (ch_lepton,fnm))
 
@@ -840,7 +841,7 @@ def add_polarization(ch_lepton, energy, pola_angle, avg_pola, out_file, arg=None
     polarization_table.write(out_file, path='Avg_polarization/%s' % energy, append=True, overwrite=True)
     return None
 
-def get_polarization(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, out=False, arg=None):   #added May 19 2022
+def get_polarization(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, earth_model, prop_type, stats, out=False, arg=None):   #added May 19 2022
     """gets outgoing charged lepton average polarization values
 
     Args:
@@ -862,7 +863,7 @@ def get_polarization(nu_type, ch_lepton, energy, idepth, cross_section_model, pn
             1D numpy array of shape (x,) containing outgoing charged lepton average polarization along z-axis;
             x is the number of outgoing charged leptons
     """
-    in_file = output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg)
+    in_file = output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,earth_model,prop_type,stats,arg)
 
     P_out = Table.read(in_file, 'Avg_polarization/%s' % np.log10(energy))
     angle = P_out['angle']
@@ -872,7 +873,7 @@ def get_polarization(nu_type, ch_lepton, energy, idepth, cross_section_model, pn
     if out:
         if nu_type=='neutrino':nu_type='nu'
         else:nu_type='anu'
-        fnm = "polarization_%s_%s_%sGeV_%skm_%s_%s_%s_%s.ecsv" % (nu_type, ch_lepton, np.log10(energy), idepth, cross_section_model, pn_model, prop_type, sci_str(stats))
+        fnm = "polarization_%s_%s_%sGeV_%skm_%s_%s_%s_%s.ecsv" % (nu_type, ch_lepton, np.log10(energy), idepth, cross_section_model, pn_model, earth_model, prop_type, sci_str(stats))
         ascii.write(P_out, fnm, format='ecsv', fast_writer=True, overwrite=True)
         return print('Avg polarization of exiting charged lepton data saved to file %s' % fnm)
 
@@ -1002,7 +1003,7 @@ def add_cdf(ch_lepton, energy, eout_list, out_file, htc_mode, bins=None, arg=Non
     print("CDF tables created!")
     return None
 
-def get_cdf(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, out=False, arg=None):
+def get_cdf(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, earth_model, prop_type, stats, out=False, arg=None):
     """get charged lepton outgoing energy CDF values
 
     Args:
@@ -1025,7 +1026,7 @@ def get_cdf(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, p
             cdf_arr (ndarray): 1D array of shape (n,) containing CDF values of outgoing charged lepton energies,
             binned according to the output file -> CLep_out_cdf table
     """
-    in_file = output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg)
+    in_file = output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,earth_model,prop_type,stats,arg)
 
     cdf_table = Table.read(in_file, 'CLep_out_cdf/%s' % np.log10(energy))
 
@@ -1036,12 +1037,12 @@ def get_cdf(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, p
     cdf_arr = np.asarray([cdf_table[str(i)].data for i in angles])
 
     if out:
-        fnm = "cdf_%s_%s_%s_%skm_%s_%s_%s_%s.ecsv" % (nu_type, ch_lepton, np.log10(energy), idepth, cross_section_model, pn_model, prop_type, sci_str(stats))
+        fnm = "cdf_%s_%s_%s_%skm_%s_%s_%s_%s.ecsv" % (nu_type, ch_lepton, np.log10(energy), idepth, cross_section_model, pn_model, earth_model, prop_type, sci_str(stats))
         ascii.write(cdf_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
         return print('Outgoing %s energy CDF data saved to file %s' % (ch_lepton,fnm))
     return z_vals, angles, cdf_arr
 
-def interp_pexit(nu_type, ch_lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, method='linear', arg=None):
+def interp_pexit(nu_type, ch_lepton, energy, angle, idepth, cross_section_model, pn_model, earth_model, prop_type, stats, method='linear', arg=None):
     """interpolates exit probability value at a given energy & angle
 
     Args:
@@ -1060,7 +1061,7 @@ def interp_pexit(nu_type, ch_lepton, energy, angle, idepth, cross_section_model,
     Returns:
         float: interpolated p_exit value at (energy,angle)
     """
-    in_file = output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg=arg)
+    in_file = output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,earth_model,prop_type,stats,arg=arg)
 
     with h5py.File(in_file, 'r') as hf:
         energies = 10**np.asarray(sorted([float(i) for i in hf['CLep_out_energies'].keys()])) # these energies are in GeV
@@ -1068,17 +1069,17 @@ def interp_pexit(nu_type, ch_lepton, energy, angle, idepth, cross_section_model,
 
     if (energy in energies) and (angle in angles): # return the p_exit value from the data
         angle_index = np.where(angles==angle)[0][0]
-        pexit_val = get_pexit(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats)[1][angle_index]
+        pexit_val = get_pexit(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, earth_model, prop_type, stats)[1][angle_index]
         return pexit_val
 
     else: # got through with interpolation
-        p_exit = np.asarray([get_pexit(nu_type, ch_lepton, i, idepth, cross_section_model, pn_model, prop_type, stats)[1] for i in energies]).reshape(len(energies),len(angles)) # p_exit[i,j] = [energy,angle]
+        p_exit = np.asarray([get_pexit(nu_type, ch_lepton, i, idepth, cross_section_model, pn_model, earth_model, prop_type, stats)[1] for i in energies]).reshape(len(energies),len(angles)) # p_exit[i,j] = [energy,angle]
         points = (energies, angles)
         point = (energy, angle)
         interp_val = float(interpn(points, p_exit, point, method=method))
         return interp_val
 
-def interp_cdf(nu_type, ch_lepton, energy, angle, idepth, cross_section_model, pn_model, prop_type, stats, z=None, arg=None):
+def interp_cdf(nu_type, ch_lepton, energy, angle, idepth, cross_section_model, pn_model, earth_model, prop_type, stats, z=None, arg=None):
     """interpolates CDF values at given energy, angle and z (bin) value
 
     Args:
@@ -1100,19 +1101,19 @@ def interp_cdf(nu_type, ch_lepton, energy, angle, idepth, cross_section_model, p
         float/ndarray: interpolated cdf value (float) at z if z is provided, or
         interpolated cdf array (ndarray) of size (len(z_vals)) at z array if z is None
     """
-    in_file = output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg=arg)
+    in_file = output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,earth_model,prop_type,stats,arg=arg)
 
     with h5py.File(in_file, 'r') as hf:
         energies = 10**np.asarray(sorted([float(i) for i in hf['CLep_out_energies'].keys()])) # these energies are in GeV
-        z_vals = get_cdf(nu_type, ch_lepton, energies[0], idepth, cross_section_model, pn_model, prop_type, stats)[0] # get whatever z_vals are in the output file
-        angles = get_cdf(nu_type, ch_lepton, energies[0], idepth, cross_section_model, pn_model, prop_type, stats)[1] # get Earth emergence angles
+        z_vals = get_cdf(nu_type, ch_lepton, energies[0], idepth, cross_section_model, pn_model, earth_model, prop_type, stats)[0] # get whatever z_vals are in the output file
+        angles = get_cdf(nu_type, ch_lepton, energies[0], idepth, cross_section_model, pn_model, earth_model, prop_type, stats)[1] # get Earth emergence angles
 
     if (energy in energies) and (angle in angles) and (z is None):
         angle_index = np.where(angles==angle)[0][0]
-        cdf_arr = get_cdf(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, arg=arg)[2][angle_index]
+        cdf_arr = get_cdf(nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, earth_model, prop_type, stats, arg=arg)[2][angle_index]
         return cdf_arr
     else:
-        cdf_vals = np.asarray([get_cdf(nu_type, ch_lepton, i, idepth, cross_section_model, pn_model, prop_type, stats)[2] for i in energies]).reshape(len(energies),len(angles),len(z_vals)) # cdf_vals[i,j,k] = [energy,angle,cdf_val]
+        cdf_vals = np.asarray([get_cdf(nu_type, ch_lepton, i, idepth, cross_section_model, pn_model, earth_model, prop_type, stats)[2] for i in energies]).reshape(len(energies),len(angles),len(z_vals)) # cdf_vals[i,j,k] = [energy,angle,cdf_val]
         points = (energies, angles, z_vals) # 3D 'coordinates' or grid
 
         if z is None: # if the z value to be interpolated at is not provided
@@ -1126,7 +1127,7 @@ def interp_cdf(nu_type, ch_lepton, energy, angle, idepth, cross_section_model, p
             interp_arr = float(interpn(points, cdf_vals, point)) # not an array, just a value at z
         return interp_arr
 
-def process_htc_out(files_path, nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, prop_type, stats, elep_mode=False, arg=None):
+def process_htc_out(files_path, nu_type, ch_lepton, energy, idepth, cross_section_model, pn_model, earth_model, prop_type, stats, elep_mode=False, arg=None):
     """processes files created when the code is run with HTC mode on
 
     Args:
@@ -1143,7 +1144,7 @@ def process_htc_out(files_path, nu_type, ch_lepton, energy, idepth, cross_sectio
     Returns:
         None
     """
-    out_file = output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,prop_type,stats,arg=None)
+    out_file = output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,earth_model,prop_type,stats,arg=None)
 
     print("In htc mode on")
 
@@ -1213,7 +1214,7 @@ def process_htc_out(files_path, nu_type, ch_lepton, energy, idepth, cross_sectio
     add_cdf(ch_lepton, float(energy), eout, out_file, htc_mode=True, arg=pexit_angle) #adds cdf data to output file
     print("CDFs processed successfully for E=1e%.f GeV" % energy)
 
-    add_attributes(nu_type, ch_lepton, idepth, cross_section_model, pn_model, prop_type, stats, arg=arg)
+    add_attributes(nu_type, ch_lepton, idepth, cross_section_model, pn_model, earth_model, prop_type, stats, arg=arg)
     return None
 
 # =============================================================================
@@ -1226,7 +1227,8 @@ if __name__ == "__main__":
     idepth = 4
     cross_section_model = 'ct18nlo'
     pn_model = 'allm'
+    earth_model='prem'
     prop_type = 'stochastic'
     stats = 1e7
     #pass
-    process_htc_out(path,nu_type, ch_lepton, 10, idepth, cross_section_model, pn_model, prop_type, stats, arg='interp2')
+    process_htc_out(path,nu_type, ch_lepton, 10, idepth, cross_section_model, pn_model, earth_model, prop_type, stats, arg='interp2')
