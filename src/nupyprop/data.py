@@ -3,7 +3,7 @@
 """
 Created on Sat Sep 26 16:44:13 2020
 
-@author: sam
+@author: Sameer Patel and Diksha Garg
 """
 import nupyprop.constants as const
 

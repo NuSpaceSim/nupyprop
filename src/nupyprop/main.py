@@ -3,7 +3,7 @@
 """
 Created on Mon Mar 15 14:04:46 2021
 
-@author: sam
+@author: Sameer Patel
 """
 
 import nupyprop.data as Data
@@ -205,7 +205,7 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, earth_model, id
 
             no_regen, regen = Run.run_stat_single(10**energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton_int, fac_nu, stats, prop_type_int, earth_model)
 
-            prob_no_regen = no_regen/float(stats)
+            '''prob_no_regen = no_regen/float(stats)
             prob_regen = regen/float(stats)
 
             if htc_mode == 'no': # HTC mode off
@@ -272,7 +272,7 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, earth_model, id
         print(f"It took {end_time-start_time:.2f} seconds to compute")
 
         if htc_mode== 'no': print("Done!")
-        else: print("Done!") # for HTC mode on
+        else: print("Done!") # for HTC mode on'''
 
     return None
 

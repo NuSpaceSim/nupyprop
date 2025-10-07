@@ -47,49 +47,63 @@ pola_df = pd.read_csv(ak135_density_path, delimiter='\t', comment='#', names=col
 depth_ak135, density_ak135 = pola_df['depth'].to_numpy(), pola_df['density'].to_numpy()
 
 def ak135density(Rin, idepth):
-    """
+    '''
     ak135 Earth density for multiple Earth radii at once.
     https://ses.cidp.edu.cn/Geophys-J-Int-1995-Kennett-108-24.pdf (Page 122)
 
-    Args:
-        Rin (float): Array of radii (km) where density is to be computed.
-        idepth (int): Depth of water layer (km).
+    Parameters
+    ----------
+    Rin : float 
+        Array of radii (km) where density is to be computed
+    idepth : int 
+        Depth of water layer (km)
 
-    Returns:
-        float: Densities at the given radii (g/cm^3).
-    """
+    Returns
+    -------
+    density_result : float
+        Densities at the given radii (g/cm^3)
+    '''
     # Create local copies to avoid modifying global variables
     depth_local = depth_ak135
     density_local = density_ak135
 
     depth1_array = Re - Rin  # Convert radius to depth
 
-    if idepth == 0:
-        depth_local = depth_local[4:]
-        density_local = density_local[4:]
+    density_result = np.empty_like(depth1_array, dtype=float)
 
-    if depth1_array <= idepth:
-        return density_local[0]
-    else:
-        indices = np.searchsorted(depth_local, depth1_array)
-        density_result = density_local[indices]
+    # --- shallow points (above idepth) ---
+    shallow_mask = (depth1_array <= idepth)
+    if np.any(shallow_mask):
+        density_result[shallow_mask] = density_local[0]
+
+    # --- deeper points ---
+    deep_mask = ~shallow_mask
+    if np.any(deep_mask):
+        # find nearest layer indices for depths in ak135 table
+        indices = np.searchsorted(depth_local, depth1_array[deep_mask])
+        # clamp to valid range (avoid index out of bounds)
+        indices = np.clip(indices, 0, len(density_local) - 1)
+        density_result[deep_mask] = density_local[indices]
 
     return density_result
 
 def premdensity(Rin, idepth):
-    """
-    PREM Earth density model. Computes density at multiple radii of Earth simultaneously. hep-ph/9512364v1 eq. 25
+    '''
+    PREM Earth density model. Computes density at multiple radii of Earth simultaneously. 
+    hep-ph/9512364v1 eq. 25
 
-    Args:
-        Rin (float):
-            Radius (in km) at which density is to be calculated.
-        idepth (integer):
-            Depth (in km) of water layer (sets the last layer).
+    Parameters
+    ----------
+    Rin : float
+        Radius (in km) at which density is to be calculated.
+    idepth : integer
+        Depth (in km) of water layer (sets the last layer).
 
-    Returns:
-        float:
-            Density (in g/cm^3) at the specified radius
-    """
+    Returns
+    -------
+    density : float
+        Density (in g/cm^3) at the specified radius
+    '''
     # Update last layer for water depth
     Rlay[9] = 6368.0 + (3.0 - int(idepth))
     y = Rin / Re  # Normalize by Earth radius
@@ -115,28 +129,39 @@ def premdensity(Rin, idepth):
     return edens
 
 def densityatx(x, beta, idepth, model_name):
-    """Calculates the density at a distance x, for a given Earth emergence angle
-        1905.13223v2 fig. 2 for chord length. Takes multiple x and beta values.
+    '''
+    Calculates the density at a distance x, for a given Earth emergence angle
+    1905.13223v2 fig. 2 for chord length. Takes multiple x values.
 
-    Args:
-        x (float): Distances along the trajectory in km.
-        beta (float): Corresponding Earth emergence angles in degrees.
-        idepth (int): Depth of water layer in km.
-        model_name (str): "PREM" or "ak135".
+    Parameters
+    ----------
+    x : float 
+        Distances along the trajectory in km.
+    beta : float
+        Corresponding Earth emergence angles in degrees.
+    idepth : int
+        Depth of water layer in km.
+    model_name : str
+        "PREM" or "ak135".
 
-    Returns:
-        tuple: (array of radii, array of densities).
-    """
+    Returns
+    -------
+    r, rho_at_x : tuple
+        array of radii, array of densities
+    '''
     # Compute trajectory length using vectorized operations
     chord_length = 2 * Re * np.sin(np.deg2rad(beta))
 
     # Compute radial distance using the law of cosines (vectorized)
     r2 = (chord_length - x) ** 2 + Re ** 2 - 2 * Re * (chord_length - x) * np.sin(np.deg2rad(beta))
 
-    if beta < 5.0:
-        r = Re*(1.0 + 0.5 *(x**2-chord_length*x)/Re**2)
-    else:
-        r = np.sqrt(r2)
+    # Use different formulas for small and large beta
+    mask_small_beta = (beta < 5.0)
+    r = np.where(
+        mask_small_beta,
+        Re * (1.0 + 0.5 * (x ** 2 - chord_length * x) / Re ** 2),
+        np.sqrt(r2)
+    )
 
     # Select density model and compute density
     if model_name == "prem":
@@ -406,7 +431,10 @@ def create_traj_table(idepth):
     return None
 
 if __name__ == "__main__":
-    pass
+    #pass
+    Rin = np.asarray([0,4000, 5000, 6300])
+                     
+    print(ak135density(Rin, 4))
 
     #Rin = np.arange(0, 6372, 1)
     #Rin = np.flip(Rin)

@@ -23,6 +23,8 @@ m_tau = scc.physical_constants["tau mass energy equivalent in MeV"][0]*1e-3 # ta
 m_pi = 139.57018e-3 # pion mass in GeV
 m_p = scc.physical_constants["proton mass energy equivalent in MeV"][0]*1e-3 # proton mass in GeV
 
+ctau_mu, ctau_tau = 6.586384e4, 8.703e-3 # c*lifetime of muons and taus in cm
+
 alpha_fs = scc.fine_structure #fine structure constant
 
 #Earth emergence angles

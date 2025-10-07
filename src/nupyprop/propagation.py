@@ -1,7 +1,7 @@
 """
 Created on Wed June 19 15:21:03 2024
 
-@author: Luke Kupari
+@author: Luke Kupari and Diksha Garg
 
 """
 
@@ -12,6 +12,8 @@ import nupyprop.constants as const
 
 rho_water = const.rho_water #density of water, in g/cm3
 step_size = const.step_size #step size for continuous energy loss, in cm
+m_tau, m_mu = const.m_tau, const.m_mu #mass of tau and muon, in GeV
+ctau_tau, ctau_mu = const.ctau_tau, const.ctau_mu #ctau of tau and muon, in cm
 
 def propagate_nu(e_init, nu_xc, nu_ixc, depth_max, fac_nu, stats, Emin, E_nu, E_lep, yvals):
     '''
@@ -90,229 +92,46 @@ def propagate_nu(e_init, nu_xc, nu_ixc, depth_max, fac_nu, stats, Emin, E_nu, E_
 
     return part_type[final_mask], d_travel[final_mask], e_fin[final_mask]
 
-def propagate_lep_water(e_init, xc_water, lep_ixc, alpha_water, beta_water, d_in, lepton, prop_type, cthi, Pi, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P):
+def propagate_lep(e_init, angle, xc, lep_ixc, alpha, beta, d_entry, d_in, lepton, prop_type,
+    medium, # either 'water' or 'rock'
+    cthi, Pi,
+    idepth, earth_model, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P,
+    xalong = None, cdalong = None): 
     '''
-    Propagates a charged lepton in water inside the Earth
-
-    Args:
-        e_init (float): Initial energy of the charged lepton, in GeV
-        xc_water (np.ndarray): 2D array containing N_A/A*charged lepton-nucleon cross-section values in water, in cm^2/g
-        lep_ixc (np.ndarray): 3D array containing charged lepton integrated cross-section CDF values in water
-        alpha_water (np.ndarray): 1D array containing ionization energy loss values in water, in (GeV*cm^2)/g
-        beta_water (np.ndarray): 2D array of beta values in water, in cm^2/g
-        d_in (float): Maximum distance for charged lepton to propagate in water, in kmwe
-        lepton (Integer): Type of charged lepton. 1=tau; 2=muon
-        prop_type (integer): Type of energy loss propagation. 1=stochastic, 2=continuous
-        cthi (float): costheta value obtained from tau EM interaction with rock
-        Pi (float): Degree of Polarization obtained from tau EM interaction with rock
-        Emin : float
-            Minimum threshold energy for leptons, in GeV
-        E_nu : np.ndarray
-            Array of neutrino energiesm in GeV
-        E_lep : np.ndarray
-            Array of charged lepton energies, in GeV
-        yvals : np.ndarray
-            Array of min. y values from which the cross-section CDF is calculated
-        ypol : float array
-            Predefined inelasticity array
-        Pcthp :
-            np.cos(theta_P), where theta_P is the polar angle of the spin vector in tau rest frame
-        P : float array
-            Magnitude of polarization vector, defining the degree of polarization
-
-    Returns:
-        part_id (integer): Type of outgoing charged lepton. 0=decayed; 1=not decayed; 2=don't count
-        d_fin (float): Distance traveled before charged lepton decays or total distance traveled by charged lepton, in kmwe
-        e_fin (float): Final energy of the charged lepton, in GeV
-        pcthf (float): Final polarization after EM interaction of the tau lepton
-    '''
-    part_id = 1 #Start with tau that's obviously not decayed
-
-    x_total = d_in*1e5 # kmwe to cmwe
-    e_lep = e_init
-    e_fin = e_init #in case the first interaction is too far
-    x_0 = 0.0 #haven't gone anywhere yet; initiate tracker
-    pcthf =0
-#    print('in rock')
-    if lepton == 1:
-        m_le = 1.77682 #m_tau in GeV
-        # change c_tau to whatever it is times 10^6
-        c_tau = 8.793e-3 # c*lifetime, in cm, for taus (taken from PDB)
-    else:
-        m_le = 0.10565837550000001 #m-mu in GeV
-        c_tau = 6.586384e4 #c*lifetime, in cm, for muons (taken from PDB 2020)
-
-    if prop_type ==1:
-        Pin = Pi
-        theta_in = np.arccos(cthi)
-
-        while (e_lep > Emin):
-
-            if e_lep <= Emin:
-                break #taken care of outside the while loop
-
-            r = np.random.random()
-            int_depth = transport.int_depth_lep(e_lep,xc_water,rho_water,m_le,c_tau)
-            x = -1*int_depth*np.log(r) #basically the step size
-            # prob of interaction = exp(-x/int_depth)
-
-            x_f = x_0 + x #how far have we traveled here
-            d_fin = x_f/1e5 #make sure it is not past the old number, in kmwe
-
-            if (x_f >= x_total): #already past maximum depth but still a tau
-                x_step = x_total -x_0 #backtrack one step
-
-                alpha = transport.int_alpha(e_lep,alpha_water, E_lep)
-                beta = transport.int_beta(e_lep,beta_water,rho_water, E_lep)
-
-                e_fin = e_lep - (e_lep*beta + alpha)*x_step
-                d_fin=d_in
-
-                if (e_fin <= Emin): #tau has decayed
-
-                    d_fin = d_in
-                    e_fin = Emin
-                    part_id = 2 # don't count
-
-                pcthf = Pin*np.cos(theta_in)
-                return part_id,d_fin,e_fin,pcthf
-
-            x_0 = x_f #update x_0 and keep going
-
-            alpha = transport.int_alpha(e_lep, alpha_water, E_lep)
-            beta = transport.int_beta(e_lep,beta_water,rho_water, E_lep)
-
-            e_int = e_lep - (e_lep*beta + alpha)*x #find some intermediate energy to get reasonable values of energy between inital and final energy, a la MUSIC
-
-            if (e_int <= Emin):
-                e_int = Emin
-
-            e_avg = 10.0**((np.log10(e_lep)+np.log10(e_int))/2.0) #avg of 10^7 & 10^8 is 10^7.5
-
-            alpha = transport.int_alpha(e_avg,alpha_water, E_lep)
-            beta = transport.int_beta(e_avg,beta_water,rho_water, E_lep)
-
-            e_int = transport.em_cont_part(e_lep,alpha,beta,x,m_le)
-
-            if (e_int <= Emin): # below min energy
-                break #taken care of outside while loop
-
-            int_type = transport.interaction_type_lep(e_int,xc_water,rho_water,m_le,c_tau)
-
-            if (int_type == 2): # tau decayed
-                part_id = 0
-                e_fin = e_int
-                d_fin = x_f/1e5
-                pcthf = Pin*np.cos(theta_in)
-                return part_id,d_fin,e_fin,pcthf
-
-            #tau didn't decay. Now how much energy does it have after interaction?
-
-            y = transport.find_y(e_int,lep_ixc,int_type, E_nu, E_lep, yvals) #stochastic energy loss sampling
-
-            #outgoing tau energy is old e_lep*(1-y)
-            e_lep = e_int*(1.0 - y) #this is the energy for the next interaction
-            e_fin = e_lep
-
-            if (int_type ==5):
-                Pout, theta_out = transport.polarization(y,Pin,theta_in, ypol, Pcthp, P)
-                Pin = Pout
-                theta_in = theta_out
-
-        #Now outside the while loop, e_lep has to be <= Emin
-        if (e_lep <= Emin):
-
-            d_fin = d_in # max distance in water
-            e_fin = Emin
-            part_id = 2 # don't count this
-            pcthf=Pin*np.cos(theta_in)
-            return part_id,d_fin,e_fin,pcthf
-
-
-        else: # continuous energy loss
-            #print('in else statement continuous energy loss')
-
-            j_max = int(x_total/(step_size*rho_water)) # we will get close to exit
-
-            #not sure if this should be j_max +1 or j_max +2 bc of fortran not 0 indexing
-            for i in range(0,j_max +2): #takes care of the integer truncation issue
-                if (e_lep < Emin): #taken care of outside the do while loop
-                    break
-
-                delta_x = step_size * rho_water #distance goes into decay
-                x_f = x_0 + delta_x
-                #does the particle decay over this distance?
-                part_id = transport.idecay(e_lep,step_size,m_le,c_tau)
-
-                if part_id ==0 : #we are all done
-                    e_fin = e_lep
-                    d_fin = d_in
-                else: # fine the new energy; assume alpha and beta are total values, not cut values
-                    alpha = transport.int_alpha(e_lep,alpha_water, E_lep)
-                    beta = transport.int_beta(e_lep,beta_water,rho_water, E_lep)
-
-                    e_fin = e_lep - (e_lep*beta + alpha)*delta_x
-                    d_fin = x_f/1e5
-                    x_0 = x_f
-                    e_lep = e_fin
-
-                    if (i >= j_max):
-                        break
-
-
-            if i >= j_max:
-                x_step = x_total - x_f #backtrack a little
-                if x_step > 0.0: # last little energy loss
-                    e_fin = e_lep - (e_lep * beta + alpha)*x_step #take care of that last little dx
-                else:
-                    if (d_fin <= Emin):
-                        e_fin = Emin
-                        d_fin = d_in
-                        part_id = 2
-                    elif e_fin > e_init:
-                        e_fin = e_init #sanity check
-            #outside the while e_lep has to be < Emin
-            if e_lep <= Emin:
-                d_fin = d_in
-                d_fin = Emin
-                part_id = 2 #don't count this
-                return part_id,d_fin,e_fin,pcthf
-
-#    return part_id, d_fin, e_fin, pcthf
-
-def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d_entry,
-                       d_in, xalong, cdalong, idepth, lepton, prop_type, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P, earth_model):
-    '''
-    Propagates a charged lepton in rock & iron inside the Earth
+    Propagates a charged lepton through Earth 
 
     Parameters
-    ----------
-    angle : float
+    ----------    
+    e_init : float 
+        Initial energy of the charged lepton, in GeV
+    angle : float 
         Earth emergence angle (beta)
-    e_init : float
-        Initial energy of charged lepton, in GeV.
-    xc_rock : np.ndarray
-        2D array containing N_A/A*charged lepton-nucleon cross-section values in rock, in cm^2/g.
+    xc : np.ndarray
+        2D array containing N_A/A*charged lepton-nucleon cross-section values in water/rock, in cm^2/g
     lep_ixc : np.ndarray
-        3D array containing charged lepton integrated cross-section CDF values in rock.
-    alpha_rock : np.ndarray
-        1D array containing ionization energy loss values in rock, in (GeV*cm^2)/g.
-    beta_rock : np.ndarray
-        2D array of beta values in rock, in cm^2/g.
+        3D array containing charged lepton integrated cross-section CDF values in water/rock
+    alpha : np.ndarray
+        1D array containing ionization energy loss values in water/rock, in (GeV*cm^2)/g
+    beta : np.ndarray 
+        2D array of beta values in water/rock, in cm^2/g
     d_entry : float
-        Column depth along the chord for a given Earth emergence angle, in kmwe.
+        Column depth along the chord for a given Earth emergence angle, in kmwe. Defaults to None  
     d_in : float
-        How much distance in rock/iron the charged lepton is supposed to travel, in kmwe.
-    xalong : float
-        1D array containing distance in water, in km.
-    cdalong : float
-        1D array containing column depth at xalong, in g/cm^2.
-    idepth : integer
-        Depth of water layer in km.
+        Maximum distance for charged lepton to propagate in water/rock, in kmwe
     lepton : integer
-        Type of charged lepton. 1=tau; 2=muon.
-    prop_type : integer
-        Type of energy loss propagation. 1=stochastic, 2=continuous.
+        Type of charged lepton. 1=tau; 2=muon
+    prop_type : integer 
+        Type of energy loss propagation. 1=stochastic, 2=continuous
+    medium : string 
+        charged lepton propagation medum, can be rock or water
+    cthi : float 
+        costheta value obtained from tau EM interaction with rock
+    Pi : float 
+        Degree of Polarization obtained from tau EM interaction with rock
+    idepth : integer 
+        Depth of water layer in km.
+    earth_model : string
+        prem or ak135 Earth model 
     Emin : float
         Minimum threshold energy for leptons, in GeV
     E_nu : np.ndarray
@@ -321,205 +140,237 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
         Array of charged lepton energies, in GeV
     yvals : np.ndarray
         Array of min. y values from which the cross-section CDF is calculated
-    ypol : float 1D array
+    ypol : float array
         Predefined inelasticity array
-    Pcthp : float 1D array
+    Pcthp :
         np.cos(theta_P), where theta_P is the polar angle of the spin vector in tau rest frame
-    P : float 1D array
+    P : float array
         Magnitude of polarization vector, defining the degree of polarization
-    earth_model : str
-        Earth density model, prem or ak135.
+    xalong : float 
+        1D array containing distance, in km. Defaults to None
+    cdalong : float 
+        1D array containing column depth at xalong, in g/cm^2. Defaults to None
 
     Returns
-    --------
+    -------
     part_id : integer
-        Type of outgoing charged lepton. 0=decayed; 1=not decayed; 2=don't count.
+        Type of outgoing charged lepton. 0=decayed; 1=not decayed; 2=don't count
     d_fin : float
         Distance traveled before charged lepton decays or total distance traveled by charged lepton, in kmwe
     e_fin : float
-        Final charged lepton energy, in GeV.
+        Final energy of the charged lepton, in GeV
     cthf : float
-        Final costheta after EM interaction of the tau lepton.
-    Pf : float
-        Final degree of polarization after EM interaction of the tau lepton.
+        Final costheta value for polarization after EM interaction of the tau lepton
+    Pf : float 
+        Final degree of polarization value after EM interaction of the tau lepton
     '''
+    rng = np.random.default_rng() #seed for random number generation
 
-    part_id = 1 #start with tau
-    col_depth = d_entry*1e5 #how far in
-    d_max = d_in*1e5 # how much to go, in cmwe
-    e_lep = e_init
-    x_0 = 0.0
-    cnt = 0
-    # x_total = d_in*1e5
-    # rho = rho_rock #g/cm^3 USE FOR TESTING P_SURV FOR ROCK ONLY !
-    if lepton ==1:
-        m_le = 1.77682
-        c_tau = 8.703e-3
-    else:
-        m_le = 0.10565837550000001
-        c_tau = 6.586384e4
+    stats = e_init.size 
 
-    if prop_type == 1 : #stochastic energy loss
-        Pin = 1.0
-        theta_in = 0.0
+    # Output arrays
+    part_id = np.ones(stats, dtype=int) # default 1 = not decayed
+    d_fin = np.zeros(stats, dtype=float) # final distance (kmwe)
+    e_fin = e_init.astype(float).copy() # final energies (GeV)
+    cthf = np.ones(stats, dtype=float)
+    Pf = np.ones(stats, dtype=float)      
 
-        while e_lep > Emin:
-            cnt = cnt + 1
-            x_interp = transport.cd2distd(xalong,cdalong,col_depth)
-            _, rho = geometry.densityatx(x_interp,angle,idepth, earth_model)
+    energy = e_init.astype(float).copy()
+    x0 = np.zeros(stats, dtype=float) # distance along chord in cmwe
+    finished = np.zeros(stats, dtype=bool) # finished particles
+    alive = (energy > Emin) 
 
-            dy = np.random.random()
-            int_len = transport.int_depth_lep(e_lep, xc_rock, rho, m_le, c_tau)
+    # masses and ctau
+    m_le = np.where(lepton == 1, m_tau, m_mu)
+    ctau_le = np.where(lepton == 1, ctau_tau, ctau_mu)
 
-            x = -int_len * np.log(dy)
-            col_depth = col_depth + x #update along trajectory, from the start of the chord
-            x_f = x_0 + x #going 1D
-            d_fin = x_f/1e5
+    x_total = d_in * 1e5 # in cmwe
+    col_depth = d_entry * 1e5  # only meaningful for rock initially, in cmwe
 
-            if x_f > d_max: #already past max depth
-                #go to 30
-                d_rem = d_max - x_0
-                alpha = transport.int_alpha(e_lep, alpha_rock, E_lep)
-                beta = transport.int_beta(e_lep, beta_rock, rho, E_lep)
-                e_fin = e_lep - (e_lep*beta + alpha)*d_rem
-                d_fin = d_max/1e5
-                if e_fin > e_init:
-                    e_fin = e_init
-                #print('Passed Earth already')
-                Pf = Pin
-                cthf = np.cos(theta_in)
+    # initial Pin and theta
+    Pin = Pi.astype(float).copy()
+    theta_in = np.arccos(cthi)  
 
-                return part_id,d_fin,e_fin,cthf,Pf
-
-            x_0 = x_f #update x_0 and keep going
-            alpha = transport.int_alpha(e_lep, alpha_rock, E_lep)
-            beta = transport.int_beta(e_lep, beta_rock, rho, E_lep)
-            e_int = e_lep - (e_lep*beta + alpha)*x #find some intermediate energy to get reasonable values of energy between inital and final energy, a la MUSIC
-
-            if e_int <= Emin:
-                e_int = Emin
-
-            e_avg = 10.0**((np.log10(e_lep) + np.log10(e_int))/2) # does this work ?
-
-            alpha = transport.int_alpha(e_avg, alpha_rock, E_lep)
-            beta = transport.int_beta(e_avg, beta_rock, rho, E_lep)
-
-            e_int = transport.em_cont_part(e_lep, alpha, beta, x, m_le) # get the continuous energy
-
-            if e_int <= Emin:# is it below minimum energy now ?
-                #print('below min energy')
-                e_fin = e_int
-                d_fin = d_max/1e5
-                e_fin = Emin
-                part_id = 0
-                #print('too small to handle')
-                #print('pcthf = ', Pin*np.cos(theta_in))
-                Pf = Pin
-                cthf = np.cos(theta_in)
-
-                return part_id,d_fin,e_fin,cthf,Pf
-
-            int_type = transport.interaction_type_lep(e_int, xc_rock, rho, m_le, c_tau)
-
-            if int_type == 2: #tau has decayed
-                #print('tau decay')
-                part_id = 0
-                e_fin = e_int
-                Pf = Pin
-                cthf = np.cos(theta_in)
-
-                return part_id,d_fin,e_fin,cthf,Pf
-
-            #tau didn't decay. Now how much energy does it have after interaction?
-            y = transport.find_y(e_int, lep_ixc, int_type, E_nu, E_lep, yvals)
-
-            #outgoing tau energy is old e_lep*(1-y)
-            e_lep = e_int*(1.0-y) #this is the energy for the next ineraction
-            e_fin = e_lep
-
-            # This routine will run for only PN interaction
-            if (int_type ==5):
-                Pout, theta_out = transport.polarization(y,Pin,theta_in, ypol, Pcthp, P)
-                Pin = Pout
-                theta_in = theta_out
-        #outside the while loop, e_lep has to be < Emin
-        if e_lep <= Emin: #only continuous energy loss
-            #print('ENERGY TOO LOW')
-            d_fin = d_max/1e5
-            e_fin = Emin
-            part_id = 0 #dayed or no_count?? should be decayed
-            Pf = Pin
-            cthf = np.cos(theta_in)
-            return part_id,d_fin,e_fin,cthf,Pf
-
-    else: #continuous energy loss
-
-        d_0 = 0.0
-        delta_x = step_size # for now, not adaptive, distance into decay, cm; works for taus
-
-        x_interp = transport.cd2distd(xalong, cdalong, col_depth) # find how far we are along the chord for a given beta
-        r, rho = geometry.densityatx(x_interp, angle, idepth, earth_model) # find rho at x
-
-        j_max = int(d_max/(rho*delta_x))
-
-        if j_max == 0:
-            e_fin = e_init
-            d_fin = d_in
-            return part_id,d_fin,e_fin,cthf,Pf
-
-        for i in range(j_max +2):
-            if e_lep < Emin:
+    # -------------------------
+    # STOCHASTIC PROPAGATION
+    # -------------------------
+    if prop_type == 1:
+        while np.any(alive):
+            idx = np.nonzero(alive)[0] # indices of alive particles
+            if idx.size == 0:
                 break
 
-            x_interp = transport.cd2distd(xalong, cdalong, col_depth) # find how far we are along the chord for a given beta
-            r, rho = geometry.densityatx(x_interp, angle, idepth, earth_model) # find rho at x
+            # fetch per-particle arrays
+            E_alive = energy[idx]
+            x0_alive = x0[idx]
+            x_total_alive = x_total[idx] # cmwe
+            
+            if medium == 'water':
+                rho_a = np.full(idx.size, const.rho_water, dtype=float)
 
-            delta_d = delta_x * rho
-            x_0 = x_0 + delta_x
-            d_0 = d_0 + delta_d
+            else: # for rock
+                # current column depth for these particles:
+                col_depth_alive = col_depth[idx] # cmwe
+                x_interp_rock = transport.cd2distd(xalong, cdalong, col_depth_alive)
+                _, rho_a = geometry.densityatx(x_interp_rock, angle, idepth, earth_model)
+                                                  
+            # --- interaction length and random step ---
+            int_depth = transport.int_depth_lep(E_alive, xc, rho_a, m_le, ctau_le, E_lep)  # returns length in cmwe
+            # sample exponential distances vectorized
+            u = rng.random(int_depth.size)
+            xs = -int_depth * np.log(u)  # cmwe
 
-            #does the particle decay over this distance?
-            part_id = transport.idecay(e_lep, delta_x, m_le, c_tau)
+            x_f = x0_alive + xs
+            escaped_mask = (x_f >= x_total_alive)   # those that reach/exit before interacting
 
-            if part_id == 0:
-                e_fin = e_lep
-                d_fin = d_0/1e5
-                return part_id,d_fin,e_fin,cthf,Pf
-            else: #find the new energy; assume alpha and beta are total values, not cut values
-                alpha = transport.int_alpha(e_lep, alpha_rock, E_lep)
-                beta = transport.int_beta(e_lep, beta_rock, rho, E_lep)
-                e_lep = e_lep - (e_lep*beta + alpha)*delta_d
-                d_fin = d_0/1e5 #updating the d_final
-                e_fin = e_lep
-                col_depth = d_entry*1e5 + d_0 # in order to update rho
+            # --- handles particles that reach x_total this step ---
+            if np.any(escaped_mask):
+                esc_local = np.nonzero(escaped_mask)[0]
+                esc_global = idx[esc_local]
 
-                if (i >= j_max):
-                    break # if so, break out of the loop
-        if cnt >= j_max:
-            if delta_x > 0.0:
-                d_fin = d_in
-                return part_id,d_fin,e_fin,cthf,Pf
-            else:
-                if e_fin <= Emin:
-                    e_fin = Emin
-                    d_fin = d_in
-                    part_id = 2
-                elif e_fin > e_init:
-                    e_fin = e_init #sanity check
+                # remaining distance to boundary (cmwe)
+                x_step = x_total_alive[esc_local] - x0_alive[esc_local]
 
-                return part_id,d_fin,e_fin,cthf,Pf
+                # continuous loss applied over x_step
+                E_before = energy[esc_global]
+                a_vals = transport.int_alpha(E_before, alpha)
+                b_vals = transport.int_beta(E_before, beta, rho_a[esc_local])
+                e_after = E_before - (E_before * b_vals + a_vals) * x_step
+                e_after = np.maximum(e_after, Emin)
 
-        if e_lep <= Emin: #only continuous energy loss
-            d_fin = d_in
-            e_fin = Emin
-            part_id =2 #don't count this
-            return part_id,d_fin,e_fin,cthf,Pf
-        elif cnt >= j_max:
-            d_fin = d_in
-            return part_id,d_fin,e_fin,cthf,Pf
-   # return part_id, d_fin, e_fin, cthf, Pf
+                # store outputs
+                e_fin[esc_global] = e_after
+                d_fin[esc_global] = d_in[esc_global]   # they reached the provided d_in (kmwe)
+                part_id[esc_global] = np.where(e_after <= Emin, 2, 1)
+                cthf[esc_global] = np.cos(theta_in[esc_global])
+                Pf[esc_global] = Pin[esc_global]
+                finished[esc_global] = True
+                alive[esc_global] = False
 
+            # --- handle interacting particles (those that interact before reaching boundary) ---
+            interact_local = np.nonzero(~escaped_mask)[0]
+            if interact_local.size > 0:
+                int_global = idx[interact_local]
 
+                # advance x0 by xs for these particles (cmwe)
+                x0[int_global] += xs[interact_local]
+
+                # For rock particles, update their col_depth by xs (they moved through matter)
+                # note: col_depth is per-global-particle
+                if medium == 'rock':
+                    col_depth[int_global] += xs[interact_local]
+
+                # continuous losses across the step xs
+                E_before = energy[int_global]
+                a_vals = transport.int_alpha(E_before, alpha, E_lep)
+                b_vals = transport.int_beta(E_before, beta, rho_a[interact_local], E_lep)
+                e_int = E_before - (E_before * b_vals + a_vals) * xs[interact_local]
+                e_int = np.maximum(e_int, Emin)
+
+                e_avg = 10 ** ((np.log10(E_before) + np.log10(e_int)) / 2.0)
+                a_avg = transport.int_alpha(e_avg, alpha, E_lep)
+                b_avg = transport.int_beta(e_avg, beta, rho_a[interact_local], E_lep)
+                e_int = transport.em_cont_part(E_before, a_avg, b_avg, xs[interact_local], m_le)
+
+                # update energies in state
+                energy[int_global] = e_int
+                e_fin[int_global] = e_int
+
+                # Those that fell to or below Emin after the step -> mark as "don't count" 
+                low_mask = (e_int <= Emin)
+                if np.any(low_mask):
+                    low_global = int_global[low_mask]
+                    part_id[low_global] = 2
+                    d_fin[low_global] = d_in[low_global]
+                    e_fin[low_global] = Emin
+                    cthf[low_global] = np.cos(theta_in[low_global])
+                    Pf[low_global] = Pin[low_global]
+                    finished[low_global] = True
+                    alive[low_global] = False
+
+                # remaining indices that still have e_int > e_min:
+                cont_mask = ~low_mask
+                if np.any(cont_mask):
+                    cont_local = np.nonzero(cont_mask)[0]
+                    cont_global = int_global[cont_local]
+
+                    # compute interaction types vectorized
+                    e_for_int = e_int[cont_local]
+                    rho_for_int = rho_a[interact_local][cont_local]
+
+                    int_types = transport.interaction_type_lep(e_for_int, xc, rho_for_int, m_le, ctau_le, E_lep)
+
+                    # decays: int_type == 2
+                    dec_mask = (int_types == 2)
+                    if np.any(dec_mask):
+                        dec_local = np.nonzero(dec_mask)[0]
+                        dec_global = cont_global[dec_local]
+                        part_id[dec_global] = 0
+                        d_fin[dec_global] = x0[dec_global] / 1e5   # kmwe
+                        e_fin[dec_global] = energy[dec_global] 
+                        cthf[dec_global] = np.cos(theta_in[dec_global])
+                        Pf[dec_global] = Pin[dec_global]
+                        finished[dec_global] = True
+                        alive[dec_global] = False
+
+                    # for interactions that do not decay, sample 'y' and update energies
+                    survive_mask = ~dec_mask
+                    if np.any(survive_mask):
+                        surv_local = np.nonzero(survive_mask)[0]
+                        surv_global = cont_global[surv_local]
+
+                        e_after_int = e_for_int[surv_local]
+                        int_types_surv = int_types[survive_mask]
+
+                        # sample y (vectorized)
+                        y = transport.find_y(e_after_int, lep_ixc, int_types_surv, E_nu, E_lep, yvals)
+
+                        E_new = e_after_int * (1.0 - y)
+                        E_new = np.maximum(E_new, Emin)
+
+                        # update energies
+                        energy[surv_global] = E_new
+                        e_fin[surv_global] = E_new
+
+                        # polarization updates when int_type == 5
+                        pol_mask = (int_types_surv == 5)
+                        if np.any(pol_mask):
+                            pol_local = np.nonzero(pol_mask)[0]
+                            pol_global = surv_global[pol_local]
+                            y_pol = y[pol_local]
+                            Pout_vals, theta_out_vals = transport.polarization(y_pol, Pin[pol_global], theta_in[pol_global], ypol, Pcthp, P)
+                            Pin[pol_global] = Pout_vals
+                            theta_in[pol_global] = theta_out_vals
+
+                        # those that drop to <= e_min after inelastic update => mark finished
+                        died_mask = (E_new <= Emin)
+                        if np.any(died_mask):
+                            died_global = surv_global[died_mask]
+                            part_id[died_global] = 2
+                            d_fin[died_global] = x0[died_global] / 1e5
+                            e_fin[died_global] = Emin
+                            cthf[died_global] = np.cos(theta_in[died_global])
+                            Pf[died_global] = Pin[died_global]
+                            finished[died_global] = True
+                            alive[died_global] = False
+
+            alive = (~finished) & (energy > Emin) # updating alive mask
+
+        # --- after main loop: set outputs for any not finished (they didn't interact or decayed)
+        not_finished = ~finished
+        if np.any(not_finished):
+            # final distance is x_total (cmwe) converted to kmwe
+            part_id[not_finished] = 1 # still leptons
+            d_fin[not_finished] = x_total[not_finished] / 1e5
+            e_fin[not_finished] = np.maximum(energy[not_finished], Emin)
+            cthf[not_finished] = np.cos(theta_in[not_finished])
+            Pf[not_finished] = Pin[not_finished]
+
+        return part_id, d_fin, e_fin, cthf, Pf
+    
+    # -------------------------
+    # CONTINUOUS PROPAGATION
+    # -------------------------
 
 def tau_thru_layers(angle,depth,d_water,depth_traj,e_lep_in,xc_water,xc_rock,lep_ixc_water,lep_ixc_rock,alpha_water,
                        alpha_rock,beta_water,beta_rock,xalong,cdalong,idepth,lepton,prop_type, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P, earth_model):

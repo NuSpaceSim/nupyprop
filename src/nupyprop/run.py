@@ -70,17 +70,30 @@ def single_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock,
     regen_tot = 0
     no_regen_tot = 0
 
-    depth0 = 0.0 #start with this each time
+    #depth0 = 0.0 #start with this each time
+    
+    # --- Create per-particle arrays ---
+    energy_arr = np.full(stats, energy)       # all start with same initial energy
+    depth0_arr = np.zeros(stats)              # start depth for each
+    dwater_arr = np.full(stats, dwater)       # all start with same dwater
+    Pi_arr = np.ones(stats)                   # all initial polarization = 1
+    cthi_arr = np.cos(np.zeros(stats))        # all initial costheta = 1
+    
+    part_id, d_fin, e_fin, cthf, Pf = propagation.propagate_lep(energy_arr, angle, xc_water, lep_ixc_water, alpha_water, beta_water, depth0_arr, dwater_arr, lepton, 
+                                                                prop_type,
+                                                               'water', # either 'water' or 'rock'
+                                                               cthi_arr, Pi_arr,
+                                                               idepth, earth_model, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P, xalong=None, cdalong=None)
 
     #tnu goes until neutrino either goes to dtot, or converts to a tau
     #print('depth= ', depth)
-    ip, dtr, ef = propagation.propagate_nu(energy, nu_xc, nu_ixc, depthE, fac_nu, stats, Emin, E_nu, E_lep, yvals)
+    '''ip, dtr, ef = propagation.propagate_nu(energy, nu_xc, nu_ixc, depthE, fac_nu, stats, Emin, E_nu, E_lep, yvals)
 
     return ip, dtr, ef
 
     #how far did the neutrino go? dtr is how far traveled
 
-    '''depth0 = depth0 + dtr #how far is the neutrino on trajectory?
+    depth0 = depth0 + dtr #how far is the neutrino on trajectory?
 
     dleft = depthE - depth0 # how far is left for the neutrino to travel?
 
@@ -142,6 +155,7 @@ def single_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock,
         counter = counter + 1
 
     return no_regen_tot,regen_tot'''
+    return part_id, d_fin, e_fin, cthf, Pf
 
 def run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
                     alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu,
@@ -198,37 +212,41 @@ def run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_r
             #no_regen_tot = no_regen_tot + tempnrt
             #regen_tot = regen_tot + temprt'''
 
-        results = Parallel(n_jobs=batch_num)(
-            delayed(single_stat)(
-                energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock,
-                lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock,
-                xalong, cdalong, ithird, idepth, lepton, fac_nu, prop_type,
-                int(stats / batch_num), earth_model) #, e_file, p_file)
-            for _ in range(batch_num)
-            )
-
-    # Extract results if needed
-    tempnrt_list, temprt_list, ef_list = zip(*results)
+        part_id, d_fin, e_fin, cthf, Pf = single_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, 
+                                                      xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
+                                                      alpha_water, alpha_rock, beta_water, beta_rock,
+                                                      xalong, cdalong, ithird, idepth, lepton, fac_nu,
+                                                      prop_type, stats, earth_model)
 
     e_file.close()
     p_file.close()
 
-    plt.hist(np.concatenate(tempnrt_list), 50)
-    plt.xlabel("ip")
+    plt.hist(part_id, 50)
+    plt.xlabel("id")
     plt.yscale('log')
     plt.title(f"Angle={angle}")
+    plt.savefig("part_id.png")
     plt.show()
 
-    plt.hist(np.concatenate(temprt_list), 50)
-    plt.xlabel("df")
+    plt.hist(d_fin, 50)
+    plt.xlabel("dfinal")
     plt.yscale('log')
     plt.title(f"Angle={angle}")
+    plt.savefig("dfinal.png")
     plt.show()
 
-    plt.hist(np.concatenate(ef_list), 50)
-    plt.xlabel("ef")
+    plt.hist(e_fin, 50)
+    plt.xlabel("efinal")
     plt.title(f"Angle={angle}")
     plt.loglog()
+    plt.savefig("efinal.png")
+    plt.show()
+
+    plt.hist(Pf*cthf, 50)
+    plt.xlabel("polarization")
+    plt.title(f"Angle={angle}")
+    plt.semilogy()
+    plt.savefig("polarization.png")
     plt.show()
 
     return no_regen_tot,regen_tot

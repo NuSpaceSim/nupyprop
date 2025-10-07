@@ -18,48 +18,67 @@ def cd2distd(xalong, cdalong, col_depth):
     '''
     Interpolate between column depth & distance in a medium.
 
-    Args:
-    xalong (float):
+    Parameters
+    ----------
+    xalong : float
         Array of distance in the medium, in km.
-    cdalong (float):
+    cdalong : float
         Array of column depth at xalong, in g/cm^2.
-    col_depth (float):
+    col_depth : float
         Column depth to interpolate at, in g/cm^2.
 
-    Returns:
-        float:
-            Interpolated distance in the medium, in km.
+    Returns
+    ----------
+    final_distance : float
+        Interpolated distance in the medium, in km.
     '''
+    # Interpolate for values within bounds
+    interp_result = np.interp(col_depth, cdalong, xalong)
+    
+    # For values below the lowest cdalong, linear extrapolation from the first segment
+    below = (col_depth < np.min(cdalong))
+    below_value = (col_depth[below] / cdalong[0]) * xalong[0]  # vectorized
 
-    if (col_depth < np.min(cdalong)):
-       return (col_depth/cdalong[0])*xalong[0]
-    elif (col_depth > np.max(cdalong)):
-       return np.max(xalong)
-    else:
-       return np.interp(col_depth, cdalong, xalong)
+    # For values above the highest cdalong, assign max xalong
+    above = (col_depth > np.max(cdalong))
+    above_value = np.full(np.sum(above), np.max(xalong))
+    
+    # Prepare output array
+    final_distance = interp_result.copy()
+    final_distance[below] = below_value
+    final_distance[above] = above_value
+    
+    return final_distance
 
 def get_rho_frac(rho):
     '''
     Calculates the correction/scaling fraction for material density between rock & iron.
 
-    Args:
-    rho (float):
+    Parameters
+    ----------
+    rho : float
         Density of material, in g/cm^3.
 
-    Returns:
-    frac (float):
+    Returns
+    -------
+    frac : float
         Scaling factor for density change between rock & iron (for Bremmstrahlung & pair production).
-    frac_pn (float):
+    frac_pn : float
         Scaling factor for density change between rock & iron (for photonuclear).
    '''
+    rho = np.asarray(rho, dtype=float)
 
-    if (rho > rho_rock and rho < rho_iron):
-       f_rock = (rho_iron - rho)/(rho_iron - rho_rock)
-       frac = 1.97 - 0.97 * f_rock
-       frac_pn = 0.91 + 0.09 * f_rock
-    else: # for rho <= rho_water or rho>=iron (that shouldn't happen!)
-       frac = 1
-       frac_pn = 1
+    # Initialize output arrays with default values
+    frac = np.ones_like(rho)
+    frac_pn = np.ones_like(rho)
+
+    # Mask for densities between rock and iron
+    mask = (rho > rho_rock) & (rho < rho_iron)
+
+    if np.any(mask):
+        f_rock = (rho_iron - rho[mask]) / (rho_iron - rho_rock)
+        frac[mask] = 1.97 - 0.97 * f_rock
+        frac_pn[mask] = 0.91 + 0.09 * f_rock
 
     return frac, frac_pn
 
@@ -112,7 +131,7 @@ def int_xc_lep(energy, xc_arr, rho, E_lep):
         Array of charged lepton energies, in GeV
 
     Returns
-    ----------
+    -------
     sig_brem : float
         Interpolated cross-section value for Bremmstrahlung, in cm^2/g.
     sig_pair : float
@@ -190,30 +209,6 @@ def int_beta(energy, beta_arr, rho, E_lep):
     tot = (frac * brem) + (frac * pair) + (frac_pn * pn)
     return tot
 
-# def searchsorted(array, search_value):
-#     """
-#     Given an array and a value, returns the index of the element that is closest to, but less than, the given value.
-
-#     Uses a binary search algorithm provided by numpy.
-
-#     Args:
-#     array (numpy.ndarray): Input array.
-#     search_value (float): Value to search for.
-
-#     Returns:
-#     int: Index of the element closest to, but less than, the given value.
-#     """
-#     # Ensure the array is sorted for searchsorted to work correctly
-#     array = np.sort(array)
-
-#     # Use numpy's searchsorted to find the insertion point
-#     index = np.searchsorted(array, search_value, side='right') - 1
-
-#     # Ensure index is within the valid range
-#     if index < 0:
-#         return 0  # Return the first index if the search value is less than the smallest element
-#     return index
-
 def idecay(energy, distance, m_le, c_tau):
     """
     Calculate decay probability of lepton.
@@ -242,26 +237,38 @@ def idecay(energy, distance, m_le, c_tau):
     return decay
 
 def em_cont_part(E_init, alpha_val, beta_val, x, m_le):
-    """
+    '''
     Calculate the charged lepton electromagnetic energy loss (continuous part) a la MUSIC.
 
-    Args:
-        E_init (float): Initial charged lepton energy, in GeV.
-        alpha_val (float): Ionization energy loss value, in (GeV*cm^2)/g.
-        beta_val (float): Energy loss parameter (brem + pair + pn), in cm^2/g.
-        x (float): Distance (column depth) of charged lepton travel, in g/cm^2.
-        m_le (float): Mass of charged lepton, in GeV.
+    Parameters
+    ----------
+    E_init : float 
+        Initial charged lepton energy, in GeV.
+    alpha_val : float
+        Ionization energy loss value, in (GeV*cm^2)/g.
+    beta_val : float 
+        Energy loss parameter (brem + pair + pn), in cm^2/g.
+    x : float
+        Distance (column depth) of charged lepton travel, in g/cm^2.
+    m_le : float
+        Mass of charged lepton, in GeV.
 
-    Returns:
-        float: Final charged lepton energy, in GeV.
-    """
-    if beta_val * x < 1e-6:
-        E_fin = E_init * (1 - beta_val * x) - alpha_val * x
-    else:
-        E_fin = E_init * np.exp(-beta_val * x) - alpha_val / beta_val * (1 - np.exp(-beta_val * x))
+    Returns
+    -------
+    E_fin : float
+        Final charged lepton energy, in GeV.
+    '''
+    bx = beta_val * x
 
-    if E_fin < 0:
-        E_fin = m_le
+    # Use np.where to handle small-beta*x regime elementwise
+    E_fin = np.where(
+        bx < 1e-6,
+        E_init * (1 - bx) - alpha_val * x,
+        E_init * np.exp(-bx) - alpha_val / beta_val * (1 - np.exp(-bx))
+    )
+
+    # Ensure E_fin is not below lepton rest mass
+    E_fin = np.maximum(E_fin, m_le)
 
     return E_fin
 
@@ -391,7 +398,7 @@ def interaction_type_lep(energy, xc_arr, rho, m_le, c_tau, E_lep):
         Array of charged lepton energies, in GeV
 
     Returns
-    ---------
+    -------
     int_type : int
         Type of lepton interaction. 2=decay; 3=Bremmstrahlung; 4=pair-production; 5=photonuclear; 6=CC/NC (placeholder).
     '''
@@ -418,22 +425,22 @@ def interaction_type_lep(energy, xc_arr, rho, m_le, c_tau, E_lep):
     pn_frac = sig_pn / tot_frac
 
     # Generate a random number and determine interaction type based on cumulative fractions
-    y = np.random.random()
+    y = np.random.random(size=energy.shape)
 
-    # Create a list of (cumulative fraction, interaction type) tuples
-    interaction_types = [
-        (decay_frac, 2),  # decay
-        (decay_frac + brem_frac, 3),  # Bremmstrahlung
-        (decay_frac + brem_frac + pair_frac, 4),  # pair-production
-        (decay_frac + brem_frac + pair_frac + pn_frac, 5),  # photonuclear
-    ]
+    # cumulative fractions
+    cum_decay = decay_frac
+    cum_brem = decay_frac + brem_frac
+    cum_pair = cum_brem + pair_frac
+    cum_pn = cum_pair + pn_frac
 
-    # Determine interaction type based on cumulative fractions
-    int_type = 6  # Default to placeholder for CC/NC
-    for frac, type_id in interaction_types:
-        if y <= frac:
-            int_type = type_id
-            break
+    # default type (6 = CC/NC placeholder)
+    int_type = np.full(energy.shape, 6, dtype=int)
+
+    # assign based on thresholds
+    int_type[y <= cum_decay] = 2
+    int_type[(y > cum_decay) & (y <= cum_brem)] = 3
+    int_type[(y > cum_brem) & (y <= cum_pair)] = 4
+    int_type[(y > cum_pair) & (y <= cum_pn)] = 5
 
     return int_type
 
@@ -511,23 +518,39 @@ def polarization(y, pin, theta_in, ypol, Pcthp, P):
     theta_out : float
         Final polar angle in radians.
     '''
-    if y < 0.01:
-        pout, theta_out = pin, theta_in
-        return pout, theta_out
-    else:
-        # Interpolate Pcthp and P values for given y
-        pzout = np.interp(y, ypol, Pcthp)
-        pout = np.interp(y, ypol, P)
+    pzout = np.interp(y, ypol, Pcthp)
+    pout_factor = np.interp(y, ypol, P)
 
-    # Calculate cosine of scattering angle
-    cth = pzout / pout
-    theta_out = np.arccos(cth)
+    # Initialize output arrays
+    pout = np.empty_like(pin)
+    theta_out = np.empty_like(theta_in)
 
-    # Update momentum
-    pout = pin * pout
+    # Case 1: y < 0.01  → no polarization change
+    small_y_mask = (y < 0.01)
+    pout[small_y_mask] = pin[small_y_mask]
+    theta_out[small_y_mask] = theta_in[small_y_mask]
 
-    # Random scattering angle adjustment
-    r = np.random.choice([1, -1])
-    theta_out = theta_in + r * theta_out
+    # Case 2: y >= 0.01 → polarization update
+    large_y_mask = ~small_y_mask
+    if np.any(large_y_mask):
+        pzout_large = pzout[large_y_mask]
+        pout_large = pout_factor[large_y_mask]
+        pin_large = pin[large_y_mask]
+        theta_in_large = theta_in[large_y_mask]
+
+        # Compute scattering angle
+        cth = pzout_large / pout_large
+        cth = np.clip(cth, -1.0, 1.0)
+        theta_scatter = np.arccos(cth)
+
+        # Final momentum magnitude
+        pout_large = pin_large * pout_large
+
+        # Random sign per event
+        r = np.random.choice([1, -1], size=np.count_nonzero(large_y_mask))
+        theta_out_large = theta_in_large + r * theta_scatter
+
+        pout[large_y_mask] = pout_large
+        theta_out[large_y_mask] = theta_out_large
 
     return pout, theta_out
