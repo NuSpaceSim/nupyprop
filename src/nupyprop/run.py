@@ -70,26 +70,37 @@ def single_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock,
     regen_tot = 0
     no_regen_tot = 0
 
-    #depth0 = 0.0 #start with this each time
+    depth0 = 0.0 #start with this each time
     
     # --- Create per-particle arrays ---
     energy_arr = np.full(stats, energy)       # all start with same initial energy
-    depth0_arr = np.zeros(stats)              # start depth for each
-    dwater_arr = np.full(stats, dwater)       # all start with same dwater
+    depth0_arr = np.zeros(stats)              # start column depth for each neutrino 
+    dwater_arr = np.full(stats, dwater)       # total water column depth for given idepth (kmwe) 
+    depthE_arr = np.full(stats, depthE)       # total column depth for given angle (kmwe)
     Pi_arr = np.ones(stats)                   # all initial polarization = 1
     cthi_arr = np.cos(np.zeros(stats))        # all initial costheta = 1
     
-    part_id, d_fin, e_fin, cthf, Pf = propagation.propagate_lep(energy_arr, angle, xc_water, lep_ixc_water, alpha_water, beta_water, depth0_arr, dwater_arr, lepton, 
+    '''part_id, d_fin, e_fin, cthf, Pf = propagation.propagate_lep(energy_arr, angle, xc_water, lep_ixc_water, alpha_water, beta_water, depth0_arr, dwater_arr, lepton, 
                                                                 prop_type,
                                                                'water', # either 'water' or 'rock'
                                                                cthi_arr, Pi_arr,
-                                                               idepth, earth_model, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P, xalong=None, cdalong=None)
+                                                               idepth, earth_model, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P, xalong=None, cdalong=None)'''
+    
+    '''d_in = depthE - depth0 - dwater #propagate this far in rock
+    print("d_in = ", d_in)
+    din_arr = np.full(stats, d_in) 
+    part_id, d_fin, e_fin, cthf, Pf = propagation.propagate_lep(energy_arr, angle, xc_rock, lep_ixc_rock, alpha_rock, beta_rock, depth0_arr, din_arr, lepton, prop_type,
+                                                               'rock', # either 'water' or 'rock'
+                                                               cthi_arr, Pi_arr,
+                                                               idepth, earth_model, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P, xalong, cdalong)'''
+    
+    ip, dtr, ef = propagation.propagate_nu(energy_arr, nu_xc, nu_ixc, depthE_arr, fac_nu, stats, Emin, E_nu, E_lep, yvals)
+
+    return ip, dtr, ef
 
     #tnu goes until neutrino either goes to dtot, or converts to a tau
     #print('depth= ', depth)
     '''ip, dtr, ef = propagation.propagate_nu(energy, nu_xc, nu_ixc, depthE, fac_nu, stats, Emin, E_nu, E_lep, yvals)
-
-    return ip, dtr, ef
 
     #how far did the neutrino go? dtr is how far traveled
 
@@ -155,7 +166,7 @@ def single_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock,
         counter = counter + 1
 
     return no_regen_tot,regen_tot'''
-    return part_id, d_fin, e_fin, cthf, Pf
+    #return part_id, d_fin, e_fin, cthf, Pf
 
 def run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
                     alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu,
@@ -212,7 +223,7 @@ def run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_r
             #no_regen_tot = no_regen_tot + tempnrt
             #regen_tot = regen_tot + temprt'''
 
-        part_id, d_fin, e_fin, cthf, Pf = single_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, 
+        part_id, d_fin, e_fin = single_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, 
                                                       xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
                                                       alpha_water, alpha_rock, beta_water, beta_rock,
                                                       xalong, cdalong, ithird, idepth, lepton, fac_nu,
@@ -225,28 +236,28 @@ def run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_r
     plt.xlabel("id")
     plt.yscale('log')
     plt.title(f"Angle={angle}")
-    plt.savefig("part_id.png")
+    plt.savefig(f"1e{np.log10(energy)}GeV_{angle}deg_part_id.png")
     plt.show()
 
     plt.hist(d_fin, 50)
     plt.xlabel("dfinal")
     plt.yscale('log')
     plt.title(f"Angle={angle}")
-    plt.savefig("dfinal.png")
+    plt.savefig(f"1e{np.log10(energy)}GeV_{angle}deg_dfinal.png")
     plt.show()
 
-    plt.hist(e_fin, 50)
+    plt.hist(e_fin, 20)
     plt.xlabel("efinal")
     plt.title(f"Angle={angle}")
     plt.loglog()
-    plt.savefig("efinal.png")
+    plt.savefig(f"1e{np.log10(energy)}GeV_{angle}deg_efinal.png")
     plt.show()
 
-    plt.hist(Pf*cthf, 50)
-    plt.xlabel("polarization")
-    plt.title(f"Angle={angle}")
-    plt.semilogy()
-    plt.savefig("polarization.png")
-    plt.show()
+    # plt.hist(Pf*cthf, 50)
+    # plt.xlabel("polarization")
+    # plt.title(f"Angle={angle}")
+    # plt.semilogy()
+    # plt.savefig(f"1e{np.log10(energy)}GeV_{angle}deg_polarization.png")
+    # plt.show()
 
     return no_regen_tot,regen_tot

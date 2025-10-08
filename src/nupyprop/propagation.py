@@ -52,9 +52,9 @@ def propagate_nu(e_init, nu_xc, nu_ixc, depth_max, fac_nu, stats, Emin, E_nu, E_
         Final neutrino energy, in GeV
     '''
     part_type = np.zeros(stats, dtype=int)  # 0 = neutrino, 1 = charged lepton
-    e_fin = np.full(stats, e_init, dtype=np.float32)  # Initialize all with e_init
+    e_fin = e_init.astype(float).copy()  # Initialize all with e_init
     x_0 = np.zeros(stats, dtype=np.float32)  # Depth in kmwe
-    d_travel = np.full(stats, depth_max, dtype=np.float32)  # Default to depth_max in kmwe
+    d_travel = depth_max.astype(float).copy()  # Default to depth_max in kmwe
 
     active = np.ones(stats, dtype=bool)  # Track active simulations
 
@@ -90,7 +90,8 @@ def propagate_nu(e_init, nu_xc, nu_ixc, depth_max, fac_nu, stats, Emin, E_nu, E_
 
     final_mask = ~((e_fin <= Emin) | (part_type == 0)) #this will eliminate charged leptons with energy < Emin and neutrinos
 
-    return part_type[final_mask], d_travel[final_mask], e_fin[final_mask]
+    #return part_type[final_mask], d_travel[final_mask], e_fin[final_mask]
+    return part_type, d_travel, e_fin
 
 def propagate_lep(e_init, angle, xc, lep_ixc, alpha, beta, d_entry, d_in, lepton, prop_type,
     medium, # either 'water' or 'rock'
@@ -241,7 +242,7 @@ def propagate_lep(e_init, angle, xc, lep_ixc, alpha, beta, d_entry, d_in, lepton
                 # store outputs
                 e_fin[esc_global] = e_after
                 d_fin[esc_global] = d_in[esc_global]   # they reached the provided d_in (kmwe)
-                part_id[esc_global] = np.where(e_after <= Emin, 2, 1)
+                part_id[esc_global] = np.where(e_after <= Emin, 2, 1) 
                 cthf[esc_global] = np.cos(theta_in[esc_global])
                 Pf[esc_global] = Pin[esc_global]
                 finished[esc_global] = True
@@ -280,7 +281,7 @@ def propagate_lep(e_init, angle, xc, lep_ixc, alpha, beta, d_entry, d_in, lepton
                 low_mask = (e_int <= Emin)
                 if np.any(low_mask):
                     low_global = int_global[low_mask]
-                    part_id[low_global] = 2
+                    part_id[low_global] = 2 
                     d_fin[low_global] = d_in[low_global]
                     e_fin[low_global] = Emin
                     cthf[low_global] = np.cos(theta_in[low_global])
@@ -346,8 +347,8 @@ def propagate_lep(e_init, angle, xc, lep_ixc, alpha, beta, d_entry, d_in, lepton
                         died_mask = (E_new <= Emin)
                         if np.any(died_mask):
                             died_global = surv_global[died_mask]
-                            part_id[died_global] = 2
-                            d_fin[died_global] = x0[died_global] / 1e5
+                            part_id[died_global] = 2 
+                            d_fin[died_global] = d_in[died_global]
                             e_fin[died_global] = Emin
                             cthf[died_global] = np.cos(theta_in[died_global])
                             Pf[died_global] = Pin[died_global]

@@ -170,7 +170,6 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, earth_model, id
 
     nu_xc, xc_water, xc_rock, alpha_water, alpha_rock, beta_water, beta_rock = init_xc(nu_type, ch_lepton, cross_section_model, pn_model, prop_type)
 
-
     nu_ixc, lep_ixc_water, lep_ixc_rock = init_ixc(nu_type, ch_lepton, cross_section_model, pn_model)
 
     ithird = 0 # use dn/dy in tau to neutrino
@@ -266,13 +265,13 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, earth_model, id
 
             # energy CDFs for the exiting charged leptons
             Data.add_cdf(ch_lepton, energy, eout_list, out_file, htc_mode=False, arg=None) # adds the binned cdf values for all neutrino energies and angles to the output file.
-            file_cleaner('e_out') # remove e_out files
+            file_cleaner('e_out') # remove e_out files'''
 
         end_time = time.time()
         print(f"It took {end_time-start_time:.2f} seconds to compute")
 
         if htc_mode== 'no': print("Done!")
-        else: print("Done!") # for HTC mode on'''
+        else: print("Done!") # for HTC mode on
 
     return None
 
