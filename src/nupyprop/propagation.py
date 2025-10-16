@@ -369,7 +369,7 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
             _, rho = geometry.densityatx(x_interp,angle,idepth, earth_model)
 
             dy = np.random.random()
-            int_len = transport.int_depth_lep(e_lep, xc_rock, rho, m_le, c_tau)
+            int_len = transport.int_depth_lep(e_lep, xc_rock, rho, m_le, c_tau,E_lep)
 
             x = -int_len * np.log(dy)
             col_depth = col_depth + x #update along trajectory, from the start of the chord
@@ -419,7 +419,7 @@ def propagate_lep_rock(angle, e_init, xc_rock, lep_ixc, alpha_rock, beta_rock, d
 
                 return part_id,d_fin,e_fin,cthf,Pf
 
-            int_type = transport.interaction_type_lep(e_int, xc_rock, rho, m_le, c_tau)
+            int_type = transport.interaction_type_lep(e_int, xc_rock, rho, m_le, c_tau,E_lep)
 
             if int_type == 2: #tau has decayed
                 #print('tau decay')
@@ -606,7 +606,6 @@ def tau_thru_layers(angle,depth,d_water,depth_traj,e_lep_in,xc_water,xc_rock,lep
             #d_fin = depth_traj
             Pi = Pf
             cthi = cthf
-
             part_type, d_f, e_fin, pcthf = propagate_lep_water(e_lep, xc_water, lep_ixc_water, alpha_water,
                                                                beta_water, d_in, lepton, prop_type, cthi, Pi, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P)
 
@@ -631,6 +630,94 @@ def tau_thru_layers(angle,depth,d_water,depth_traj,e_lep_in,xc_water,xc_rock,lep
 
 
     return part_type,d_fin,e_fin,pcthf
+
+def tau_thru_layers_vectorized(angle, depth,d_water, depth_traj, 
+                               e_lep_in, xc_water, xc_rock, lep_ixc_water,
+                               lep_ixc_rock, alpha_water, alpha_rock, beta_water,
+                               beta_rock, xalong, cdalong, idepth, lepton, 
+                               prop_type, Emin, E_nu, E_lep, yvals, ypol, 
+                               Pcthp, P, earth_model, stats
+                       ):
+    """
+    Vectorized version - arrays of input parameters
+    """
+    
+    #generate arrays with some array with passed events.
+    n_events = stats
+    
+    # Initialize output arrays
+    part_types = np.ones(n_events, dtype=int)
+    d_fins = depth_traj.copy()
+    e_fins = e_lep_in.copy()
+    pcthfs = np.ones(n_events)
+    
+    # Vectorized energy threshold check
+    low_energy_mask = e_lep_in < 1e3
+    part_types[low_energy_mask] = 0
+    d_fins[low_energy_mask] = depth[low_energy_mask]
+    
+    active_mask = ~low_energy_mask
+    col_depths = depth_traj[active_mask]*1e5    
+    
+    if not np.any(active_mask):
+        return ( part_types[low_energy_mask],
+                 d_fins[low_energy_mask],
+                 e_fins[low_energy_mask],
+                 pcthfs[low_energy_mask])
+    
+    active_indices = np.where(active_mask)[0] # get indices for all events we want to propagate
+
+    water_condition = (depth[active_mask] - depth_traj[active_mask]) < d_water[active_mask]
+    
+    rhos = np.full(np.sum(active_mask), const.rho_water)
+    
+    rock_mask = ~water_condition
+    if np.any(rock_mask):
+        #rock_indices = active_indices[rock_mask]
+        active_rock_indices = np.where(rock_mask)[0] # get active subset
+        for j in active_rock_indices:
+            orig_index = active_indices[j]
+            x = transport.cd2distd(xalong, cdalong, col_depths[j])
+            _, rho = geometry.densityatx(x, angle, idepth, model_name='prem')
+            rhos[j] = rho
+            
+        # split into processing groups
+        in_rock_mask_active = rhos > 1.5
+        in_water_mask_active = ~in_rock_mask_active
+        
+        if np.any(in_rock_mask_active):
+            rock_active_subix = np.where(in_rock_mask_active)[0]
+            rock_indices = active_indices[rock_active_subix]
+            
+            for local_index, orig_index in enumerate(rock_indices):
+                e_lep = e_fins[orig_index]
+                depth_traj = depth_traj[orig_index]
+                d_in_rock = depth[orig_index] - depth_traj - d_water[orig_index]
+                
+                #propagate through rock
+                part_type_r, df_r, efin_r, cthf, Pf = propagate_lep_rock(
+                    angle, e_lep, xc_rock, lep_ixc_rock, alpha_rock, beta_rock,
+                    depth_traj, d_in_rock, xalong, cdalong, idepth, lepton,
+                    prop_type, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P, earth_model
+                )
+                
+                depth_traj_after_rock = depth_traj + df_r
+                
+                if part_type_r == 1 and idepth != 0:
+                    #water propagation after rock
+                    e_lep_water = efin_r
+                    d_in_water = d_water[orig_index]
+                    Pi = Pf
+                    cthi = cthf
+                    
+                    part_type_w, df_w, e_fin_w, ptchf_w = propagate_lep_water(
+                        e_lep_water, xc_water, lep_ixc_water, alpha_water,
+                        beta_water, d_in_water, lepton, prop_type,
+                        cthi, Pi, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P
+                    )
+    return part_types, d_fins, e_fins, pcthfs
+
+
 
 def distnu(r, ithird, Pin):
     '''
@@ -769,5 +856,97 @@ def regen(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, 
 
     return part_type, d_exit, e_fin, Pout
 
+def regen_vectorized(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, xc_rock,
+            ixc_water, ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, idepth,
+            lepton, fac_nu, prop_type, Pin, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P, earth_model, stats):
+    """
+    Fully vectorized regeneration assuming downstream kernels are vectorized.
+    Returns arrays: part_type, d_exit, e_fin, Pout 
+    """
+    n = int(stats)
 
+    part_type = np.full(n, 3, dtype=int)
+    d_exit    = d_lep.copy()
+    e_fin     = np.empty(n, dtype=float)
+    Pout      = Pin.copy()
 
+    # Sample y = E_nu/E_tau
+    distnu_vec = np.vectorize(lambda rr, it, pin: distnu(float(rr), int(it), float(pin)), otypes=[float])
+    r    = np.random.random(n)
+    frac = distnu_vec(r, ithird, Pin)
+    e_nu = frac * e_lep
+    e_fin[:] = e_nu
+
+    d_left = depth - d_lep
+
+    # geometry mask
+    no_room = (d_left <= 0.0)
+    if np.any(no_room):
+        d_exit[no_room]    = depth[no_room]
+        part_type[no_room] = 3
+        Pout[no_room]      = Pin[no_room]
+
+    # neutrino
+    nu_active = ~no_room
+    if not np.any(nu_active):
+        return part_type, d_exit, e_fin, Pout
+
+    int_part, dtr, etau2 = propagate_nu(
+        e_nu[nu_active], nu_xc, nu_ixc, d_left[nu_active], fac_nu, np.count_nonzero(nu_active),
+        Emin, E_nu, E_lep, yvals
+    )
+
+    nu_ends = (int_part != 1)
+    if np.any(nu_ends):
+        act_idx = np.flatnonzero(nu_active)
+        end_idx = act_idx[nu_ends]
+        part_type[end_idx] = 0
+        d_exit[end_idx]    = depth[end_idx]
+        e_fin[end_idx]     = etau2[nu_ends]
+        Pout[end_idx]      = -2.0
+
+    tau_active = nu_active.copy()
+    if np.any(nu_ends):
+        sub = np.flatnonzero(nu_active)
+        tau_active[sub[nu_ends]] = False
+
+    if not np.any(tau_active):
+        return part_type, d_exit, e_fin, Pout
+
+    # 2) Tau leg
+    d_lep_tau  = d_lep[tau_active] + dtr[~nu_ends]
+    d_left_tau = d_left[tau_active] - dtr[~nu_ends]
+    etau2_tau  = etau2[~nu_ends]
+
+    tau_no_room = (d_left_tau <= 0.0)
+    if np.any(tau_no_room):
+        act_idx = np.flatnonzero(tau_active)
+        nr_idx  = act_idx[tau_no_room]
+        part_type[nr_idx] = 0
+        d_exit[nr_idx]    = depth[nr_idx]
+        e_fin[nr_idx]     = etau2_tau[tau_no_room]
+        Pout[nr_idx]      = Pin[nr_idx]
+
+    tau_go = tau_active.copy()
+    if np.any(tau_no_room):
+        sub = np.flatnonzero(tau_active)
+        tau_go[sub[tau_no_room]] = False
+
+    if not np.any(tau_go):
+        return part_type, d_exit, e_fin, Pout
+
+    tau_idx = np.flatnonzero(tau_go)
+    ptype, dexit, efin_tau, Pi = tau_thru_layers(
+        angle[tau_idx], depth[tau_idx], d_water[tau_idx], d_lep_tau[~tau_no_room],
+        etau2_tau[~tau_no_room],
+        xc_water, xc_rock, ixc_water, ixc_rock, alpha_water, alpha_rock,
+        beta_water, beta_rock, xalong, cdalong, idepth, lepton, prop_type,
+        Emin, E_nu, E_lep, yvals, ypol, Pcthp, P, earth_model
+    )
+
+    part_type[tau_idx] = ptype
+    d_exit[tau_idx]    = dexit
+    e_fin[tau_idx]     = efin_tau
+    Pout[tau_idx]      = Pi
+
+    return part_type, d_exit, e_fin, Pout
