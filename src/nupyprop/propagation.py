@@ -856,97 +856,93 @@ def regen(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, 
 
     return part_type, d_exit, e_fin, Pout
 
-def regen_vectorized(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, xc_rock,
+def regen_vectorized_simple(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, xc_rock,
             ixc_water, ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, idepth,
             lepton, fac_nu, prop_type, Pin, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P, earth_model, stats):
-    """
-    Fully vectorized regeneration assuming downstream kernels are vectorized.
-    Returns arrays: part_type, d_exit, e_fin, Pout 
-    """
+
+
     n = int(stats)
 
-    part_type = np.full(n, 3, dtype=int)
+    # Outputs
+    part_type = np.full(n, 3, dtype=int)     # default 'exit' sentinel like original
     d_exit    = d_lep.copy()
     e_fin     = np.empty(n, dtype=float)
     Pout      = Pin.copy()
 
-    # Sample y = E_nu/E_tau
+    # 1) Sample y = E_nu/E_tau from distnu
+    r = np.random.random(n)
     distnu_vec = np.vectorize(lambda rr, it, pin: distnu(float(rr), int(it), float(pin)), otypes=[float])
-    r    = np.random.random(n)
     frac = distnu_vec(r, ithird, Pin)
     e_nu = frac * e_lep
     e_fin[:] = e_nu
 
+    # 2) Geometry mask – remaining depth the neutrino can travel
     d_left = depth - d_lep
-
-    # geometry mask
     no_room = (d_left <= 0.0)
     if np.any(no_room):
         d_exit[no_room]    = depth[no_room]
         part_type[no_room] = 3
         Pout[no_room]      = Pin[no_room]
 
-    # neutrino
+    # 3) Propagate neutrinos for the rest
     nu_active = ~no_room
-    if not np.any(nu_active):
-        return part_type, d_exit, e_fin, Pout
-
-    int_part, dtr, etau2 = propagate_nu(
-        e_nu[nu_active], nu_xc, nu_ixc, d_left[nu_active], fac_nu, np.count_nonzero(nu_active),
-        Emin, E_nu, E_lep, yvals
-    )
-
-    nu_ends = (int_part != 1)
-    if np.any(nu_ends):
+    if np.any(nu_active):
         act_idx = np.flatnonzero(nu_active)
-        end_idx = act_idx[nu_ends]
-        part_type[end_idx] = 0
-        d_exit[end_idx]    = depth[end_idx]
-        e_fin[end_idx]     = etau2[nu_ends]
-        Pout[end_idx]      = -2.0
 
-    tau_active = nu_active.copy()
-    if np.any(nu_ends):
-        sub = np.flatnonzero(nu_active)
-        tau_active[sub[nu_ends]] = False
+        # propagate_nu expects a batch; assume it returns arrays aligned to inputs
+        ip, dtr, etau2 = propagate_nu(
+            e_nu[nu_active], nu_xc, nu_ixc, d_left[nu_active], fac_nu,
+            np.count_nonzero(nu_active), Emin, E_nu, E_lep, yvals
+        )
 
-    if not np.any(tau_active):
-        return part_type, d_exit, e_fin, Pout
+        # ip != 1 -> still a neutrino at the end
+        nu_ends_mask = (ip != 1)
+        if np.any(nu_ends_mask):
+            end_idx = act_idx[nu_ends_mask]
+            part_type[end_idx] = 0
+            d_exit[end_idx]    = depth[end_idx]
+            e_fin[end_idx]     = etau2[nu_ends_mask]
+            Pout[end_idx]      = -2.0  # sentinel used by upstream code
 
-    # 2) Tau leg
-    d_lep_tau  = d_lep[tau_active] + dtr[~nu_ends]
-    d_left_tau = d_left[tau_active] - dtr[~nu_ends]
-    etau2_tau  = etau2[~nu_ends]
+        # The rest produced taus
+        tau_mask_global = nu_active.copy()
+        if np.any(nu_ends_mask):
+            tau_mask_global[act_idx[nu_ends_mask]] = False
 
-    tau_no_room = (d_left_tau <= 0.0)
-    if np.any(tau_no_room):
-        act_idx = np.flatnonzero(tau_active)
-        nr_idx  = act_idx[tau_no_room]
-        part_type[nr_idx] = 0
-        d_exit[nr_idx]    = depth[nr_idx]
-        e_fin[nr_idx]     = etau2_tau[tau_no_room]
-        Pout[nr_idx]      = Pin[nr_idx]
+        if np.any(tau_mask_global):
+            tau_idx = np.flatnonzero(tau_mask_global)
 
-    tau_go = tau_active.copy()
-    if np.any(tau_no_room):
-        sub = np.flatnonzero(tau_active)
-        tau_go[sub[tau_no_room]] = False
+            # Set up per-event tau inputs
+            d_lep_tau  = d_lep[tau_idx] + dtr[~nu_ends_mask]
+            d_left_tau = d_left[tau_idx] - dtr[~nu_ends_mask]
+            etau2_tau  = etau2[~nu_ends_mask]
 
-    if not np.any(tau_go):
-        return part_type, d_exit, e_fin, Pout
+            # If no room after CC, finalize as neutrino-like outcome
+            tau_no_room = (d_left_tau <= 0.0)
+            if np.any(tau_no_room):
+                nr_idx = tau_idx[tau_no_room]
+                part_type[nr_idx] = 0
+                d_exit[nr_idx]    = depth[nr_idx]
+                e_fin[nr_idx]     = etau2_tau[tau_no_room]
+                Pout[nr_idx]      = Pin[nr_idx]
 
-    tau_idx = np.flatnonzero(tau_go)
-    ptype, dexit, efin_tau, Pi = tau_thru_layers(
-        angle[tau_idx], depth[tau_idx], d_water[tau_idx], d_lep_tau[~tau_no_room],
-        etau2_tau[~tau_no_room],
-        xc_water, xc_rock, ixc_water, ixc_rock, alpha_water, alpha_rock,
-        beta_water, beta_rock, xalong, cdalong, idepth, lepton, prop_type,
-        Emin, E_nu, E_lep, yvals, ypol, Pcthp, P, earth_model
-    )
+            # Go for tau through layers where there is room
+            tau_go_mask = ~tau_no_room
+            if np.any(tau_go_mask):
+                go_idx = tau_idx[tau_go_mask]
 
-    part_type[tau_idx] = ptype
-    d_exit[tau_idx]    = dexit
-    e_fin[tau_idx]     = efin_tau
-    Pout[tau_idx]      = Pi
+                ptype_sub, dexit_sub, efin_tau_sub, Pi_sub = tau_thru_layers_vectorized(
+                    angle[go_idx], depth[go_idx], d_water[go_idx], d_lep_tau[tau_go_mask],
+                    etau2_tau[tau_go_mask],
+                    xc_water, xc_rock, ixc_water, ixc_rock, alpha_water, alpha_rock,
+                    beta_water, beta_rock, xalong, cdalong, idepth, lepton, prop_type,
+                    Emin, E_nu, E_lep, yvals, ypol, Pcthp, P, earth_model,
+                    stats=len(go_idx)
+                )
+
+                part_type[go_idx] = ptype_sub
+                d_exit[go_idx]    = dexit_sub
+                e_fin[go_idx]     = efin_tau_sub
+                Pout[go_idx]      = Pi_sub
 
     return part_type, d_exit, e_fin, Pout
