@@ -8,7 +8,6 @@ Created on Wed July 31 12:01:03 2024
 from nupyprop import propagation
 import numpy as np
 import matplotlib.pyplot as plt
-from joblib import Parallel, delayed
 import nupyprop.constants as const
 
 batch_num = const.batch_num #batch size to divide the total stats
@@ -86,17 +85,17 @@ def single_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock,
                                                                cthi_arr, Pi_arr,
                                                                idepth, earth_model, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P, xalong=None, cdalong=None)'''
     
-    '''d_in = depthE - depth0 - dwater #propagate this far in rock
+    d_in = depthE - depth0 - dwater #propagate this far in rock
     print("d_in = ", d_in)
     din_arr = np.full(stats, d_in) 
     part_id, d_fin, e_fin, cthf, Pf = propagation.propagate_lep(energy_arr, angle, xc_rock, lep_ixc_rock, alpha_rock, beta_rock, depth0_arr, din_arr, lepton, prop_type,
                                                                'rock', # either 'water' or 'rock'
                                                                cthi_arr, Pi_arr,
-                                                               idepth, earth_model, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P, xalong, cdalong)'''
+                                                               idepth, earth_model, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P, xalong, cdalong)
     
-    ip, dtr, ef = propagation.propagate_nu(energy_arr, nu_xc, nu_ixc, depthE_arr, fac_nu, stats, Emin, E_nu, E_lep, yvals)
+    '''ip, dtr, ef = propagation.propagate_nu(energy_arr, nu_xc, nu_ixc, depthE_arr, fac_nu, stats, Emin, E_nu, E_lep, yvals)
 
-    return ip, dtr, ef
+    return ip, dtr, ef'''
 
     #tnu goes until neutrino either goes to dtot, or converts to a tau
     #print('depth= ', depth)
@@ -166,7 +165,7 @@ def single_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock,
         counter = counter + 1
 
     return no_regen_tot,regen_tot'''
-    #return part_id, d_fin, e_fin, cthf, Pf
+    return part_id, d_fin, e_fin, cthf, Pf
 
 def run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
                     alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu,
@@ -223,7 +222,7 @@ def run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_r
             #no_regen_tot = no_regen_tot + tempnrt
             #regen_tot = regen_tot + temprt'''
 
-        part_id, d_fin, e_fin = single_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, 
+        part_id, d_fin, e_fin, cthf, Pf = single_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, 
                                                       xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
                                                       alpha_water, alpha_rock, beta_water, beta_rock,
                                                       xalong, cdalong, ithird, idepth, lepton, fac_nu,
@@ -253,11 +252,11 @@ def run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_r
     plt.savefig(f"1e{np.log10(energy)}GeV_{angle}deg_efinal.png")
     plt.show()
 
-    # plt.hist(Pf*cthf, 50)
-    # plt.xlabel("polarization")
-    # plt.title(f"Angle={angle}")
-    # plt.semilogy()
-    # plt.savefig(f"1e{np.log10(energy)}GeV_{angle}deg_polarization.png")
-    # plt.show()
+    plt.hist(Pf*cthf, 50)
+    plt.xlabel("polarization")
+    plt.title(f"Angle={angle}")
+    plt.semilogy()
+    plt.savefig(f"1e{np.log10(energy)}GeV_{angle}deg_polarization.png")
+    plt.show()
 
     return no_regen_tot,regen_tot

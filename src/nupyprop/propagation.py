@@ -179,7 +179,6 @@ def propagate_lep(e_init, angle, xc, lep_ixc, alpha, beta, d_entry, d_in, lepton
     energy = e_init.astype(float).copy()
     x0 = np.zeros(stats, dtype=float) # distance along chord in cmwe
     finished = np.zeros(stats, dtype=bool) # finished particles
-    alive = (energy > Emin) 
 
     # masses and ctau
     m_le = np.where(lepton == 1, m_tau, m_mu)
@@ -196,6 +195,7 @@ def propagate_lep(e_init, angle, xc, lep_ixc, alpha, beta, d_entry, d_in, lepton
     # STOCHASTIC PROPAGATION
     # -------------------------
     if prop_type == 1:
+        alive = (energy > Emin)  # main mask to check for alive particles
         while np.any(alive):
             idx = np.nonzero(alive)[0] # indices of alive particles
             if idx.size == 0:
@@ -207,7 +207,7 @@ def propagate_lep(e_init, angle, xc, lep_ixc, alpha, beta, d_entry, d_in, lepton
             x_total_alive = x_total[idx] # cmwe
             
             if medium == 'water':
-                rho_a = np.full(idx.size, const.rho_water, dtype=float)
+                rho_a = np.full(idx.size, rho_water, dtype=float)
 
             else: # for rock
                 # current column depth for these particles:
@@ -372,6 +372,91 @@ def propagate_lep(e_init, angle, xc, lep_ixc, alpha, beta, d_entry, d_in, lepton
     # -------------------------
     # CONTINUOUS PROPAGATION
     # -------------------------
+    else: 
+        delta_x = step_size  # cm
+        d_max = d_in * 1e5  # cmwe
+
+        # --- initialize densities for rock ---
+        if medium == "rock":
+            x_interp = transport.cd2distd(xalong, cdalong, col_depth)
+            _, rho_rock_vals = geometry.densityatx(x_interp, angle, idepth, earth_model)
+            rho = rho_rock_vals
+            j_max = (d_max / (rho * delta_x)).astype(int)
+        else:
+            rho = np.full(col_depth.size, rho_water, dtype=float)
+            j_max = (x_total / (delta_x * rho)).astype(int)
+
+        max_steps = np.max(j_max)
+
+        # --- main propagation loop --- 
+        for _ in range(max_steps): #---> is this loop conditions correct? 
+            active = (~finished) & (energy > Emin)
+
+            if not np.any(active):
+                break
+
+            # update rock density if needed
+            if medium == 'rock':
+                x_interp = transport.cd2distd(xalong, cdalong, col_depth[active])
+                _, rho_rock_vals = geometry.densityatx(x_interp, angle, idepth, earth_model)
+                rho[active] = rho_rock_vals
+
+            # depth step
+            delta_d = delta_x * rho[active]
+            if medium == 'rock':
+                col_depth[active] = d_entry[active] * 1e5 + x0[active]
+
+            x0[active] += delta_d
+        
+            # decay check
+            part_id_step = transport.idecay(energy[active], delta_x, m_le, ctau_le)
+            decayed_local = (part_id_step == 0)
+
+            if np.any(decayed_local):
+                active_idx = np.where(active)[0]
+                decayed = active_idx[decayed_local]   # map back to global indices
+                finished[decayed] = True
+                part_id[decayed] = 0
+                e_fin[decayed] = energy[decayed]
+                d_fin[decayed] = x0[decayed] / 1e5
+
+            # energy loss
+            alpha_val = transport.int_alpha(energy[active], alpha, E_lep)
+            beta_val = transport.int_beta(energy[active], beta, rho[active], E_lep)
+            energy[active] -= (energy[active] * beta_val + alpha_val) * delta_d
+
+            # update final values for survivors
+            e_fin[active] = energy[active]
+            d_fin[active] = x0[active] / 1e5
+
+            # stop conditions ---> FROM HERE WORK ON IT
+            reached_max_local = (x0[active] >= x_total[active])
+            below_local = (energy[active] <= Emin)
+
+            active_idx = np.where(active)[0]  # map subset → global
+            stop_global = active_idx[reached_max_local | below_local]
+            below_global = active_idx[below_local]
+
+            if stop_global.size > 0:
+                finished[stop_global] = True
+                d_fin[stop_global] = x0[stop_global] / 1e5
+
+            if below_global.size > 0:
+                part_id[below_global] = 2
+                e_fin[below_global] = Emin
+
+        # --- finalize all particles ---
+        not_finished = ~finished
+        if np.any(not_finished):
+            d_fin[not_finished] = np.where(
+                medium == 'rock', d_max[not_finished] / 1e5, x_total[not_finished] / 1e5
+            )
+            e_fin[not_finished] = np.maximum(energy[not_finished], Emin)
+            Pf[not_finished] = Pin[not_finished]
+            cthf[not_finished] = np.cos(theta_in[not_finished])
+
+        # --- outputs ---
+        return part_id, d_fin, e_fin, cthf, Pf
 
 def tau_thru_layers(angle,depth,d_water,depth_traj,e_lep_in,xc_water,xc_rock,lep_ixc_water,lep_ixc_rock,alpha_water,
                        alpha_rock,beta_water,beta_rock,xalong,cdalong,idepth,lepton,prop_type, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P, earth_model):

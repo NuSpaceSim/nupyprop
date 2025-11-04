@@ -1,4 +1,0 @@
-.. _propagate:
-
-Propagation
-===========

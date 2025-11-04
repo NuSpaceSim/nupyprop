@@ -210,18 +210,25 @@ def int_beta(energy, beta_arr, rho, E_lep):
     return tot
 
 def idecay(energy, distance, m_le, c_tau):
-    """
+    '''
     Calculate decay probability of lepton.
 
-    Args:
-        energy (float): Charged lepton energy, in GeV.
-        distance (float): Distance of charged lepton travel, in cm.
-        m_le (float): Mass of charged lepton, in GeV.
-        c_tau (float): Decay length of charged lepton, in cm.
+    Parameters
+    ----------
+    energy : float 
+        Charged lepton energy, in GeV.
+    distance : float 
+        Distance of charged lepton travel, in cm.
+    m_le : float
+        Mass of charged lepton, in GeV.
+    c_tau : float 
+        Decay length of charged lepton, in cm.
 
-    Returns:
-        int: Decay status (0 means the charged lepton decayed, 1 means it did not decay).
-    """
+    Returns
+    -------
+    Decay : int
+        Decay status (0 means the charged lepton decayed, 1 means it did not decay).
+    '''
     # Calculate the Lorentz factor
     gamma_val = energy / m_le
 
@@ -229,10 +236,10 @@ def idecay(energy, distance, m_le, c_tau):
     prob_decay = 1.0 - np.exp(-distance / (gamma_val * c_tau))
 
     # Generate a random number between 0 and 1
-    dy = np.random.random()
+    dy = np.random.random(size=prob_decay.shape)
 
     # Determine the decay status based on the probability
-    decay = 0 if dy < prob_decay else 1
+    decay = (dy >= prob_decay).astype(int)  # 0 = decayed, 1 = survived
 
     return decay
 
