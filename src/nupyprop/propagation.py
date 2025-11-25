@@ -2,6 +2,8 @@
 Created on Wed June 19 15:21:03 2024
 
 @author: Luke Kupari and Diksha Garg
+Comments: This code is the main backbone, doing the propagation of neutrinos, 
+charged leptons, and regeneration of taus.
 
 """
 
@@ -10,10 +12,10 @@ import nupyprop.transport as transport
 import nupyprop.geometry as geometry
 import nupyprop.constants as const
 
-rho_water = const.rho_water #density of water, in g/cm3
-step_size = const.step_size #step size for continuous energy loss, in cm
-m_tau, m_mu = const.m_tau, const.m_mu #mass of tau and muon, in GeV
-ctau_tau, ctau_mu = const.ctau_tau, const.ctau_mu #ctau of tau and muon, in cm
+rho_water = const.rho_water # density of water, in g/cm3
+step_size = const.step_size # step size for continuous energy loss, in cm
+m_tau, m_mu = const.m_tau, const.m_mu # mass of tau and muon, in GeV
+ctau_tau, ctau_mu = const.ctau_tau, const.ctau_mu # ctau of tau and muon, in cm
 
 def propagate_nu(e_init, nu_xc, nu_ixc, depth_max, fac_nu, stats, Emin, E_nu, E_lep, yvals):
     '''
@@ -47,7 +49,8 @@ def propagate_nu(e_init, nu_xc, nu_ixc, depth_max, fac_nu, stats, Emin, E_nu, E_
     part_type : integer array
         Type of outgoing particle. 0 = neutrino; 1 = charged lepton
     d_travel : float array
-        Distance traveled until converted to charged lepton or total distance traveled by neutrino (if no conversion to charged lepton), in kmwe
+        Distance traveled until converted to charged lepton or total distance traveled by neutrino 
+        (if no conversion to charged lepton), in kmwe
     e_fin : float array
         Final neutrino energy, in GeV
     '''
@@ -88,11 +91,11 @@ def propagate_nu(e_init, nu_xc, nu_ixc, depth_max, fac_nu, stats, Emin, E_nu, E_
         d_travel[energy_depleted] = x_0[energy_depleted]
         active[energy_depleted] = False  # Stop simulations
 
-    final_mask = ~((e_fin <= Emin) | (part_type == 0)) #this will eliminate charged leptons with energy < Emin and neutrinos
+    final_mask = ~((e_fin <= Emin) | (part_type == 0)) # this will eliminate charged leptons 
+                                                       # with energy < Emin and neutrinos
 
-    #return part_type[final_mask], d_travel[final_mask], e_fin[final_mask]
-    return part_type, d_travel, e_fin
-
+    return part_type[final_mask], d_travel[final_mask], e_fin[final_mask]
+    
 def propagate_lep(e_init, angle, xc, lep_ixc, alpha, beta, d_entry, d_in, lepton, prop_type,
     medium, # either 'water' or 'rock'
     cthi, Pi,
@@ -458,128 +461,14 @@ def propagate_lep(e_init, angle, xc, lep_ixc, alpha, beta, d_entry, d_in, lepton
         # --- outputs ---
         return part_id, d_fin, e_fin, cthf, Pf
 
-def tau_thru_layers(angle,depth,d_water,depth_traj,e_lep_in,xc_water,xc_rock,lep_ixc_water,lep_ixc_rock,alpha_water,
-                       alpha_rock,beta_water,beta_rock,xalong,cdalong,idepth,lepton,prop_type, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P, earth_model):
-    '''
-
-    Args:
-        angle (Float): Earth emergence angle (beta), in degrees.
-        depth (Float): Total column depth of the chord, in kmwe.
-        d_water (Float): Column depth of the final layer of water (or full distance in water if only water layer), in kmwe.
-        depth_traj (Float): Column depth along the chord for a given Earth emergence angle, in kmwe.
-        e_lep_in (Float): Ingoing charged lepton energy, in GeV.
-        xc_water (np.ndarray): 2D array containing N_A/A*charged lepton-nucleon cross-section values in water, in cm^2/g.
-        xc_rock (np.ndarray): 2D array containing N_A/A*charged lepton-nucleon cross-section values in rock, in cm^2/g.
-        lep_ixc_water (np.ndarray): 3D array containing charged lepton integrated cross-section CDF values in water.
-        lep_ixc_rock (np.ndarray): 3D array containing charged lepton integrated cross-section CDF values in rock.
-        alpha_water (np.ndarray): 1D array containing ionization energy loss values in water, in (GeV*cm^2)/g.
-        alpha_rock (np.ndarray): 1D array containing ionization energy loss values in rock, in (GeV*cm^2)/g.
-        beta_water (np.ndarray): 2D array of beta values in water, in cm^2/g.
-        beta_rock (np.ndarray): 2D array of beta values in rock, in cm^2/g.
-        xalong (np.ndarray): 1D array containing distance in water, in km.
-        cdalong (np.ndarray): 1D array containing column depth at xalong, in g/cm^2.
-        idepth (Integer): Depth of water layer in km.
-        lepton (Integer): Type of charged lepton. 1=tau; 2=muon.
-        prop_type (Integer): Type of energy loss propagation. 1=stochastic, 2=continuous.
-        Emin : float
-            Minimum threshold energy for leptons, in GeV
-        E_nu : np.ndarray
-            Array of neutrino energiesm in GeV
-        E_lep : np.ndarray
-            Array of charged lepton energies, in GeV
-        yvals : np.ndarray
-            Array of min. y values from which the cross-section CDF is calculated
-        ypol : float array
-            Predefined inelasticity array
-        Pcthp :
-            np.cos(theta_P), where theta_P is the polar angle of the spin vector in tau rest frame
-        P : float array
-            Magnitude of polarization vector, defining the degree of polarization
-        earth_model : str
-            Earth density model, prem or ak135.
-
-    Returns:
-        part_type (Integer): Type of outgoing charged lepton. 0=decayed, 1=not decayed.
-        d_fin (Float): Distance traveled before charged lepton decays or total distance traveled by charged lepton, in kmwe.
-        e_fin (Float): Outgoing charged lepton energy, in GeV.
-        pcthf (FLoat): Final polarization after EM interaction of the tau lepton
-    '''
-    d_fin = depth_traj
-    col_depth = depth_traj*1e5 #g/cm^2
-    e_lep = e_lep_in # so e_lep_in doesn't change
-    e_fin = e_lep
-    part_type = 1 #tau going in
-    if e_lep < 1e3: #just in case
-        part_type = 0
-        d_fin = depth
-        return part_type, d_fin,e_fin,None
-
-    if (depth-depth_traj) < d_water:
-        rho = rho_water
-    else:
-        x = transport.cd2distd(xalong, cdalong, col_depth)
-        r, rho = geometry.densityatx(x, angle, idepth, earth_model) # find rho at x
-
-        if rho <= 0.0:
-            print('rho is 0')
-        if rho <= 1.5 and r < 6365.0:
-            print('rho too small')
-
-    if rho > 1.5: # we aren't in water yet
-        #print('WERE NOT IN WATER HELP')
-        d_in = depth - depth_traj - d_water #propagate this far in rock
-
-        part_type, d_f, e_fin, cthf, Pf = propagate_lep_rock(angle, e_lep, xc_rock, lep_ixc_rock, alpha_rock,
-                                                             beta_rock, depth_traj, d_in, xalong, cdalong,
-                                                             idepth, lepton,prop_type, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P, earth_model)
-
-        depth_traj = depth_traj + d_f
-
-        if part_type == 1 and idepth != 0: #still a tau; added and clause on 3/18
-
-            e_lep = e_fin
-            d_in = d_water
-            #depth_traj = depth_traj + d_f
-            #d_fin = depth_traj
-            Pi = Pf
-            cthi = cthf
-            part_type, d_f, e_fin, pcthf = propagate_lep_water(e_lep, xc_water, lep_ixc_water, alpha_water,
-                                                               beta_water, d_in, lepton, prop_type, cthi, Pi, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P)
-
-            depth_traj = depth_traj + d_f
-            d_fin = depth_traj
-
-        else:
-            pcthf = Pf*cthf
-            d_fin = depth_traj
-            return part_type,d_fin,e_fin,pcthf
-
-    else:
-        d_in =depth - depth_traj
-        Pi = 1.0
-        cthi = np.cos(0.0)
-
-        part_type,d_f,e_fin,pcthf = propagate_lep_water(e_lep, xc_water, lep_ixc_water, alpha_water, beta_water, d_in, lepton,
-                                                        prop_type, cthi, Pi, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P)
-        depth_traj = depth_traj + d_f
-        d_fin = depth_traj
-        return part_type,d_fin,e_fin,pcthf
-
-
-    return part_type,d_fin,e_fin,pcthf
-
-def tau_thru_layers_vectorized(angle, depth,d_water, depth_traj, 
-                               e_lep_in, xc_water, xc_rock, lep_ixc_water,
-                               lep_ixc_rock, alpha_water, alpha_rock, beta_water,
-                               beta_rock, xalong, cdalong, idepth, lepton, 
-                               prop_type, Emin, E_nu, E_lep, yvals, ypol, 
-                               Pcthp, P, earth_model, stats
-                       ):
+def tau_thru_layers(angle, depth,d_water, depth_traj, e_lep_in, xc_water, xc_rock, lep_ixc_water,
+                    lep_ixc_rock, alpha_water, alpha_rock, beta_water,
+                    beta_rock, xalong, cdalong, idepth, lepton, 
+                    prop_type, Emin, E_nu, E_lep, yvals, ypol, 
+                    Pcthp, P, earth_model, stats):
     """
     Vectorized version - arrays of input parameters
     """
-    
-    #generate arrays with some array with passed events.
     n_events = stats
     
     # Initialize output arrays
@@ -589,7 +478,7 @@ def tau_thru_layers_vectorized(angle, depth,d_water, depth_traj,
     pcthfs = np.ones(n_events)
     
     # Vectorized energy threshold check
-    low_energy_mask = e_lep_in < 1e3
+    low_energy_mask = (e_lep_in < Emin)
     part_types[low_energy_mask] = 0
     d_fins[low_energy_mask] = depth[low_energy_mask]
     
@@ -606,7 +495,7 @@ def tau_thru_layers_vectorized(angle, depth,d_water, depth_traj,
 
     water_condition = (depth[active_mask] - depth_traj[active_mask]) < d_water[active_mask]
     
-    rhos = np.full(np.sum(active_mask), const.rho_water)
+    rhos = np.full(np.sum(active_mask), rho_water)
     
     rock_mask = ~water_condition
     if np.any(rock_mask):
@@ -619,7 +508,7 @@ def tau_thru_layers_vectorized(angle, depth,d_water, depth_traj,
             rhos[j] = rho
             
         # split into processing groups
-        in_rock_mask_active = rhos > 1.5
+        in_rock_mask_active = (rhos > 1.5)
         in_water_mask_active = ~in_rock_mask_active
         
         if np.any(in_rock_mask_active):
@@ -653,8 +542,6 @@ def tau_thru_layers_vectorized(angle, depth,d_water, depth_traj,
                         cthi, Pi, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P
                     )
     return part_types, d_fins, e_fins, pcthfs
-
-
 
 def distnu(r, ithird, Pin):
     '''
@@ -694,106 +581,6 @@ def distnu(r, ithird, Pin):
     return dist_val
 
 def regen(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, xc_rock,
-          ixc_water, ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, idepth,
-          lepton, fac_nu, prop_type, Pin, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P, earth_model):
-    '''
-    Regeneration loop, should take a pin and also throw out pout. pin will be used by distnu and the pout
-       it throws will be used by the regen again as input in the single_stat() function.
-
-    Args:
-        angle (float): Earth emergence angle (beta), in degrees.
-        e_lep (float): Incoming charged lepton energy, in GeV.
-        depth (float): Total column depth of the chord, in kmwe.
-        d_water (float): Column depth of the final layer of water (or full distance in water if only water layer), in kmwe.
-        d_lep (float): Column depth along the chord for a given Earth emergence angle, in kmwe.
-        nu_xc (np.ndarray): 2D array containing neutrino CC & NC cross-section values, in cm^2.
-        nu_ixc (np.ndarray): 3D array containing neutrino integrated cross-section CDF values.
-        ithird (integer): Choice for neutrino -> charged lepton energy fraction selection.
-        xc_water (np.ndarray): 2D array containing N_A/A*charged lepton-nucleon cross-section values in water, in cm^2/g.
-        xc_rock (np.ndarray): 2D array containing N_A/A*charged lepton-nucleon cross-section values in rock, in cm^2/g.
-        ixc_water (np.ndarray): 3D array containing charged lepton integrated cross-section CDF values in water.
-        ixc_rock (np.ndarray): 3D array containing charged lepton integrated cross-section CDF values in rock.
-        alpha_water (np.ndarray): 1D array containing ionization energy loss values in water, in (GeV*cm^2)/g.
-        alpha_rock (np.ndarray): 1D array containing ionization energy loss values in rock, in (GeV*cm^2)/g.
-        beta_water (np.ndarray): 2D array of beta values in water, in cm^2/g.
-        beta_rock (np.ndarray): 2D array of beta values in rock, in cm^2/g.
-        xalong (np.ndarray): 1D array containing distance in water, in km.
-        cdalong (np.ndarray): 1D array containing column depth at xalong, in g/cm^2.
-        idepth (integer): Depth of water layer in km.
-        lepton (integer): Type of charged lepton. 1=tau; 2=muon.
-        fac_nu (float): Rescaling factor for SM neutrino cross-sections.
-        prop_type (integer): Type of energy loss propagation. 1=stochastic, 2=continuous.
-        Pin (float): tau's polarization input from tau passing thru layers
-        Emin : float
-            Minimum threshold energy for leptons, in GeV
-        E_nu : np.ndarray
-            Array of neutrino energiesm in GeV
-        E_lep : np.ndarray
-            Array of charged lepton energies, in GeV
-        yvals : np.ndarray
-            Array of min. y values from which the cross-section CDF is calculated
-        ypol : float array
-            Predefined inelasticity array
-        Pcthp :
-            np.cos(theta_P), where theta_P is the polar angle of the spin vector in tau rest frame
-        P : float array
-            Magnitude of polarization vector, defining the degree of polarization
-        earth_model : str
-            Earth density model, prem or ak135.
-
-    Returns:
-        part_type (integer): Type of outgoing particle. 0=neutrino; 3=exit.
-        d_exit (float): Distance traveled before charged lepton decays or total distance traveled by charged lepton, in kmwe.
-        e_fin (float): Final particle energy, in GeV.
-        Pout (float): Tau's polarization output from regen function
-    '''
-    r = np.random.random()
-    frac = distnu(r,ithird,Pin) # that pola input goes here as input and cal. the neutrino energy
-    e_nu = frac*e_lep
-
-    d_left = depth - d_lep # this is how are the neutrino can go
-    e_fin = e_nu #in case we need to exit
-    part_type = 3 #in case we need to exit
-
-    if d_left <= 0.0: # past the point of interactions allowed
-        d_exit = depth
-        Pout = Pin
-        return part_type, d_exit, e_fin, Pout
-
-    d_exit = d_lep #we are starting this far into the Earth with a neutrino
-    int_part = 0 # starting with a neutrino with energy e_nu; change later to string
-
-    int_part, dtr, etau2 = propagate_nu(e_nu, nu_xc, nu_ixc, d_left, fac_nu, Emin, E_nu, E_lep, yvals)
-    #print('int part after propagate_nu', int_part)
-    if int_part != 1: # neutrinos at the end
-        d_exit = depth
-        part_type = 0 #HLS =0
-        e_fin = etau2 #final neutrino energy
-        Pout = -2.0 #fake polarization value which will help us filter out the neutrino events
-        return part_type, d_exit, e_fin, Pout
-
-    #otherwise we have a tau
-    d_lep = d_lep + dtr
-    d_left = d_left - dtr
-    #print('dleft', d_left)
-    if d_left <= 0.0:
-        d_exit = depth
-        e_fin = etau2
-        part_type = 0
-        Pout = Pin
-        return part_type, d_exit, e_fin, Pout
-
-    #we have a tau with room to travel for tauthrulayers
-
-    part_type, d_exit, e_fin, Pi = tau_thru_layers(angle, depth, d_water, d_lep, etau2, xc_water, xc_rock, ixc_water, ixc_rock,
-         alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, idepth, lepton, prop_type, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P,
-         earth_model)
-
-    Pout = Pi
-
-    return part_type, d_exit, e_fin, Pout
-
-def regen_vectorized_simple(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, xc_rock,
             ixc_water, ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, idepth,
             lepton, fac_nu, prop_type, Pin, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P, earth_model, stats):
 
@@ -868,7 +655,7 @@ def regen_vectorized_simple(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, 
             if np.any(tau_go_mask):
                 go_idx = tau_idx[tau_go_mask]
 
-                ptype_sub, dexit_sub, efin_tau_sub, Pi_sub = tau_thru_layers_vectorized(
+                ptype_sub, dexit_sub, efin_tau_sub, Pi_sub = tau_thru_layers(
                     angle[go_idx], depth[go_idx], d_water[go_idx], d_lep_tau[tau_go_mask],
                     etau2_tau[tau_go_mask],
                     xc_water, xc_rock, ixc_water, ixc_rock, alpha_water, alpha_rock,

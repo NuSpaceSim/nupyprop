@@ -3,7 +3,10 @@
 """
 Created on Mon Mar 15 14:04:46 2021
 
-@author: Sameer Patel
+@author: Diksha Garg and Sameer Patel
+Comments: This is the main code where calls happen for propagating 
+neutrinos, charged leptons for each incoming neutrino energy and angle. 
+It also creates the final output file. 
 """
 
 import nupyprop.data as Data
@@ -279,6 +282,8 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, earth_model, id
 #
 # =============================================================================
 if __name__ == "__main__":
+    pass
+
     # for i in range(10):
     # random.seed(30)
     start_time = time.time()
