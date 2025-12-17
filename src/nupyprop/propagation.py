@@ -17,7 +17,7 @@ step_size = const.step_size # step size for continuous energy loss, in cm
 m_tau, m_mu = const.m_tau, const.m_mu # mass of tau and muon, in GeV
 ctau_tau, ctau_mu = const.ctau_tau, const.ctau_mu # ctau of tau and muon, in cm
 
-def propagate_nu(e_init, nu_xc, nu_ixc, depth_max, fac_nu, stats, Emin, E_nu, E_lep, yvals):
+def propagate_nu(e_init, nu_xc, nu_ixc, nu_bsm_xc, nu_bsm_ixc, depth_max, fac_nu, stats, Emin, E_nu, E_lep, yvals):
     '''
     Propagates a neutrino inside the Earth.
 
@@ -29,6 +29,10 @@ def propagate_nu(e_init, nu_xc, nu_ixc, depth_max, fac_nu, stats, Emin, E_nu, E_
         2D array containing neutrino CC & NC cross-section values, in cm^2
     nu_ixc : np.ndarray
         3D array containing neutrino integrated cross-section CDF values
+    nu_bsm_xc : np.ndarray 
+        2D array containing neutrino BSM CC & NC cross-section values, in cm^2.
+    nu_bsm_ixc : np.ndarray 
+        3D array containing BSM neutrino integrated cross-section CDF values.
     depth_max : float
         Maximum column depth for neutrino propagation, in kmwe
     fac_nu : float
@@ -63,7 +67,7 @@ def propagate_nu(e_init, nu_xc, nu_ixc, depth_max, fac_nu, stats, Emin, E_nu, E_
 
     while np.any(active):  # Continue until all neutrinos stop
         r = np.random.random(stats)
-        int_depth = transport.int_depth_nu(e_fin, nu_xc, fac_nu, E_nu)
+        int_depth = transport.int_depth_nu(e_fin, nu_xc, fac_nu, E_nu) #!!
         step_size = -int_depth * np.log(r) * 1e-5 # in kmwe
 
         x_0[active] += step_size[active]
@@ -73,12 +77,12 @@ def propagate_nu(e_init, nu_xc, nu_ixc, depth_max, fac_nu, stats, Emin, E_nu, E_
         active[exceeded] = False  # Stop these simulations
 
         # Compute interaction type
-        int_type = transport.interaction_type_nu(e_fin, nu_xc, fac_nu, E_nu)
+        int_type = transport.interaction_type_nu(e_fin, nu_xc, fac_nu, E_nu) #!!
         converted = (part_type == 0) & (int_type == 0) & active # Neutrino to Charged Lepton
         part_type[converted] = 1  # Convert neutrinos to charged leptons
 
         # Compute energy loss
-        y_fraction = transport.find_y(e_fin, nu_ixc, int_type, E_nu, E_lep, yvals)
+        y_fraction = transport.find_y(e_fin, nu_ixc, int_type, E_nu, E_lep, yvals) #!!
         e_fin[active] *= (1 - y_fraction[active])
 
         # Check for charged leptons

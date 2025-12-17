@@ -134,7 +134,7 @@ def init_ixc(nu_type, ch_lepton, nu_model, pn_model):
     return nu_ixc, lep_ixc_water, lep_ixc_rock
 
 
-def main(E_prop, angles, nu_type, cross_section_model, pn_model, earth_model, idepth, ch_lepton, fac_nu, stats, prop_type, elep_mode, htc_mode):
+def main(E_prop, angles, nu_type, cross_section_model, bsm_model, pn_model, earth_model, idepth, ch_lepton, fac_nu, stats, prop_type, elep_mode, htc_mode):
     '''
     Parameters
     ----------
@@ -146,6 +146,8 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, earth_model, id
         Type of neutrino particle. Can be neutrino or anti_neutrino.
     cross_section_model : str
         Neutrino cross-section model.
+    bsm_model : str
+        Neutrino BSM cross-section model.
     pn_model : str
         Photonuclear energy loss model.
     earth_model : str
@@ -174,6 +176,9 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, earth_model, id
     nu_xc, xc_water, xc_rock, alpha_water, alpha_rock, beta_water, beta_rock = init_xc(nu_type, ch_lepton, cross_section_model, pn_model, prop_type)
 
     nu_ixc, lep_ixc_water, lep_ixc_rock = init_ixc(nu_type, ch_lepton, cross_section_model, pn_model)
+
+    nu_bsm_xc, _,_,_,_,_,_ = init_xc(nu_type, ch_lepton, bsm_model, pn_model, prop_type)
+    nu_bsm_ixc, _,_ = init_ixc(nu_type, ch_lepton, bsm_model, pn_model)
 
     ithird = 0 # use dn/dy in tau to neutrino
 
@@ -205,7 +210,10 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, earth_model, id
 
             depthE = Geometry.columndepth(angle, idepth, earth_model)*1e-5 # column depth in kmwe
 
-            no_regen, regen = Run.run_stat_single(10**energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton_int, fac_nu, stats, prop_type_int, earth_model)
+            no_regen, regen, _, _ = Run.run_stat(10**energy, angle, nu_xc, nu_ixc, nu_bsm_xc, nu_bsm_ixc, depthE, dwater, xc_water, xc_rock, 
+                                                  lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, 
+                                                  beta_rock, xalong, cdalong, ithird, idepth, lepton_int, fac_nu, stats, 
+                                                  prop_type_int, earth_model)
 
             '''prob_no_regen = no_regen/float(stats)
             prob_regen = regen/float(stats)

@@ -92,6 +92,17 @@ def get_parser():
     )
 
     parser.add_argument(
+        "-bsm",
+        "--bsm_model",
+        dest="bsm_model_id",
+        nargs="?",
+        type=str,
+        const="bsm",
+        default="bsm",
+        help="neutrino cross-section model; default is bsm",
+    )
+
+    parser.add_argument(
         "-p",
         "--pn_model",
         dest="pn_model_id",
@@ -173,6 +184,7 @@ def main():
     if nu_type=='anti-neutrino':nu_type='anti_neutrino' # change here globally
     type_loss = str(args.loss_type)
     cross_section_model = str(args.xc_model_id)
+    bsm_model = str(args.bsm_model_id)
     pn_model = str(args.pn_model_id)
     earth_model = str(args.earth_model)
     energy_lepton = str(args.energy_lepton_id)
@@ -187,6 +199,7 @@ def main():
                   ["Depth of Water Layer [km]", idepth],
                   ["Energy Loss Propagation", type_loss.capitalize()],
                   ["Neutrino Cross Section Model", str.upper(cross_section_model)],
+                  ["BSM Cross Section Model", str.upper(bsm_model)],
                   ["Charged Lepton Photonuclear Energy Loss Model", str.upper(pn_model)],
                   ["Earth Density Model", str.upper(earth_model)],
                   ["Print Final Energy", energy_lepton.capitalize()],
@@ -201,6 +214,7 @@ def main():
         angles,
         nu_type,
         cross_section_model,
+        bsm_model,
         pn_model,
         earth_model,
         idepth,

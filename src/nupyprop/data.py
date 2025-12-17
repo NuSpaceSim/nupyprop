@@ -473,7 +473,6 @@ def get_ixc(part_type, model, arg, out=False):
             ascii.write(out_table, fnm, format='ecsv', fast_writer=False, overwrite=True)
             return print('%s cross-section CDF data saved to file %s' % (nu_type,fnm))
 
-        #return np.array(ixc_arr.T)
         return np.array(ixc_arr.T)
 
 

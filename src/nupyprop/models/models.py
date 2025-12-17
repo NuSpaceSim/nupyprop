@@ -131,7 +131,7 @@ def ctw_xc(): # CTW parameterization (eq. 7)
     anu_xc_table = Table([E_nu, sigma_anu_cc, sigma_anu_nc], names=('energy','sigma_cc_ctw','sigma_nc_ctw'), meta=anu_xc_meta) # anti-neutrino table
 
     fnm_anu = "xc_anti_neutrino_ctw.ecsv"
-    ascii.write(anu_xc_table, fnm_anu, format='ecsv', fast_writer=False, overwrite=True)
+    ascii.write(anu_xc_table, fnm_anu, format='ecsv', fast_writer=False, overwrite=True) 
 
     return None
 
