@@ -210,10 +210,10 @@ def main(E_prop, angles, nu_type, cross_section_model, bsm_model, pn_model, eart
 
             depthE = Geometry.columndepth(angle, idepth, earth_model)*1e-5 # column depth in kmwe
 
-            no_regen, regen, _, _ = Run.run_stat(10**energy, angle, nu_xc, nu_ixc, nu_bsm_xc, nu_bsm_ixc, depthE, dwater, xc_water, xc_rock, 
+            no_regen, regen, _ = Run.run_stat(10**energy, angle, nu_xc, nu_ixc, nu_bsm_xc, nu_bsm_ixc, depthE, dwater, xc_water, xc_rock, 
                                                   lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, 
-                                                  beta_rock, xalong, cdalong, ithird, idepth, lepton_int, fac_nu, stats, 
-                                                  prop_type_int, earth_model)
+                                                  beta_rock, xalong, cdalong, ithird, idepth, lepton_int, fac_nu,  
+                                                  prop_type_int, int(stats), earth_model)
 
             '''prob_no_regen = no_regen/float(stats)
             prob_regen = regen/float(stats)

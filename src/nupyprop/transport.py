@@ -82,7 +82,7 @@ def get_rho_frac(rho):
 
     return frac, frac_pn
 
-def int_xc_nu(energy, nu_xc, fac_nu, E_nu):
+def int_xc_nu(energy, nu_xc, nu_bsm_xc, fac_nu, E_nu):
     '''
     Interpolate between neutrino energy & cross-section values.
 
@@ -92,6 +92,8 @@ def int_xc_nu(energy, nu_xc, fac_nu, E_nu):
         Energy to interpolate at, in GeV.
     nu_xc : numpy.ndarray
         2D array of neutrino cross-section values.
+    nu_bsm_xc : np.ndarray 
+        2D array containing neutrino BSM CC & NC cross-section values, in cm^2.
     fac_nu : float
         Rescaling factor for SM neutrino cross-sections.
     E_nu : numpy.ndarray
@@ -108,12 +110,14 @@ def int_xc_nu(energy, nu_xc, fac_nu, E_nu):
     # Perform interpolation
     sig_cc = np.interp(energy, E_nu, nu_xc[:, 0])
     sig_nc = np.interp(energy, E_nu, nu_xc[:, 1])
+    sig_bsm = np.interp(energy, E_nu, nu_bsm_xc[:, 0])
 
     # Apply rescaling factor
     sig_cc *= fac_nu
     sig_nc *= fac_nu
+    sig_bsm *= fac_nu
 
-    return sig_cc, sig_nc
+    return sig_cc, sig_nc, sig_bsm
 
 def int_xc_lep(energy, xc_arr, rho, E_lep):
     '''
@@ -279,7 +283,7 @@ def em_cont_part(E_init, alpha_val, beta_val, x, m_le):
 
     return E_fin
 
-def int_depth_nu(energy, nu_xc, fac_nu, E_nu):
+def int_depth_nu(energy, nu_xc, nu_bsm_xc, fac_nu, E_nu):
     '''
     Calculate neutrino interaction depth.
     int_depth = M/(N_A*sigma_tot)
@@ -292,6 +296,8 @@ def int_depth_nu(energy, nu_xc, fac_nu, E_nu):
         Rescaling factor for SM neutrino cross-sections.
     nu_xc : np.ndarray
         2D array containing neutrino CC & NC cross-section values, in cm^2.
+    nu_bsm_xc : np.ndarray 
+        2D array containing neutrino BSM CC & NC cross-section values, in cm^2.
     E_nu : numpy.ndarray
         Array of neutrino energy
 
@@ -300,8 +306,8 @@ def int_depth_nu(energy, nu_xc, fac_nu, E_nu):
     x_int : float array
         Neutrino interaction depth, in cm^2/g.
     '''
-    sig_cc, sig_nc = int_xc_nu(energy, nu_xc, fac_nu, E_nu)
-    sig_weak = sig_cc + sig_nc # weak interactions
+    sig_cc, sig_nc, sig_bsm = int_xc_nu(energy, nu_xc, nu_bsm_xc, fac_nu, E_nu)
+    sig_weak = sig_cc + sig_nc + sig_bsm # weak interactions
     x_int = 1.0 / (N_A * sig_weak)
 
     return x_int
@@ -350,7 +356,7 @@ def int_depth_lep(energy, xc_arr, rho, m_le, c_tau, E_lep):
 
     return x_int
 
-def interaction_type_nu(energy, nu_xc, fac_nu, E_nu):
+def interaction_type_nu(energy, nu_xc, nu_bsm_xc, fac_nu, E_nu):
     '''
     Determine the type of neutrino-nucleon interaction.
 
@@ -360,6 +366,8 @@ def interaction_type_nu(energy, nu_xc, fac_nu, E_nu):
         Neutrino energy, in GeV.
     nu_xc : np.ndarray
         2D array containing neutrino CC & NC cross-section values, in cm^2.
+    nu_bsm_xc : np.ndarray 
+        2D array containing neutrino BSM CC & NC cross-section values, in cm^2.
     fac_nu : float
         Rescaling factor for SM neutrino cross-sections.
     E_nu : numpy.ndarray
@@ -371,17 +379,22 @@ def interaction_type_nu(energy, nu_xc, fac_nu, E_nu):
         Type of neutrino interaction. 0=CC; 1=NC.
     '''
     # Interpolate CC & NC cross-section values
-    sig_cc, sig_nc = int_xc_nu(energy, nu_xc, fac_nu, E_nu)
+    sig_cc, sig_nc, sig_bsm = int_xc_nu(energy, nu_xc, nu_bsm_xc, fac_nu, E_nu)
 
     # Calculate the total and CC fraction of the cross-section
-    tot_frac = sig_cc + sig_nc
+    tot_frac = sig_cc + sig_nc + sig_bsm
     cc_frac = sig_cc / tot_frac
+    bsm_frac = sig_bsm / tot_frac
 
     # Generate a random number
     x = np.random.random(size=energy.shape)
 
     # Determine the interaction type based on the random number
-    int_type = (x > cc_frac).astype(int)  # 0 for CC, 1 for NC (vectorized)
+    int_type = np.empty_like(x, dtype=int)
+    int_type[x < bsm_frac] = 2      # BSM
+    int_type[(x >= bsm_frac) & (x < cc_frac)] = 0  # CC
+    int_type[x >= cc_frac] = 1      # NC
+    #int_type = (x > cc_frac).astype(int)  # 0 for CC, 1 for NC (vectorized)
 
     return int_type
 
@@ -451,7 +464,7 @@ def interaction_type_lep(energy, xc_arr, rho, m_le, c_tau, E_lep):
 
     return int_type
 
-def find_y(energy, ixc_arr, ip, E_nu, E_lep, yvals):
+def find_y(energy, ixc_arr, ixc_bsm_arr, ip, E_nu, E_lep, yvals):
     '''
     Stochastic determination of neutrino/lepton inelasticity.
 
@@ -461,6 +474,8 @@ def find_y(energy, ixc_arr, ip, E_nu, E_lep, yvals):
         Neutrino or charged lepton energy, in GeV.
     ixc_arr : np.ndarray
         Neutrino or charged lepton integrated cross-section CDF values.
+    ixc_bsm_arr : np.ndarray
+        Neutrino BSM integrated cross-section CDF values.
     ip : int array
         Type of neutrino-nucleon or lepton-nucleon interaction.
     E_nu : np.ndarray
@@ -472,31 +487,58 @@ def find_y(energy, ixc_arr, ip, E_nu, E_lep, yvals):
 
     Returns
     ----------
-    y : float array
+    y_out : float array
         Inelasticity, y = (E_init-E_final)/E_initial.
     '''
-    # Determine energy index based on interaction type
-    is_neutrino = (ip == 0) | (ip == 1)  # Mask for neutrinos
+    y_out = np.empty_like(energy, dtype=float)
 
-    # Compute energy indices efficiently
-    energy_index = np.where(
-        is_neutrino, np.searchsorted(E_nu, energy), np.searchsorted(E_lep, energy)
-    )
+    is_sm_nu  = (ip == 0) | (ip == 1)   # neutrino CC/NC
+    is_bsm_nu = (ip == 2)               # neutrino BSM
+    is_lep    = ~(is_sm_nu | is_bsm_nu) # charged lepton (brem=3, pair=4, pn=5)
 
-    #Neutrinos: CC=0, NC=1 and for charged leptons: brem=1, PP=2, PN=3
-    ip_id = np.where(is_neutrino, ip, ip - 3)
+    # Energy index: neutrinos use E_nu, leptons use E_lep
+    energy_index = np.empty_like(ip, dtype=int)
+    if np.any(is_sm_nu | is_bsm_nu):
+        energy_index[is_sm_nu | is_bsm_nu] = np.searchsorted(E_nu, energy[is_sm_nu | is_bsm_nu])
+    if np.any(is_lep):
+        energy_index[is_lep] = np.searchsorted(E_lep, energy[is_lep])
 
-    #cross-section CDF value array for energy_index
-    search_arr = np.asarray([ixc_arr[:, e, i] for e, i in zip(energy_index, ip_id)])
+    # --- SM neutrino part: ip 0/1 uses ixc_arr with i = ip ---
+    if np.any(is_sm_nu):
+        e = energy_index[is_sm_nu]
+        i = ip[is_sm_nu]  # 0 or 1
 
-    #randomly sampled cross-section CDF value (between 0 & 1)
-    dy = np.random.random(size=energy.shape)
-    y = np.array([np.interp(d, search, yvals) for d, search in zip(dy, search_arr)])
-    # y is the interpolated (yvals) value corresponding to the cross-section CDF value = dy; this y is responsible for stochastic energy losses
+        search_arr = np.asarray([ixc_arr[:, ee, ii] for ee, ii in zip(e, i)])
 
-    y = np.minimum(y, 1.0) #such that y>1 never happens
+        dy = np.random.random(size=e.shape)
+        y_out[is_sm_nu] = np.array([np.interp(d, s, yvals) for d, s in zip(dy, search_arr)])
 
-    return y
+    # --- BSM neutrino part: ip 2 uses ixc_bsm_arr (usually single channel i=0) ---
+    if np.any(is_bsm_nu):
+        e = energy_index[is_bsm_nu]
+
+        # If ixc_bsm_arr has only one interaction channel, use i=0 for all:
+        i = np.zeros_like(e, dtype=int)
+
+        search_arr = np.asarray([ixc_bsm_arr[:, ee, ii] for ee, ii in zip(e, i)])
+
+        dy = np.random.random(size=e.shape)
+        y_out[is_bsm_nu] = np.array([np.interp(d, s, yvals) for d, s in zip(dy, search_arr)])
+
+    # --- Lepton part (only if this function is also used there) ---
+    if np.any(is_lep):
+        e = energy_index[is_lep]
+
+        # charged leptons: brem=0, PP=1, PN=2
+        i = ip[is_lep] - 3
+
+        search_arr = np.asarray([ixc_arr[:, ee, ii] for ee, ii in zip(e, i)])
+
+        dy = np.random.random(size=e.shape)
+        y_out[is_lep] = np.array([np.interp(d, s, yvals) for d, s in zip(dy, search_arr)])
+
+    y_out = np.minimum(y_out, 1.0)
+    return y_out
 
 def polarization(y, pin, theta_in, ypol, Pcthp, P):
     '''

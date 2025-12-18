@@ -64,10 +64,10 @@ def propagate_nu(e_init, nu_xc, nu_ixc, nu_bsm_xc, nu_bsm_ixc, depth_max, fac_nu
     d_travel = depth_max.astype(float).copy()  # Default to depth_max in kmwe
 
     active = np.ones(stats, dtype=bool)  # Track active simulations
-
+          
     while np.any(active):  # Continue until all neutrinos stop
         r = np.random.random(stats)
-        int_depth = transport.int_depth_nu(e_fin, nu_xc, fac_nu, E_nu) #!!
+        int_depth = transport.int_depth_nu(e_fin, nu_xc, nu_bsm_xc, fac_nu, E_nu) 
         step_size = -int_depth * np.log(r) * 1e-5 # in kmwe
 
         x_0[active] += step_size[active]
@@ -77,18 +77,27 @@ def propagate_nu(e_init, nu_xc, nu_ixc, nu_bsm_xc, nu_bsm_ixc, depth_max, fac_nu
         active[exceeded] = False  # Stop these simulations
 
         # Compute interaction type
-        int_type = transport.interaction_type_nu(e_fin, nu_xc, fac_nu, E_nu) #!!
-        converted = (part_type == 0) & (int_type == 0) & active # Neutrino to Charged Lepton
-        part_type[converted] = 1  # Convert neutrinos to charged leptons
+        int_type = transport.interaction_type_nu(e_fin, nu_xc, nu_bsm_xc, fac_nu, E_nu) 
 
         # Compute energy loss
-        y_fraction = transport.find_y(e_fin, nu_ixc, int_type, E_nu, E_lep, yvals) #!!
+        y_fraction = transport.find_y(e_fin, nu_ixc, nu_bsm_ixc, int_type, E_nu, E_lep, yvals)
         e_fin[active] *= (1 - y_fraction[active])
 
         # Check for charged leptons
+        converted = (part_type == 0) & (int_type == 0) & active # Neutrino to Charged Lepton
+        part_type[converted] = 1  # Convert neutrinos to charged leptons
+
         new_leptons = (part_type == 1) & active
         d_travel[new_leptons] = x_0[new_leptons]  # Update travel distances
         active[new_leptons] = False  # Stop these simulations
+
+        # Selecting BSM interactions
+        converted = (part_type == 0) & (int_type == 2) & active # Neutrino to BSM particle
+        part_type[converted] = 2  # Convert neutrinos to BSM particle
+
+        bsm_particle_mask = (part_type == 2) & active 
+        d_travel[bsm_particle_mask] = x_0[bsm_particle_mask]
+        active[bsm_particle_mask] = False
 
         # Check which events should stop due to energy loss
         energy_depleted = (e_fin <= Emin) & active
