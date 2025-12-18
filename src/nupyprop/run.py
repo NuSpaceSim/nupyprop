@@ -8,7 +8,7 @@ propagate neutrinos and charged leptons.
 
 from nupyprop import propagation
 import numpy as np
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import nupyprop.constants as const
 
 batch_num = const.batch_num #batch size to divide the total stats
@@ -97,7 +97,7 @@ def run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, le
     depthE_arr = np.full(stats, depthE)       # total column depth for given angle (kmwe)
 
     ############# propagate neutrinos #############
-    _, dlep, elep = propagation.propagate_nu(energy_arr, nu_xc, nu_ixc, depthE_arr, fac_nu, stats, 
+    id, dlep, elep = propagation.propagate_nu(energy_arr, nu_xc, nu_ixc, depthE_arr, fac_nu, stats, 
                                            Emin, E_nu, E_lep, yvals)
 
     stats_cl = len(dlep) # number of charged leptons
@@ -187,6 +187,7 @@ def run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, le
 
     return no_regen_tot, regen_tot, e_out, P_out
 
+
 '''part_id, d_fin, e_fin, cthf, Pf = propagation.propagate_lep(energy_arr, angle, xc_water, lep_ixc_water, alpha_water, beta_water, depth0_arr, dwater_arr, lepton, 
                                                             prop_type,
                                                             'water', # either 'water' or 'rock'
@@ -204,93 +205,93 @@ part_id, d_fin, e_fin, cthf, Pf = propagation.propagate_lep(energy_arr, angle, x
 # def run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
 #                     alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu,
 #                     stats, prop_type, earth_model):
-    '''
-    Run a loop for all ingoing neutrinos
+'''
+Run a loop for all ingoing neutrinos
 
-    Parameters
-    ----------
-    energy (float): Incoming neutrino energy, in GeV.
-    angle (float): Earth emergence angle (beta), in degrees.
-    nu_xc (np.ndarray): 2D array containing neutrino CC & NC cross-section values, in cm^2.
-    nu_ixc (np.ndarray): 3D array containing neutrino integrated cross-section CDF values.
-    depthE (float): Total column depth for a given Earth emergence angle, in kmwe.
-    dwater (float): Column depth along the chord for a given Earth emergence angle, in kmwe.
-    xc_water (np.ndarray): 2D array containing N_A/A*charged lepton-nucleon cross-section values in water, in cm^2/g.
-    xc_rock (np.ndarray): 2D array containing N_A/A*charged lepton-nucleon cross-section values in rock, in cm^2/g.
-    lep_ixc_water (np.ndarray): 3D array containing charged lepton integrated cross-section CDF values in water.
-    lep_ixc_rock (np.ndarray): 3D array containing lepton integrated cross-section CDF values in rock.
-    alpha_water (np.ndarray): 1D array containing ionization energy loss values in water, in (GeV*cm^2)/g.
-    alpha_rock (np.ndarray): 1D array containing ionization energy loss values in rock, in (GeV*cm^2)/g.
-    beta_water (np.ndarray): 2D array of beta values in water, in cm^2/g.
-    beta_rock (np.ndarray): 2D array of beta values in rock, in cm^2/g.
-    xalong (np.ndarray): 1D array containing distance in water, in km.
-    cdalong (np.ndarray): 1D array containing column depth at xalong, in g/cm^2.
-    ithird (integer): Choice for neutrino -> charged lepton energy fraction selection.
-    idepth (integer): Depth of water layer in km.
-    lepton (integer): Type of charged lepton. 1=tau; 2=muon.
-    fac_nu (float): Rescaling factor for SM neutrino cross-sections.
-    stats (integer): Statistics or no. of ingoing neutrinos.
-    prop_type (integer): Type of energy loss propagation. 1=stochastic, 2=continuous.
-    earth_model (str): Earth density model, prem or ak135.
+Parameters
+----------
+energy (float): Incoming neutrino energy, in GeV.
+angle (float): Earth emergence angle (beta), in degrees.
+nu_xc (np.ndarray): 2D array containing neutrino CC & NC cross-section values, in cm^2.
+nu_ixc (np.ndarray): 3D array containing neutrino integrated cross-section CDF values.
+depthE (float): Total column depth for a given Earth emergence angle, in kmwe.
+dwater (float): Column depth along the chord for a given Earth emergence angle, in kmwe.
+xc_water (np.ndarray): 2D array containing N_A/A*charged lepton-nucleon cross-section values in water, in cm^2/g.
+xc_rock (np.ndarray): 2D array containing N_A/A*charged lepton-nucleon cross-section values in rock, in cm^2/g.
+lep_ixc_water (np.ndarray): 3D array containing charged lepton integrated cross-section CDF values in water.
+lep_ixc_rock (np.ndarray): 3D array containing lepton integrated cross-section CDF values in rock.
+alpha_water (np.ndarray): 1D array containing ionization energy loss values in water, in (GeV*cm^2)/g.
+alpha_rock (np.ndarray): 1D array containing ionization energy loss values in rock, in (GeV*cm^2)/g.
+beta_water (np.ndarray): 2D array of beta values in water, in cm^2/g.
+beta_rock (np.ndarray): 2D array of beta values in rock, in cm^2/g.
+xalong (np.ndarray): 1D array containing distance in water, in km.
+cdalong (np.ndarray): 1D array containing column depth at xalong, in g/cm^2.
+ithird (integer): Choice for neutrino -> charged lepton energy fraction selection.
+idepth (integer): Depth of water layer in km.
+lepton (integer): Type of charged lepton. 1=tau; 2=muon.
+fac_nu (float): Rescaling factor for SM neutrino cross-sections.
+stats (integer): Statistics or no. of ingoing neutrinos.
+prop_type (integer): Type of energy loss propagation. 1=stochastic, 2=continuous.
+earth_model (str): Earth density model, prem or ak135.
 
-    Returns
-    --------
-    no_regen_tot (integer): No. of outgoing charged leptons without regeneration.
-    regen_tot (integer): No. of outgoing charged leptons with regeneration.
-    '''
+Returns
+--------
+no_regen_tot (integer): No. of outgoing charged leptons without regeneration.
+regen_tot (integer): No. of outgoing charged leptons with regeneration.
+'''
 
-    # format = "{:.2f}"
-    # Efilename = 'eout_'+ str(format.format(np.log10(energy))) + '_' + str(angle) + '.dat'
-    # Pfilename = 'Pout_'+ str(format.format(np.log10(energy))) + '_' + str(angle) + '.dat'
-    # no_regen_tot = 0
-    # regen_tot = 0
-    # with open(Efilename, 'a') as e_file, open(Pfilename, 'a') as p_file:
-    #     #iparr, dtrarr, efarr = [], [], []
-    #     '''for i in tqdm(range(batch_num)):
-    #         tempnrt, temprt, ef = single_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
-    #         alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu, prop_type, int(stats/batch_num),
-    #         e_file, p_file)
-    #         # iparr.append(tempnrt)
-    #         # dtrarr.append(temprt)
-    #         # efarr.append(ef)
-    #         #no_regen_tot = no_regen_tot + tempnrt
-    #         #regen_tot = regen_tot + temprt'''
+# format = "{:.2f}"
+# Efilename = 'eout_'+ str(format.format(np.log10(energy))) + '_' + str(angle) + '.dat'
+# Pfilename = 'Pout_'+ str(format.format(np.log10(energy))) + '_' + str(angle) + '.dat'
+# no_regen_tot = 0
+# regen_tot = 0
+# with open(Efilename, 'a') as e_file, open(Pfilename, 'a') as p_file:
+#     #iparr, dtrarr, efarr = [], [], []
+#     '''for i in tqdm(range(batch_num)):
+#         tempnrt, temprt, ef = single_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
+#         alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu, prop_type, int(stats/batch_num),
+#         e_file, p_file)
+#         # iparr.append(tempnrt)
+#         # dtrarr.append(temprt)
+#         # efarr.append(ef)
+#         #no_regen_tot = no_regen_tot + tempnrt
+#         #regen_tot = regen_tot + temprt'''
 
-    #     part_id, d_fin, e_fin, cthf, Pf = single_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, 
-    #                                                   xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
-    #                                                   alpha_water, alpha_rock, beta_water, beta_rock,
-    #                                                   xalong, cdalong, ithird, idepth, lepton, fac_nu,
-    #                                                   prop_type, stats, earth_model)
+#     part_id, d_fin, e_fin, cthf, Pf = single_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, 
+#                                                   xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
+#                                                   alpha_water, alpha_rock, beta_water, beta_rock,
+#                                                   xalong, cdalong, ithird, idepth, lepton, fac_nu,
+#                                                   prop_type, stats, earth_model)
 
-    # e_file.close()
-    # p_file.close()
+# e_file.close()
+# p_file.close()
 
-    # plt.hist(part_id, 50)
-    # plt.xlabel("id")
-    # plt.yscale('log')
-    # plt.title(f"Angle={angle}")
-    # plt.savefig(f"1e{np.log10(energy)}GeV_{angle}deg_part_id.png")
-    # plt.show()
+# plt.hist(part_id, 50)
+# plt.xlabel("id")
+# plt.yscale('log')
+# plt.title(f"Angle={angle}")
+# plt.savefig(f"1e{np.log10(energy)}GeV_{angle}deg_part_id.png")
+# plt.show()
 
-    # plt.hist(d_fin, 50)
-    # plt.xlabel("dfinal")
-    # plt.yscale('log')
-    # plt.title(f"Angle={angle}")
-    # plt.savefig(f"1e{np.log10(energy)}GeV_{angle}deg_dfinal.png")
-    # plt.show()
+# plt.hist(d_fin, 50)
+# plt.xlabel("dfinal")
+# plt.yscale('log')
+# plt.title(f"Angle={angle}")
+# plt.savefig(f"1e{np.log10(energy)}GeV_{angle}deg_dfinal.png")
+# plt.show()
 
-    # plt.hist(e_fin, 20)
-    # plt.xlabel("efinal")
-    # plt.title(f"Angle={angle}")
-    # plt.loglog()
-    # plt.savefig(f"1e{np.log10(energy)}GeV_{angle}deg_efinal.png")
-    # plt.show()
+# plt.hist(e_fin, 20)
+# plt.xlabel("efinal")
+# plt.title(f"Angle={angle}")
+# plt.loglog()
+# plt.savefig(f"1e{np.log10(energy)}GeV_{angle}deg_efinal.png")
+# plt.show()
 
-    # plt.hist(Pf*cthf, 50)
-    # plt.xlabel("polarization")
-    # plt.title(f"Angle={angle}")
-    # plt.semilogy()
-    # plt.savefig(f"1e{np.log10(energy)}GeV_{angle}deg_polarization.png")
-    # plt.show()
+# plt.hist(Pf*cthf, 50)
+# plt.xlabel("polarization")
+# plt.title(f"Angle={angle}")
+# plt.semilogy()
+# plt.savefig(f"1e{np.log10(energy)}GeV_{angle}deg_polarization.png")
+# plt.show()
 
-    # return no_regen_tot,regen_tot
+# return no_regen_tot,regen_tot
