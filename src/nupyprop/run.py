@@ -100,7 +100,7 @@ def run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, le
     id, dlep, elep = propagation.propagate_nu(energy_arr, nu_xc, nu_ixc, depthE_arr, fac_nu, stats, 
                                            Emin, E_nu, E_lep, yvals)
 
-    stats_cl = len(dlep) # number of charged leptons
+    '''stats_cl = len(dlep) # number of charged leptons
     if stats_cl == 0:
         # no charged leptons produced at all
         return (np.zeros(0, dtype=int),
@@ -185,8 +185,29 @@ def run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, le
 
         # Regen_count > 6 automatically deactivated next iteration
 
-    return no_regen_tot, regen_tot, e_out, P_out
+    return no_regen_tot, regen_tot, e_out, P_out'''
+    plt.hist(id, 50)
+    plt.xlabel("id")
+    plt.yscale('log')
+    plt.title(f"Angle={angle}")
+    #plt.savefig(f"1e{np.log10(energy)}GeV_{angle}deg_part_id.png")
+    plt.show()
 
+    plt.hist(dlep, 50)
+    plt.xlabel("dfinal")
+    plt.yscale('log')
+    plt.title(f"Angle={angle}")
+    #plt.savefig(f"1e{np.log10(energy)}GeV_{angle}deg_dfinal.png")
+    plt.show()
+
+    plt.hist(elep, 20)
+    plt.xlabel("efinal")
+    plt.title(f"Angle={angle}")
+    plt.loglog()
+    #plt.savefig(f"1e{np.log10(energy)}GeV_{angle}deg_efinal.png")
+    plt.show()
+    
+    return id, dlep, elep
 
 '''part_id, d_fin, e_fin, cthf, Pf = propagation.propagate_lep(energy_arr, angle, xc_water, lep_ixc_water, alpha_water, beta_water, depth0_arr, dwater_arr, lepton, 
                                                             prop_type,

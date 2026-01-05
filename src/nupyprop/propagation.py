@@ -91,7 +91,7 @@ def propagate_nu(e_init, nu_xc, nu_ixc, depth_max, fac_nu, stats, Emin, E_nu, E_
         d_travel[energy_depleted] = x_0[energy_depleted]
         active[energy_depleted] = False  # Stop simulations
 
-    final_mask = ~((e_fin <= Emin) | (part_type == 0)) # this will eliminate charged leptons 
+    final_mask = ~((e_fin <= Emin)) # | (part_type == 0)) # this will eliminate charged leptons 
                                                        # with energy < Emin and neutrinos
 
     return part_type[final_mask], d_travel[final_mask], e_fin[final_mask]
