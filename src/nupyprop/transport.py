@@ -9,6 +9,7 @@ Comment: This code contains all the functions that are required in the propagati
 """
 import numpy as np
 import nupyprop.constants as const
+import matplotlib.pyplot as plt
 
 N_A = const.N_A # Avogadro's number
 rho_rock = const.rho_rock # rock density
@@ -509,6 +510,9 @@ def find_y(energy, ixc_arr, ixc_bsm_arr, ip, E_nu, E_lep, yvals):
         i = ip[is_sm_nu]  # 0 or 1
 
         search_arr = np.asarray([ixc_arr[:, ee, ii] for ee, ii in zip(e, i)])
+        print("energy = ", energy, e.shape, 1-search_arr[0])
+        plt.loglog(yvals, 1-search_arr[0])
+        plt.show()
 
         dy = np.random.random(size=e.shape)
         y_out[is_sm_nu] = np.array([np.interp(d, s, yvals) for d, s in zip(dy, search_arr)])
@@ -521,6 +525,10 @@ def find_y(energy, ixc_arr, ixc_bsm_arr, ip, E_nu, E_lep, yvals):
         i = np.zeros_like(e, dtype=int)
 
         search_arr = np.asarray([ixc_bsm_arr[:, ee, ii] for ee, ii in zip(e, i)])
+
+        print("energy = ", energy, e.shape, 1-search_arr[0]) ###something off here!!!!!
+        plt.loglog(yvals, 1-search_arr[0])
+        plt.show()
 
         dy = np.random.random(size=e.shape)
         y_out[is_bsm_nu] = np.array([np.interp(d, s, yvals) for d, s in zip(dy, search_arr)])
