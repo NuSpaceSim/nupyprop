@@ -205,7 +205,8 @@ def run_stat(energy, angle, nu_xc, nu_ixc, nu_bsm_xc, nu_bsm_ixc, depthE, dwater
     #plt.savefig(f"1e{np.log10(energy)}GeV_{angle}deg_dfinal.png")
     plt.show()
 
-    plt.hist(elep, 20)
+    bins = np.logspace(np.log10(elep.min()), np.log10(elep.max()), 50)
+    plt.hist(elep, bins=bins)
     plt.xlabel("efinal")
     plt.title(f"Angle={angle}")
     plt.loglog()
@@ -229,7 +230,8 @@ def run_stat(energy, angle, nu_xc, nu_ixc, nu_bsm_xc, nu_bsm_ixc, depthE, dwater
     #plt.savefig(f"1e{np.log10(energy)}GeV_{angle}deg_dfinal.png")
     plt.show()
 
-    plt.hist(elep[mask], 20)
+    bins = np.logspace(np.log10(elep[mask].min()), np.log10(elep[mask].max()), 50)
+    plt.hist(elep[mask], bins=bins)
     plt.xlabel("efinal")
     plt.title(f"Angle={angle} - nu BSM interaction")
     plt.loglog()

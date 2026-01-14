@@ -62,13 +62,16 @@ def propagate_nu(e_init, nu_xc, nu_ixc, nu_bsm_xc, nu_bsm_ixc, depth_max, fac_nu
     e_fin = e_init.astype(float).copy()  # Initialize all with e_init
     x_0 = np.zeros(stats, dtype=np.float32)  # Depth in kmwe
     d_travel = depth_max.astype(float).copy()  # Default to depth_max in kmwe
+    print("depth_max = ", depth_max)
 
     active = np.ones(stats, dtype=bool)  # Track active simulations
-          
+
+    i=0
     while np.any(active):  # Continue until all neutrinos stop
         r = np.random.random(stats)
         int_depth = transport.int_depth_nu(e_fin, nu_xc, nu_bsm_xc, fac_nu, E_nu) 
         step_size = -int_depth * np.log(r) * 1e-5 # in kmwe
+        print("step_size = ", step_size)
 
         x_0[active] += step_size[active]
 
@@ -78,22 +81,25 @@ def propagate_nu(e_init, nu_xc, nu_ixc, nu_bsm_xc, nu_bsm_ixc, depth_max, fac_nu
 
         # Compute interaction type
         int_type = transport.interaction_type_nu(e_fin, nu_xc, nu_bsm_xc, fac_nu, E_nu) 
+        # print("int_type = ", int_type)
 
         # Compute energy loss
         y_fraction = transport.find_y(e_fin, nu_ixc, nu_bsm_ixc, int_type, E_nu, E_lep, yvals)
         e_fin[active] *= (1 - y_fraction[active])
+        # print(e_fin)
+        # print(e_fin[e_fin<1e4])
 
         # Check for charged leptons
-        converted = (part_type == 0) & (int_type == 0) & active # Neutrino to Charged Lepton
-        part_type[converted] = 1  # Convert neutrinos to charged leptons
+        converted = (part_type == 0) & (int_type == 0) & active # Neutrino to Charged Lepton SM
+        part_type[converted] = 1  # Convert neutrinos to charged leptons SM
 
         new_leptons = (part_type == 1) & active
         d_travel[new_leptons] = x_0[new_leptons]  # Update travel distances
         active[new_leptons] = False  # Stop these simulations
 
         # Selecting BSM interactions
-        converted = (part_type == 0) & (int_type == 2) & active # Neutrino to BSM particle
-        part_type[converted] = 2  # Convert neutrinos to BSM particle
+        converted = (part_type == 0) & (int_type == 2) & active # Neutrino to charged particle BSM
+        part_type[converted] = 2  # Convert neutrinos to charged particles BSM
 
         bsm_particle_mask = (part_type == 2) & active 
         d_travel[bsm_particle_mask] = x_0[bsm_particle_mask]
@@ -104,7 +110,10 @@ def propagate_nu(e_init, nu_xc, nu_ixc, nu_bsm_xc, nu_bsm_ixc, depth_max, fac_nu
         d_travel[energy_depleted] = x_0[energy_depleted]
         active[energy_depleted] = False  # Stop simulations
 
-    final_mask = ~((e_fin <= Emin) | (part_type == 0)) # this will eliminate charged leptons 
+        print("******** i = ", i+1)
+        break
+
+    final_mask = ~((e_fin <= Emin)) # | (part_type == 0)) # this will eliminate charged leptons 
                                                        # with energy < Emin and neutrinos
 
     return part_type[final_mask], d_travel[final_mask], e_fin[final_mask]
