@@ -273,7 +273,7 @@ def em_cont_part(E_init, alpha_val, beta_val, x, m_le):
         E_init * (1 - bx) - alpha_val * x,
         E_init * np.exp(-bx) - alpha_val / beta_val * (1 - np.exp(-bx))
     )
-
+    
     # Ensure E_fin is not below lepton rest mass
     E_fin = np.maximum(E_fin, m_le)
 
@@ -475,26 +475,50 @@ def find_y(energy, ixc_arr, ip, E_nu, E_lep, yvals):
     y : float array
         Inelasticity, y = (E_init-E_final)/E_initial.
     '''
-    # Determine energy index based on interaction type
     is_neutrino = (ip == 0) | (ip == 1)  # Mask for neutrinos
 
-    # Compute energy indices efficiently
-    energy_index = np.where(
-        is_neutrino, np.searchsorted(E_nu, energy), np.searchsorted(E_lep, energy)
-    )
+    # Compute energy indices and clip to valid bounds
+    energy_index_nu = np.searchsorted(E_nu, energy)
+    energy_index_lep = np.searchsorted(E_lep, energy)
+    energy_index = np.where(is_neutrino, energy_index_nu, energy_index_lep)
+    energy_index = np.asarray(energy_index, dtype=int)
 
-    #Neutrinos: CC=0, NC=1 and for charged leptons: brem=1, PP=2, PN=3
-    ip_id = np.where(is_neutrino, ip, ip - 3)
+    # clip indices for safety
+    if E_nu.size > 0:
+        energy_index_nu = np.clip(energy_index_nu, 0, E_nu.size - 1)
+    if E_lep.size > 0:
+        energy_index_lep = np.clip(energy_index_lep, 0, E_lep.size - 1)
+    energy_index = np.where(is_neutrino, energy_index_nu, energy_index_lep).astype(int)
 
-    #cross-section CDF value array for energy_index
-    search_arr = np.asarray([ixc_arr[:, e, i] for e, i in zip(energy_index, ip_id)])
+    # Neutrinos: CC=0, NC=1 and for charged leptons: brem=1, PP=2, PN=3
+    ip_id = np.where(is_neutrino, ip, ip - 3).astype(int)
 
-    #randomly sampled cross-section CDF value (between 0 & 1)
-    dy = np.random.random(size=energy.shape)
-    y = np.array([np.interp(d, search, yvals) for d, search in zip(dy, search_arr)])
-    # y is the interpolated (yvals) value corresponding to the cross-section CDF value = dy; this y is responsible for stochastic energy losses
+    # Gather per-event CDF curves without Python loops:
+    # ixc_arr has shape (Ny, Nenergy, Nip). We want per event: ixc_arr[:, energy_index[j], ip_id[j]]
+    # Result shape: (Nevents, Ny)
+    cdf = ixc_arr[:, energy_index, ip_id].T
 
-    y = np.minimum(y, 1.0) #such that y>1 never happens
+    # Randomly sampled cross-section CDF value (between 0 & 1)
+    u = np.random.random(size=energy.shape)
+
+    # Invert the CDF per row using vectorized bin search + linear interpolation.
+    # Find k such that cdf[:, k-1] <= u < cdf[:, k]
+    k = np.sum(cdf < u[:, None], axis=1).astype(int)
+    ny = yvals.size
+    k = np.clip(k, 1, ny - 1)
+
+    row = np.arange(cdf.shape[0])
+    c0 = cdf[row, k - 1]
+    c1 = cdf[row, k]
+    y0 = yvals[k - 1]
+    y1 = yvals[k]
+
+    den = (c1 - c0)
+    t = np.where(den > 0.0, (u - c0) / den, 0.0)
+    y = y0 + t * (y1 - y0)
+
+    # such that y>1 never happens
+    y = np.minimum(y, 1.0)
 
     return y
 

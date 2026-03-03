@@ -95,11 +95,12 @@ def run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, le
     # --- Create per-particle arrays ---
     energy_arr = np.full(stats, energy)       # all start with same initial energy 
     depthE_arr = np.full(stats, depthE)       # total column depth for given angle (kmwe)
-
+#    print('length of energy array before propagate_nu',len(energy_arr),len(depthE_arr))
     ############# propagate neutrinos #############
     _, dlep, elep = propagation.propagate_nu(energy_arr, nu_xc, nu_ixc, depthE_arr, fac_nu, stats, 
                                            Emin, E_nu, E_lep, yvals)
-
+    
+    #print('length after propagate_nu', len(elep),len(dlep))
     stats_cl = len(dlep) # number of charged leptons
     if stats_cl == 0:
         # no charged leptons produced at all
@@ -134,57 +135,111 @@ def run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, le
     e_out[no_regen_mask]        = etauf[no_regen_mask]
     P_out[no_regen_mask]        = Pi[no_regen_mask]
     no_regen_tot[no_regen_mask] = 1
-    regen_tot[no_regen_mask]    = 1   # same as your scalar code
     
     active[no_regen_mask] = False 
-
     if not np.any(active):
         return no_regen_tot, regen_tot, e_out, P_out
 
     # ----------------------- Regeneration Loop ----------------------- #
     max_regen = 6
-
-    # Continue while *any* lepton is still active
+    
     while np.any(active):
-        # eligible for regeneration
-        elig = active & (dfinal < depthE) & (regen_count <= max_regen)
+        # eligible for regeneration: taus that did not exit, still have depth remaining,
+        # and have not exceeded the regeneration limit
+        elig = active & (ipp != 1) & (dfinal < depthE_arr) & (regen_count <= max_regen)
         if not np.any(elig):
             break
 
-        idx = np.where(elig)[0]
+        cand = np.where(elig)[0]  # candidates (size m)
+        regen_count[cand] += 1
+        print("regen: cand", cand.size)
 
-        ipp3, dtau2, ef2, Pint = propagation.regen(
-            angle, etauf[idx], depthE, dwater, dfinal[idx], nu_xc, 
-            nu_ixc, ithird, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
-            alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong,
-            idepth, lepton, fac_nu, prop_type, Pi[idx], Emin, E_nu, E_lep,
-            yvals, ypol, Pcthp, P, earth_model)
+        kept_local, ipp3, dtau2, ef2, Pint = propagation.regen_compact(
+            angle,
+            etauf[cand],
+            depthE_arr[cand],
+            dwater_arr[cand],
+            dfinal[cand],
+            nu_xc,
+            nu_ixc,
+            ithird,
+            xc_water,
+            xc_rock,
+            lep_ixc_water,
+            lep_ixc_rock,
+            alpha_water,
+            alpha_rock,
+            beta_water,
+            beta_rock,
+            xalong,
+            cdalong,
+            idepth,
+            lepton,
+            fac_nu,
+            prop_type,
+            Pi[cand],
+            Emin,
+            E_nu,
+            E_lep,
+            yvals,
+            ypol,
+            Pcthp,
+            P,
+            earth_model,
+        )
+        #print("regen: kept_local", kept_local.size)
+        #print("regen: exiting after regen", np.sum((ipp3 == 1) & ((depthE_arr[cand[kept_local]] - dtau2) <= 0.0)))
+        # If nothing regenerated into a tau via CC, all candidates die as neutrinos
+        if kept_local.size == 0:
+            active[cand] = False
+            continue
 
-        # Update regeneration counter
-        regen_count[idx] += 1
+        surv = cand[kept_local]  # survivors mapped back to stats_cl indexing (size k)
 
-        # ------------------ Case 1: these regenerated into taus (ipp3 == 1) ------------------
-        exit_mask = (ipp3 == 1)
+        # Exiting taus after regen
+        exit_mask = (ipp3 == 1) & ((depthE_arr[surv] - dtau2) <= 0.0)
+        if np.any(exit_mask):
+            exit_idx = surv[exit_mask]
+            regen_tot[exit_idx] = 1
+            e_out[exit_idx] = ef2[exit_mask]
+            P_out[exit_idx] = Pint[exit_mask]
+            active[exit_idx] = False
 
-        global_exit_idx = idx[exit_mask]     # map back to global indexing
+        # Continued taus (decayed again inside Earth) remain eligible for another regen iteration
+        cont_mask = ~exit_mask
+        if np.any(cont_mask):
+            cont_idx = surv[cont_mask]
+            etauf[cont_idx] = ef2[cont_mask]
+            dfinal[cont_idx] = dtau2[cont_mask]
+            Pi[cont_idx] = Pint[cont_mask]
+            ipp[cont_idx] = 0
 
-        regen_tot[global_exit_idx] = 1
-        e_out[global_exit_idx]     = ef2[exit_mask]
-        P_out[global_exit_idx]     = Pint[exit_mask]
+        # Candidates that did not survive the neutrino step are dead as neutrinos
+        dead_local = np.ones(cand.size, dtype=bool)
+        dead_local[kept_local] = False
+        if np.any(dead_local):
+            active[cand[dead_local]] = False
 
-        # deactivate these leptons
-        active[global_exit_idx] = False
+            # --- consistency checks (debug) ---
+    exit_from_energy = (e_out > 0.0)
+    exit_from_flags  = (no_regen_tot == 1) | (regen_tot == 1)
 
-        # ------------------ Case 2: continue propagation for neutrinos ------------------
-        cont_mask = ~exit_mask 
-        cont_idx = idx[cont_mask]
+    n = e_out.size
+    print("DEBUG run_stat:")
+    print("  stats_cl:", n)
+    print("  nonzero e_out:", np.count_nonzero(exit_from_energy))
+    print("  exit flags:",   np.count_nonzero(exit_from_flags))
+    print("  mismatches:",   np.count_nonzero(exit_from_energy != exit_from_flags))
 
-        etauf[cont_idx]   = ef2[cont_mask]
-        dfinal[cont_idx] = dtau2[cont_mask]
-        Pi[cont_idx]     = Pint[cont_mask]
-
-        # Regen_count > 6 automatically deactivated next iteration
-
+    # If mismatches are nonzero, this tells you which events disagree
+    # (only print if small enough to not spam)
+    mm = np.flatnonzero(exit_from_energy != exit_from_flags)
+    if mm.size and mm.size < 20:
+        print("  mismatch idx:", mm)
+        print("  e_out[mm]:", e_out[mm])
+        print("  no_regen_tot[mm]:", no_regen_tot[mm])
+        print("  regen_tot[mm]:", regen_tot[mm])
+        
     return no_regen_tot, regen_tot, e_out, P_out
 
 '''part_id, d_fin, e_fin, cthf, Pf = propagation.propagate_lep(energy_arr, angle, xc_water, lep_ixc_water, alpha_water, beta_water, depth0_arr, dwater_arr, lepton, 
@@ -204,40 +259,40 @@ part_id, d_fin, e_fin, cthf, Pf = propagation.propagate_lep(energy_arr, angle, x
 # def run_stat_single(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, lep_ixc_water, lep_ixc_rock,
 #                     alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, ithird, idepth, lepton, fac_nu,
 #                     stats, prop_type, earth_model):
-    '''
-    Run a loop for all ingoing neutrinos
+'''
+Run a loop for all ingoing neutrinos
 
-    Parameters
-    ----------
-    energy (float): Incoming neutrino energy, in GeV.
-    angle (float): Earth emergence angle (beta), in degrees.
-    nu_xc (np.ndarray): 2D array containing neutrino CC & NC cross-section values, in cm^2.
-    nu_ixc (np.ndarray): 3D array containing neutrino integrated cross-section CDF values.
-    depthE (float): Total column depth for a given Earth emergence angle, in kmwe.
-    dwater (float): Column depth along the chord for a given Earth emergence angle, in kmwe.
-    xc_water (np.ndarray): 2D array containing N_A/A*charged lepton-nucleon cross-section values in water, in cm^2/g.
-    xc_rock (np.ndarray): 2D array containing N_A/A*charged lepton-nucleon cross-section values in rock, in cm^2/g.
-    lep_ixc_water (np.ndarray): 3D array containing charged lepton integrated cross-section CDF values in water.
-    lep_ixc_rock (np.ndarray): 3D array containing lepton integrated cross-section CDF values in rock.
-    alpha_water (np.ndarray): 1D array containing ionization energy loss values in water, in (GeV*cm^2)/g.
-    alpha_rock (np.ndarray): 1D array containing ionization energy loss values in rock, in (GeV*cm^2)/g.
-    beta_water (np.ndarray): 2D array of beta values in water, in cm^2/g.
-    beta_rock (np.ndarray): 2D array of beta values in rock, in cm^2/g.
-    xalong (np.ndarray): 1D array containing distance in water, in km.
-    cdalong (np.ndarray): 1D array containing column depth at xalong, in g/cm^2.
-    ithird (integer): Choice for neutrino -> charged lepton energy fraction selection.
-    idepth (integer): Depth of water layer in km.
-    lepton (integer): Type of charged lepton. 1=tau; 2=muon.
-    fac_nu (float): Rescaling factor for SM neutrino cross-sections.
-    stats (integer): Statistics or no. of ingoing neutrinos.
-    prop_type (integer): Type of energy loss propagation. 1=stochastic, 2=continuous.
-    earth_model (str): Earth density model, prem or ak135.
+Parameters
+----------
+energy (float): Incoming neutrino energy, in GeV.
+angle (float): Earth emergence angle (beta), in degrees.
+nu_xc (np.ndarray): 2D array containing neutrino CC & NC cross-section values, in cm^2.
+nu_ixc (np.ndarray): 3D array containing neutrino integrated cross-section CDF values.
+depthE (float): Total column depth for a given Earth emergence angle, in kmwe.
+dwater (float): Column depth along the chord for a given Earth emergence angle, in kmwe.
+xc_water (np.ndarray): 2D array containing N_A/A*charged lepton-nucleon cross-section values in water, in cm^2/g.
+xc_rock (np.ndarray): 2D array containing N_A/A*charged lepton-nucleon cross-section values in rock, in cm^2/g.
+lep_ixc_water (np.ndarray): 3D array containing charged lepton integrated cross-section CDF values in water.
+lep_ixc_rock (np.ndarray): 3D array containing lepton integrated cross-section CDF values in rock.
+alpha_water (np.ndarray): 1D array containing ionization energy loss values in water, in (GeV*cm^2)/g.
+alpha_rock (np.ndarray): 1D array containing ionization energy loss values in rock, in (GeV*cm^2)/g.
+beta_water (np.ndarray): 2D array of beta values in water, in cm^2/g.
+beta_rock (np.ndarray): 2D array of beta values in rock, in cm^2/g.
+xalong (np.ndarray): 1D array containing distance in water, in km.
+cdalong (np.ndarray): 1D array containing column depth at xalong, in g/cm^2.
+ithird (integer): Choice for neutrino -> charged lepton energy fraction selection.
+idepth (integer): Depth of water layer in km.
+lepton (integer): Type of charged lepton. 1=tau; 2=muon.
+fac_nu (float): Rescaling factor for SM neutrino cross-sections.
+stats (integer): Statistics or no. of ingoing neutrinos.
+prop_type (integer): Type of energy loss propagation. 1=stochastic, 2=continuous.
+earth_model (str): Earth density model, prem or ak135.
 
-    Returns
-    --------
-    no_regen_tot (integer): No. of outgoing charged leptons without regeneration.
-    regen_tot (integer): No. of outgoing charged leptons with regeneration.
-    '''
+Returns
+--------
+no_regen_tot (integer): No. of outgoing charged leptons without regeneration.
+regen_tot (integer): No. of outgoing charged leptons with regeneration.
+'''
 
     # format = "{:.2f}"
     # Efilename = 'eout_'+ str(format.format(np.log10(energy))) + '_' + str(angle) + '.dat'
