@@ -307,7 +307,7 @@ def int_depth_nu(energy, nu_xc, nu_bsm_xc, fac_nu, E_nu):
         Neutrino interaction depth, in cm^2/g.
     '''
     sig_cc, sig_nc, sig_bsm = int_xc_nu(energy, nu_xc, nu_bsm_xc, fac_nu, E_nu)
-    sig_weak = sig_cc + sig_nc + sig_bsm # weak interactions
+    sig_weak = sig_cc  + sig_nc + sig_bsm # weak interactions 
     x_int = 1.0 / (N_A * sig_weak)
 
     return x_int
@@ -382,7 +382,7 @@ def interaction_type_nu(energy, nu_xc, nu_bsm_xc, fac_nu, E_nu):
     sig_cc, sig_nc, sig_bsm = int_xc_nu(energy, nu_xc, nu_bsm_xc, fac_nu, E_nu)
 
     # Calculate the total and CC fraction of the cross-section
-    tot_frac = sig_cc + sig_nc + sig_bsm
+    tot_frac = sig_cc  + sig_bsm + sig_nc
     cc_frac = sig_cc / tot_frac
     bsm_frac = sig_bsm / tot_frac
 
@@ -392,7 +392,7 @@ def interaction_type_nu(energy, nu_xc, nu_bsm_xc, fac_nu, E_nu):
     # Determine the interaction type based on the random number
     int_type = np.empty_like(x, dtype=int)
     int_type[x < bsm_frac] = 2      # BSM
-    int_type[(x >= bsm_frac) & (x < cc_frac)] = 0  # CC
+    int_type[(x >= bsm_frac) & (x < cc_frac)] = 0    # CC
     int_type[x >= cc_frac] = 1      # NC
     #int_type = (x > cc_frac).astype(int)  # 0 for CC, 1 for NC (vectorized)
 

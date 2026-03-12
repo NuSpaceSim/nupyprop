@@ -58,7 +58,8 @@ def propagate_nu(e_init, nu_xc, nu_ixc, nu_bsm_xc, nu_bsm_ixc, depth_max, fac_nu
     e_fin : float array
         Final neutrino energy, in GeV
     '''
-    part_type = np.zeros(stats, dtype=int)  # 0 = neutrino, 1 = charged lepton
+    #part_type = np.zeros(stats, dtype=int)  # 0 = neutrino, 1 = charged lepton
+    part_type = np.full(stats, 0, dtype=int)
     e_fin = e_init.astype(float).copy()  # Initialize all with e_init
     x_0 = np.zeros(stats, dtype=np.float32)  # Depth in kmwe
     d_travel = depth_max.astype(float).copy()  # Default to depth_max in kmwe
@@ -66,12 +67,11 @@ def propagate_nu(e_init, nu_xc, nu_ixc, nu_bsm_xc, nu_bsm_ixc, depth_max, fac_nu
 
     active = np.ones(stats, dtype=bool)  # Track active simulations
 
-    i=0
     while np.any(active):  # Continue until all neutrinos stop
         r = np.random.random(stats)
         int_depth = transport.int_depth_nu(e_fin, nu_xc, nu_bsm_xc, fac_nu, E_nu) 
         step_size = -int_depth * np.log(r) * 1e-5 # in kmwe
-        print("step_size = ", step_size)
+        #print("step_size = ", step_size)
 
         x_0[active] += step_size[active]
 
@@ -81,13 +81,21 @@ def propagate_nu(e_init, nu_xc, nu_ixc, nu_bsm_xc, nu_bsm_ixc, depth_max, fac_nu
 
         # Compute interaction type
         int_type = transport.interaction_type_nu(e_fin, nu_xc, nu_bsm_xc, fac_nu, E_nu) 
-        # print("int_type = ", int_type)
+
+        # print(len(active[active==True]))
+        temp_mask = (int_type==1)
+        temp_int = int_type[temp_mask] 
+        temp_maskcc = (int_type==0)
+        temp_intcc = int_type[temp_maskcc]
+        print(len(temp_int))
+        print("CC type=", len(temp_intcc))
+        #active[temp_mask] = False
+        #print(len(active[active==True]))
 
         # Compute energy loss
         y_fraction = transport.find_y(e_fin, nu_ixc, nu_bsm_ixc, int_type, E_nu, E_lep, yvals)
         e_fin[active] *= (1 - y_fraction[active])
-        # print(e_fin)
-        # print(e_fin[e_fin<1e4])
+        # print(len(e_fin[active]))
 
         # Check for charged leptons
         converted = (part_type == 0) & (int_type == 0) & active # Neutrino to Charged Lepton SM
@@ -110,14 +118,11 @@ def propagate_nu(e_init, nu_xc, nu_ixc, nu_bsm_xc, nu_bsm_ixc, depth_max, fac_nu
         d_travel[energy_depleted] = x_0[energy_depleted]
         active[energy_depleted] = False  # Stop simulations
 
-        print("******** i = ", i+1)
-        break
-
-    final_mask = ~((e_fin <= Emin)) # | (part_type == 0)) # this will eliminate charged leptons 
+    final_mask = ~((e_fin <= Emin))# | (part_type == 0)) # this will eliminate charged leptons 
                                                        # with energy < Emin and neutrinos
 
     return part_type[final_mask], d_travel[final_mask], e_fin[final_mask]
-    
+
 def propagate_lep(e_init, angle, xc, lep_ixc, alpha, beta, d_entry, d_in, lepton, prop_type,
     medium, # either 'water' or 'rock'
     cthi, Pi,

@@ -206,6 +206,7 @@ def run_stat(energy, angle, nu_xc, nu_ixc, nu_bsm_xc, nu_bsm_ixc, depthE, dwater
     plt.show()
 
     bins = np.logspace(np.log10(elep.min()), np.log10(elep.max()), 50)
+    print(elep.max())
     plt.hist(elep, bins=bins)
     plt.xlabel("efinal")
     plt.title(f"Angle={angle}")
@@ -214,7 +215,7 @@ def run_stat(energy, angle, nu_xc, nu_ixc, nu_bsm_xc, nu_bsm_ixc, depthE, dwater
     plt.show()
 
     #########
-    mask = (id==2) #only select bsm interactions
+    mask = ( (id==0) ) #only select bsm interactions
 
     plt.hist(id[mask], 50)
     plt.xlabel("id")
