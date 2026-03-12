@@ -152,7 +152,7 @@ def run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, le
 
         cand = np.where(elig)[0]  # candidates (size m)
         regen_count[cand] += 1
-        print("regen: cand", cand.size)
+        #print("regen: cand", cand.size)
 
         kept_local, ipp3, dtau2, ef2, Pint = propagation.regen_compact(
             angle,
@@ -225,11 +225,11 @@ def run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, le
     exit_from_flags  = (no_regen_tot == 1) | (regen_tot == 1)
 
     n = e_out.size
-    print("DEBUG run_stat:")
-    print("  stats_cl:", n)
-    print("  nonzero e_out:", np.count_nonzero(exit_from_energy))
-    print("  exit flags:",   np.count_nonzero(exit_from_flags))
-    print("  mismatches:",   np.count_nonzero(exit_from_energy != exit_from_flags))
+    #print("DEBUG run_stat:")
+    #rint("  stats_cl:", n)
+    #print("  nonzero e_out:", np.count_nonzero(exit_from_energy))
+    #print("  exit flags:",   np.count_nonzero(exit_from_flags))
+    #print("  mismatches:",   np.count_nonzero(exit_from_energy != exit_from_flags))
 
     # If mismatches are nonzero, this tells you which events disagree
     # (only print if small enough to not spam)

@@ -552,6 +552,7 @@ def tau_thru_layers(
     d_water = np.asarray(d_water, dtype=float)
     depth_traj = np.asarray(depth_traj, dtype=float)
     stats = e_lep_in.size
+    
 
     lepton = np.asarray(lepton, dtype=int)
     # Broadcast scalar lepton id (e.g. 1 or 2) to per-event array
@@ -566,21 +567,23 @@ def tau_thru_layers(
     pcthf = np.ones(stats, dtype=float)
 
     # Low-energy exit
-    #print('length of e_lep_in before low energy cutoff', len(e_lep_in))
+#    print('length of e_lep_in before low energy cutoff', len(e_lep_in))
     low_energy = e_lep_in < 1e3
     if np.any(low_energy):
         part_type[low_energy] = 0
         d_fin[low_energy] = depth[low_energy]
         e_fin[low_energy] = e_lep_in[low_energy]
-
     active = ~low_energy
+#    print('np.sum(active) after low energy cutoff', np.sum(active)) 
     if not np.any(active):
         return part_type, d_fin, e_fin, pcthf
     
     #print('length of e_lep_in after low energy cutoff', len(np.where(~low_energy)))
     ones = np.ones_like(e_lep_in)
+    
     remaining = depth - depth_traj
-
+    
+    import matplotlib.pyplot as plt
     #change to not be built off stats
     rho_now = np.full(stats, rho_water, dtype=float)
 
@@ -588,16 +591,58 @@ def tau_thru_layers(
     if np.any(need_rho):
         col_depths = depth_traj[need_rho] * 1e5
         x_interp = transport.cd2distd(xalong, cdalong, col_depths)
-        _, rho_vals = geometry.densityatx(x_interp, angle, idepth, earth_model)
+        r, rho_vals = geometry.densityatx(x_interp, angle, idepth, earth_model)
 
-
+        if np.any(rho_vals < 1.5):
+            test_mask = rho_vals < 1.5
+            print(np.sum(test_mask))
+            print(np.mean(rho_vals[test_mask]))
+        
         rho_now[need_rho] = rho_vals
-    # find a way to add the r < 6365.0
-    in_rock_now = active & (rho_now > 1.5)
+        #rho_now[need_rho] = 2.60
+        # find a way to add the r < 6365.0
+#        test_mask = (r < 6365) & (rho_vals < 1.5)
+        
+#        if np.any(test_mask):
+#            idx = np.where(need_rho)[0][test_mask]
+#            active[idx] = False
+            
+    in_rock_now = active & (rho_now > 1.5) 
     in_water_now = active & ~in_rock_now
+    mask_ge = rho_now > 1.5
+    mask_lt = ~mask_ge
+    bins = 45
+    plt.hist(rho_now[mask_lt], bins=bins, alpha=0.4, label='rho_now <= 1.5')
+    plt.hist(rho_now[mask_ge], bins=bins, alpha=0.4, label='rho_now > 1.5')
+    plt.axvline(x=1.5, color='r', linestyle='--')
+    plt.xlabel('rho_vals')
+    plt.legend()
+#    plt.show()
+
+    bins = 60
+    plt.figure()
+    plt.hist(remaining[in_water_now], bins=bins, alpha=0.45, label='in_water_now')
+    plt.hist(remaining[in_rock_now],  bins=bins, alpha=0.45, label='in_rock_now')
+    plt.axvline(np.mean(d_water), color='k', linestyle='--', label='remaining')
+    plt.xlabel('remaining')
+    plt.ylabel('count')
+    plt.legend()
+    plt.title('Classification vs remaining')
+#    plt.show()
+    
+    plt.figure()
+    plt.hist(remaining, bins=bins, alpha=0.45, label='remaining')
+    plt.axvline(np.mean(d_water), color='k', linestyle='--', label='remaining')
+    plt.xlabel('remaining')
+    plt.ylabel('count')
+    plt.legend()
+    plt.title('Classification vs remaining')
+#    plt.show()
+    
 
     # --- Rock -> Water branch ---
     if np.any(in_rock_now):
+#        print('ROCK -> WATER: ROCK')
         rock_idx = np.where(in_rock_now)[0]
 
         d_in_rock = depth[in_rock_now] - depth_traj[in_rock_now] - d_water[in_rock_now]
@@ -610,12 +655,13 @@ def tau_thru_layers(
             idepth, earth_model, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P,
             xalong=xalong, cdalong=cdalong
         )
-
+        print(f"rock leg angle={angle}: entered={np.sum(in_rock_now)} survive={np.sum(r_part==1)} decay={np.sum(r_part==0)} lowE={np.sum(r_part==2)} mean_din={np.mean(d_in_rock):.3f} mean_rd={np.mean(r_d):.3f} mean_re_surv={(np.mean(r_e[r_part==1]) if np.any(r_part==1) else np.nan):.3e}")
         depth_after_rock = depth_traj[in_rock_now] + r_d
 
         # Survivors propagate through water if a water layer exists
         survivors = (r_part == 1) & (idepth != 0)
         if np.any(survivors):
+#            print('IN ROCK-> WATER: WATER ')
             surv_idx = rock_idx[survivors]
             w_part, w_d, w_e, w_cth, w_P = propagate_lep(
                 r_e[survivors], angle, xc_water, lep_ixc_water,
@@ -627,7 +673,6 @@ def tau_thru_layers(
             d_fin[surv_idx] = depth_after_rock[survivors] + w_d
             e_fin[surv_idx] = w_e
             pcthf[surv_idx] = w_P * w_cth
-
         # stop/decay in rock or no water layer
         non_surv = ~survivors
         if np.any(non_surv):
@@ -641,6 +686,7 @@ def tau_thru_layers(
 
     # --- Water-only branch (full remaining distance) ---
     if np.any(in_water_now):
+#        print('IN WATER ONLY: WATER PROP')
         w_part, w_d, w_e, w_cth, w_P = propagate_lep(
             e_lep_in[in_water_now], angle, xc_water, lep_ixc_water,
             alpha_water, beta_water, depth_traj[in_water_now], remaining[in_water_now],
@@ -751,7 +797,6 @@ def distnu_arr(r, ithird, Pin, tol=1e-3, max_iter=25):
         out[mask_calc] = 0.5 * (y_lo + y_hi)
 
     return out
-
 
 
 def regen(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, xc_rock,
