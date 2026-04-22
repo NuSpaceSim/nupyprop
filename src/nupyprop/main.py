@@ -134,7 +134,7 @@ def init_ixc(nu_type, ch_lepton, nu_model, pn_model):
     return nu_ixc, lep_ixc_water, lep_ixc_rock
 
 
-def main(E_prop, angles, nu_type, cross_section_model, pn_model, earth_model, idepth, ch_lepton, fac_nu, stats, prop_type, elep_mode, htc_mode, batch_stats=None, n_batches=1):
+def main(E_prop, angles, nu_type, cross_section_model, pn_model, earth_model, idepth, ch_lepton, fac_nu, stats, prop_type, elep_mode, htc_mode, job_num = 0):
     '''
     Parameters
     ----------
@@ -189,145 +189,115 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, earth_model, id
 
     out_file = Data.output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,earth_model,prop_type,stats,arg=None)
 
-
-
     print("The water -> rock transition occurs at %.2f degrees" % Geometry.find_interface(idepth)[0])
-    #adding
+    
     results_nr = []
     results_r = []
-    # Store outgoing-lepton energies per (energy, angle).
-    # Values are 1D ndarrays from Run.run_stat (0 is sentinel for non-exit).
-    e_out_by_key = {}
+    p_out = []
+    e_out = []
+    
+    #fixing to allow HTC to work here. 
+    
     for energy in sorted(E_prop):
-        eout_list = [] #to store final energies of exiting charged lepton
+        eout_list = []
         for angle in sorted(angles):
-            start_time = time.time()
-            xalong, cdalong = Data.get_trajs('col', angle, idepth, earth_model) # initialize arrays here for each angle, to reduce a ton of overhead when tauthrulayers & regen are called
-
+            xalong, cdalong = Data.get_trajs('col', angle, idepth, earth_model)
+            
             print("Neutrino Energy = 10^(%.2f) GeV, Earth Emergence Angle = %.2f degrees" % (energy, angle), flush=True)
 
             chord, water = Data.get_trajs('water', angle, idepth, earth_model)
             dwater = water*rho_water # depth in water [kmwe] in last or only section
+            depthE = Geometry.columndepth(angle, idepth,model_name=earth_model)*1e-5 # column depth in kmwe
+            
+            results_nr, results_r, e_out, p_out = Run.run_stat(
+                10**energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock,
+                lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock,
+                xalong, cdalong, ithird, idepth, lepton_int, fac_nu, prop_type_int, stats, earth_model
+            )
+            
 
-            depthE = Geometry.columndepth(angle, idepth, earth_model)*1e-5 # column depth in kmwe
-
-            # --- Optional batching for runtime estimation ---
-            # If batch_stats is provided, call Run.run_stat() n_batches times and accumulate counts.
-            # Otherwise, preserve the original single-call behavior.
-            if batch_stats is None:
-                no_regen, regen, e_out, p_out = Run.run_stat(
-                    10**energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock,
-                    lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock,
-                    xalong, cdalong, ithird, idepth, lepton_int, fac_nu, prop_type_int, int(stats), earth_model
-                )
-                # Save energies for this (energy, angle)
-                e_out_by_key[(float(energy), float(angle))] = np.asarray(e_out)
-                no_sum = int(np.sum(no_regen))
-                reg_sum = int(np.sum(regen))
-                denom = float(stats)
-            else:
-                e_out_accum = []
-                no_sum = 0
-                reg_sum = 0
-                denom = float(int(batch_stats) * int(n_batches))
-
-                for _ in range(int(n_batches)):
-                    no_regen, regen, e_out, p_out = Run.run_stat(
-                        10**energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock,
-                        lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock,
-                        xalong, cdalong, ithird, idepth, lepton_int, fac_nu, prop_type_int, int(batch_stats), earth_model
-                    )
-                    e_out_accum.append(np.asarray(e_out))
-                    no_sum += int(np.sum(no_regen))
-                    reg_sum += int(np.sum(regen))
-                # Concatenate energies across batches for this (energy, angle)
-                if len(e_out_accum) == 1:
-                    e_out_by_key[(float(energy), float(angle))] = e_out_accum[0]
-                else:
-                    e_out_by_key[(float(energy), float(angle))] = np.concatenate(e_out_accum)
-            print(len(no_regen))
-            p_no_regen = float(no_sum / denom)
-            results_nr.append((float(angle), p_no_regen))
-            p_regen = float(reg_sum / denom)
-            results_r.append((float(angle), p_regen))
-
-    
-            '''prob_no_regen = no_regen/float(stats)
-            prob_regen = regen/float(stats)
-
-            if htc_mode == 'no': # HTC mode off
+            
+            if htc_mode == 'no': #htc mode off
+                prob_no_regen = float(np.sum(results_nr)/stats)
+                prob_regen = float(np.sum(results_r)/stats)
+                
                 with open("pexit_%.2f.dat" % energy, "a") as pexit_file:
                     pexit_file.write("%.5e\t%.5e\t%.5e\t%.5e\n" % (10**energy,angle,prob_no_regen,prob_regen))
+                
+                P_out = make_array(p_out[e_out > 0.0])  #polarization of the exiting charged leptons
 
-                P_out = make_array(np.genfromtxt(str("Pout_{:.2f}_{:.1f}.dat".format(energy, angle))))
-                #polarization of the exiting charged leptons
                 if P_out.size==0:
                     P_avg = -1
                 else:
-                    P_avg = Data.sign(np.mean(P_out))  # avg of polarization of the exiting charged leptons
+                    P_avg = Data.sign(np.mean(P_out)) 
+                    #avg of polarization of the exiting charged leptons 
 
                 with open("polarization_%.2f.dat" % energy, "a") as pola_file:
                     pola_file.write("%.5e\t%.5e\t%.5e\n" % (10**energy,angle,P_avg))
-
-                if elep_mode == 'yes':
-                    print("Printing final lepton energies in the output file.")
-                    e_out = make_array(np.genfromtxt(str("eout_{:.2f}_{:.1f}.dat".format(energy, angle))))
-                    e_out = Data.patch_for_astropy(e_out)
-                    Data.add_clep_out(ch_lepton, energy, angle, e_out, out_file)
-
-                # exiting lepton's final energy for CDFs
-                eout_vals = np.genfromtxt("eout_{:.2f}_{:.1f}.dat".format(energy, angle))
+                    
+                #exiting lepton's final energy
+                eout_vals = e_out[e_out > 0.0]
                 eout_vals = np.insert(eout_vals, 0, angle)
                 eout_list.append(eout_vals)
+                
+                if elep_mode == 'yes':
+                    print("I am going to print final energies in output file.")
+                    e_out = make_array(e_out[e_out > 0.0])
 
-            else: # HTC mode on. Post-processing can be done using data.process_htc_out
-                with open("pexit_%.2f_%.1f.dat" % (energy,angle), "w") as pexit_file:
-                    pexit_file.write("%.5e\t%.5e\t%.5e\t%.5e\n" % (10**energy,angle,prob_no_regen,prob_regen))
+                    e_out = Data.patch_for_astropy(e_out)
 
-                    eout_name = "eout_{:.2f}_{:4.1f}.dat".format(energy, angle)
-                    Pout_name = "Pout_{:.2f}_{:4.1f}.dat".format(energy, angle)
-                    os.rename(eout_name, "eout_{:.2f}_{:.1f}.dat".format(energy, angle))
-                    os.rename(Pout_name, "Pout_{:.2f}_{:.1f}.dat".format(energy, angle))
+                    Data.add_clep_out(ch_lepton, energy, angle, e_out, out_file)
+                    
+                # Do some post processing
+                # Pexit of charged leptons
+                p_angle, p_noregen, p_regen = np.genfromtxt("pexit_%.2f.dat" % energy, usecols=(1,2,3), unpack=True)
 
-        # end of for loop for angles
-        if htc_mode == 'no': # HTC mode off; do some post-processing
-            # Pexit of charged leptons
-            p_angle, p_noregen, p_regen = np.genfromtxt("pexit_%.2f.dat" % energy, usecols=(1,2,3), unpack=True)
+                p_angle = Data.patch_for_astropy(p_angle)
+                p_noregen = Data.patch_for_astropy(p_noregen)
+                p_regen = Data.patch_for_astropy(p_regen)
 
-            p_angle = Data.patch_for_astropy(p_angle)
-            p_noregen = Data.patch_for_astropy(p_noregen)
-            p_regen = Data.patch_for_astropy(p_regen)
+                Data.add_pexit(ch_lepton, energy, p_angle, p_noregen, p_regen, out_file)
+                file_cleaner('p_exit')  # remove p_exit files
 
-            Data.add_pexit(ch_lepton, energy, p_angle, p_noregen, p_regen, out_file)
-            file_cleaner('p_exit')  # remove p_exit files
+                # Avg polarization of the exiting charged leptons
+                pola_angle, avg_pola = np.genfromtxt("polarization_%.2f.dat" % energy, usecols=(1,2), unpack=True)
 
-            # Avg polarization of the exiting charged leptons
-            pola_angle, avg_pola = np.genfromtxt("polarization_%.2f.dat" % energy, usecols=(1,2), unpack=True)
+                pola_angle = Data.patch_for_astropy(pola_angle)
+                avg_pola = Data.patch_for_astropy(avg_pola)
 
-            pola_angle = Data.patch_for_astropy(pola_angle)
-            avg_pola = Data.patch_for_astropy(avg_pola)
+                Data.add_polarization(ch_lepton, energy, pola_angle, avg_pola, out_file)
+                file_cleaner('P_out') # remove P_out files
+                file_cleaner('polarization') #remove polarization_* files
 
-            Data.add_polarization(ch_lepton, energy, pola_angle, avg_pola, out_file)
-            file_cleaner('P_out') # remove P_out files
-            file_cleaner('polarization') #remove polarization_* files
+                # energy CDFs for the exiting charged leptons
+                Data.add_cdf(ch_lepton, energy, eout_list, out_file, htc_mode=False, arg=None) # adds the binned cdf values for all neutrino energies and angles to the output file.
+                file_cleaner('e_out') # remove e_out files
+            
+            else: # save p_exit files with single energy and angle; no post-processing of files here in the main execution (for that, use data.process_htc_out)
+                no_regen = np.sum(results_nr)
+                regen = np.sum(results_r)
+            
+                with open("pexit_{:.2f}_{:.1f}_{:d}.dat".format(energy, angle, job_num), "w") as pexit_file:
+                    pexit_file.write("%.5e\t%.5e\t%.5e\t%.5e\n" % (10**energy, angle, no_regen, regen))
 
-            # energy CDFs for the exiting charged leptons
-            Data.add_cdf(ch_lepton, energy, eout_list, out_file, htc_mode=False, arg=None) # adds the binned cdf values for all neutrino energies and angles to the output file.
-            file_cleaner('e_out') # remove e_out files'''
+                eout_vals = e_out[e_out > 0.0]
+                with open("eout_{:.2f}_{:.1f}_{:d}.dat".format(energy, angle, job_num), "w") as eout_file:
+                    for e in eout_vals:
+                        eout_file.write("%.5e\n" % e)
 
-            end_time = time.time()
-            print(f"It took {end_time-start_time:.2f} seconds to compute")
+                P_out = make_array(p_out[e_out > 0.0])
+                P_avg = -1 if P_out.size == 0 else Data.sign(np.mean(P_out))
+                with open("Pout_{:.2f}_{:.1f}_{:d}.dat".format(energy, angle, job_num), "w") as pout_file:
+                    pout_file.write("%.5e\n" % P_avg)
 
-#        if htc_mode== 'no': print("Done!")
+
+            #end_time = time.time()
+            #print(f"It took {end_time-start_time:.2f} seconds to compute")
+
+        if htc_mode== 'no': print("Done!")
 #        else: print("Done!") # for HTC mode on
-
-    # Backward-compatible return:
-    # - If a single (energy, angle) was requested, return the single e_out array.
-    # - Otherwise return a dict keyed by (log10E, angle_deg).
-    if len(E_prop) == 1 and len(angles) == 1:
-        return results_nr, results_r, e_out_by_key[(float(E_prop[0]), float(angles[0]))]
-
-    return results_nr, results_r, e_out_by_key
+    
+    return None
 
 # =============================================================================
 #
@@ -339,7 +309,7 @@ if __name__ == "__main__":
     # random.seed(30)
     start_time = time.time()
     e_nu = np.array([7])
-    angles = np.array([1,2,10])
+    angles = np.array([1])
 
     idepth = 4
     fac_nu = 1
@@ -350,8 +320,9 @@ if __name__ == "__main__":
     stats = int(1e6)
     nu_type = 'neutrino'
     htc_mode = 'no'
+    earth_model = 'prem'
 
-    main(e_nu, angles, nu_type, cross_section_model, pn_model, idepth, ch_lepton, fac_nu, stats, prop_type, htc_mode)
+    main(e_nu, angles, nu_type, cross_section_model, pn_model,earth_model, idepth, ch_lepton, fac_nu, stats, prop_type, htc_mode)
 
     end_time = time.time()
     print(f"It took a total of {end_time-start_time:.2f} seconds to compute")

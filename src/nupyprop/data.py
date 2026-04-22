@@ -1210,7 +1210,7 @@ def process_htc_out(files_path, nu_type, ch_lepton, energy, idepth, cross_sectio
     pexit_noregen = patch_for_astropy(np.asarray(p_noregen_lst))
     pexit_regen = patch_for_astropy(np.asarray(p_regen_lst))
 
-    eout = patch_for_astropy(np.asarray(e_out_lst))
+    eout = e_out_lst
 
     avg_pola = patch_for_astropy(np.asarray(pola_lst))
 

@@ -595,8 +595,8 @@ def tau_thru_layers(
 
         if np.any(rho_vals < 1.5):
             test_mask = rho_vals < 1.5
-            print(np.sum(test_mask))
-            print(np.mean(rho_vals[test_mask]))
+            #print(np.sum(test_mask))
+            #print(np.mean(rho_vals[test_mask]))
         
         rho_now[need_rho] = rho_vals
         #rho_now[need_rho] = 2.60
@@ -655,7 +655,7 @@ def tau_thru_layers(
             idepth, earth_model, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P,
             xalong=xalong, cdalong=cdalong
         )
-        print(f"rock leg angle={angle}: entered={np.sum(in_rock_now)} survive={np.sum(r_part==1)} decay={np.sum(r_part==0)} lowE={np.sum(r_part==2)} mean_din={np.mean(d_in_rock):.3f} mean_rd={np.mean(r_d):.3f} mean_re_surv={(np.mean(r_e[r_part==1]) if np.any(r_part==1) else np.nan):.3e}")
+        #print(f"rock leg angle={angle}: entered={np.sum(in_rock_now)} survive={np.sum(r_part==1)} decay={np.sum(r_part==0)} lowE={np.sum(r_part==2)} mean_din={np.mean(d_in_rock):.3f} mean_rd={np.mean(r_d):.3f} mean_re_surv={(np.mean(r_e[r_part==1]) if np.any(r_part==1) else np.nan):.3e}")
         depth_after_rock = depth_traj[in_rock_now] + r_d
 
         # Survivors propagate through water if a water layer exists

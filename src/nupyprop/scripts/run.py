@@ -156,7 +156,16 @@ def get_parser():
         default="no",
         help="HTC mode; default is no. If set to yes, the code will be optimized to run in high throughput computing mode",
     )
-
+    parser.add_argument(
+        "-job",
+        "--job_num",
+        dest="job_id",
+        nargs="?",
+        type=int,
+        const=0,
+        default=0,
+        help="Gives the job number running on cluster (only when -htc on); default is 0"
+    )
     return parser
 
 
@@ -179,6 +188,7 @@ def main():
     fac_nu = float(args.fac_nu_val)
     stats = int(args.stats_val)
     htc_mode = str(args.htc_id)
+    job_num = int(args.job_id)
 
 
     param_data = [["Parameter Name", "Value"],
@@ -192,7 +202,8 @@ def main():
                   ["Print Final Energy", energy_lepton.capitalize()],
                   ["SM Neutrino Cross Section Scaling Factor", fac_nu],
                   ["Statistics", '{:.0e}'.format(stats)],
-                  ["HTC Mode", htc_mode.capitalize()]]
+                  ["HTC Mode", htc_mode.capitalize()],
+                  ["Job Number", job_num]]
 
     print(tabulate(param_data, headers='firstrow', showindex='always',tablefmt='fancy_grid'))
 
@@ -209,6 +220,7 @@ def main():
         stats,
         type_loss,
         energy_lepton,
-        htc_mode
+        htc_mode,
+        job_num
     )
 
