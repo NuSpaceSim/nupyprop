@@ -456,10 +456,15 @@ def get_ixc(part_type, model, arg, out=False):
             file = get_custom_path('ixc', part_type, model, nu_type)
             with importlib_resources.as_file(file) as lookup_table:
                ixc_table = Table.read(lookup_table, format='ascii.ecsv')
-
-        ixc_cc = np.asarray([ixc_table['cc_cdf_%s' % model][ixc_table['energy']==i] for i in E_nu])
-        ixc_nc = np.asarray([ixc_table['nc_cdf_%s' % model][ixc_table['energy']==i] for i in E_nu])
-
+        ixc_cc = np.stack([
+            ixc_table[f'cc_cdf_{model}'][np.isclose(ixc_table['energy'], i, rtol=1e-12, atol=0.0)]
+            for i in E_nu
+        ])
+        ixc_nc = np.stack([
+            ixc_table[f'nc_cdf_{model}'][np.isclose(ixc_table['energy'], i, rtol=1e-12, atol=0.0)]
+            for i in E_nu
+        ])
+        
         ixc_arr = np.asarray([ixc_cc, ixc_nc])
 
         if out:
@@ -483,17 +488,32 @@ def get_ixc(part_type, model, arg, out=False):
         with importlib_resources.as_file(ref) as lookup_tables:
             ixc_table = Table.read(lookup_tables,path='Charged_Leptons/%s/%s/ixc' % (part_type,material))
 
-        ixc_brem = np.asarray([ixc_table['cdf_brem'][ixc_table['energy']==i] for i in E_lep]) # brem is not a custom model
-        ixc_pair = np.asarray([ixc_table['cdf_pair'][ixc_table['energy']==i] for i in E_lep]) # pair is not a custom model
+        
+        ixc_brem = np.stack([
+            ixc_table['cdf_brem'][np.isclose(ixc_table['energy'], i, rtol=1e-12, atol=0.0)]
+            for i in E_lep
 
+        ]) # brem is not a custom model
+
+        ixc_pair = np.stack([
+            ixc_table['cdf_pair'][np.isclose(ixc_table['energy'], i, rtol=1e-12, atol=0.0)]
+            for i in E_lep
+
+]) # pair is not a custom model
         if model in pn_models: # default PN model selection
 
-            ixc_pn = np.asarray([ixc_table['cdf_pn_%s' % model][ixc_table['energy']==i] for i in E_lep])
+            ixc_pn = np.stack([
+                ixc_table['cdf_pn_%s' % model][np.isclose(ixc_table['energy'], i, rtol=1e-12, atol=0.0)]
+                for i in E_lep
+            ])
 
         else: # custom PN model
             with importlib_resources.as_file(get_custom_path('ixc',part_type,model,material)) as lookup_table:
                 pn_table = Table.read(lookup_table,format='ascii.ecsv')
-            ixc_pn = np.asarray([pn_table['cdf_pn_%s' % model][ixc_table['energy']==i] for i in E_lep])
+            ixc_pn = np.stack([
+                pn_table['cdf_pn_%s' % model][np.isclose(pn_table['energy'], i, rtol=1e-12, atol=0.0)]
+                for i in E_lep
+            ])
 
         ixc_arr = np.asarray([ixc_brem, ixc_pair, ixc_pn])
 
