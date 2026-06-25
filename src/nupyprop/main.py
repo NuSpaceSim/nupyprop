@@ -134,7 +134,7 @@ def init_ixc(nu_type, ch_lepton, nu_model, pn_model):
     return nu_ixc, lep_ixc_water, lep_ixc_rock
 
 
-def main(E_prop, angles, nu_type, cross_section_model, bsm_model, pn_model, earth_model, idepth, ch_lepton, fac_nu, stats, prop_type, elep_mode, htc_mode):
+def main(E_prop, angles, nu_type, cross_section_model, bsm_model, pn_model, earth_model, idepth, ch_lepton, fac_nu, stats, prop_type, elep_mode, htc_mode, batch_stats=None, n_batches=1):
     '''
     Parameters
     ----------
@@ -194,13 +194,17 @@ def main(E_prop, angles, nu_type, cross_section_model, bsm_model, pn_model, eart
 
     out_file = Data.output_file(nu_type,ch_lepton,idepth,cross_section_model,pn_model,earth_model,prop_type,stats,arg=None)
 
-    start_time = time.time()
-
     print("The water -> rock transition occurs at %.2f degrees" % Geometry.find_interface(idepth)[0])
-
+    #adding
+    results_nr = []
+    results_r = []
+    # Store outgoing-lepton energies per (energy, angle).
+    # Values are 1D ndarrays from Run.run_stat (0 is sentinel for non-exit).
+    e_out_by_key = {}
     for energy in sorted(E_prop):
         eout_list = [] #to store final energies of exiting charged lepton
         for angle in sorted(angles):
+            start_time = time.time()
             xalong, cdalong = Data.get_trajs('col', angle, idepth, earth_model) # initialize arrays here for each angle, to reduce a ton of overhead when tauthrulayers & regen are called
 
             print("Neutrino Energy = 10^(%.2f) GeV, Earth Emergence Angle = %.2f degrees" % (energy, angle), flush=True)
@@ -210,11 +214,47 @@ def main(E_prop, angles, nu_type, cross_section_model, bsm_model, pn_model, eart
 
             depthE = Geometry.columndepth(angle, idepth, earth_model)*1e-5 # column depth in kmwe
 
-            no_regen, regen, _ = Run.run_stat(10**energy, angle, nu_xc, nu_ixc, nu_bsm_xc, nu_bsm_ixc, depthE, dwater, xc_water, xc_rock, 
-                                                  lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, 
-                                                  beta_rock, xalong, cdalong, ithird, idepth, lepton_int, fac_nu,  
-                                                  prop_type_int, int(stats), earth_model)
+            # --- Optional batching for runtime estimation ---
+            # If batch_stats is provided, call Run.run_stat() n_batches times and accumulate counts.
+            # Otherwise, preserve the original single-call behavior.
+            if batch_stats is None:
+                no_regen, regen, e_out, p_out = Run.run_stat(
+                    10**energy, angle, nu_xc, nu_ixc, nu_bsm_xc, nu_bsm_ixc, depthE, dwater, xc_water, xc_rock,
+                    lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock,
+                    xalong, cdalong, ithird, idepth, lepton_int, fac_nu, prop_type_int, int(stats), earth_model
+                )
+                # Save energies for this (energy, angle)
+                e_out_by_key[(float(energy), float(angle))] = np.asarray(e_out)
+                no_sum = int(np.sum(no_regen))
+                reg_sum = int(np.sum(regen))
+                denom = float(stats)
+            else:
+                e_out_accum = []
+                no_sum = 0
+                reg_sum = 0
+                denom = float(int(batch_stats) * int(n_batches))
 
+                for _ in range(int(n_batches)):
+                    no_regen, regen, e_out, p_out = Run.run_stat(
+                        10**energy, angle, nu_xc, nu_ixc, nu_bsm_xc, nu_bsm_ixc, depthE, dwater, xc_water, xc_rock,
+                        lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock,
+                        xalong, cdalong, ithird, idepth, lepton_int, fac_nu, prop_type_int, int(batch_stats), earth_model
+                    )
+                    e_out_accum.append(np.asarray(e_out))
+                    no_sum += int(np.sum(no_regen))
+                    reg_sum += int(np.sum(regen))
+                # Concatenate energies across batches for this (energy, angle)
+                if len(e_out_accum) == 1:
+                    e_out_by_key[(float(energy), float(angle))] = e_out_accum[0]
+                else:
+                    e_out_by_key[(float(energy), float(angle))] = np.concatenate(e_out_accum)
+            print(len(no_regen))
+            p_no_regen = float(no_sum / denom)
+            results_nr.append((float(angle), p_no_regen))
+            p_regen = float(reg_sum / denom)
+            results_r.append((float(angle), p_regen))
+
+    
             '''prob_no_regen = no_regen/float(stats)
             prob_regen = regen/float(stats)
 
@@ -278,13 +318,19 @@ def main(E_prop, angles, nu_type, cross_section_model, bsm_model, pn_model, eart
             Data.add_cdf(ch_lepton, energy, eout_list, out_file, htc_mode=False, arg=None) # adds the binned cdf values for all neutrino energies and angles to the output file.
             file_cleaner('e_out') # remove e_out files'''
 
-        end_time = time.time()
-        print(f"It took {end_time-start_time:.2f} seconds to compute")
+            end_time = time.time()
+            print(f"It took {end_time-start_time:.2f} seconds to compute")
 
-        if htc_mode== 'no': print("Done!")
-        else: print("Done!") # for HTC mode on
+#        if htc_mode== 'no': print("Done!")
+#        else: print("Done!") # for HTC mode on
 
-    return None
+    # Backward-compatible return:
+    # - If a single (energy, angle) was requested, return the single e_out array.
+    # - Otherwise return a dict keyed by (log10E, angle_deg).
+    if len(E_prop) == 1 and len(angles) == 1:
+        return results_nr, results_r, e_out_by_key[(float(E_prop[0]), float(angles[0]))]
+
+    return results_nr, results_r, e_out_by_key
 
 # =============================================================================
 #

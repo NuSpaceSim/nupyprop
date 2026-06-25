@@ -277,7 +277,7 @@ def em_cont_part(E_init, alpha_val, beta_val, x, m_le):
         E_init * (1 - bx) - alpha_val * x,
         E_init * np.exp(-bx) - alpha_val / beta_val * (1 - np.exp(-bx))
     )
-
+    
     # Ensure E_fin is not below lepton rest mass
     E_fin = np.maximum(E_fin, m_le)
 
