@@ -383,7 +383,7 @@ def interaction_type_nu(energy, nu_xc, nu_bsm_xc, fac_nu, E_nu):
 
     # Calculate the total and CC fraction of the cross-section
     tot_frac = sig_cc  + sig_bsm + sig_nc
-    cc_frac = sig_cc / tot_frac
+    cc_frac = (sig_cc + sig_bsm)/ tot_frac
     bsm_frac = sig_bsm / tot_frac
 
     # Generate a random number
@@ -391,9 +391,9 @@ def interaction_type_nu(energy, nu_xc, nu_bsm_xc, fac_nu, E_nu):
 
     # Determine the interaction type based on the random number
     int_type = np.empty_like(x, dtype=int)
-    int_type[x < bsm_frac] = 2      # BSM
-    int_type[(x >= bsm_frac) & (x < cc_frac)] = 0    # CC
-    int_type[x >= cc_frac] = 1      # NC
+    int_type[x < bsm_frac] = 2      # BSM [0, bsm_frac)
+    int_type[(x >= bsm_frac) & (x < cc_frac)] = 0    # CC [bsm_frac, bsm_frac+cc_frac)
+    int_type[x >= cc_frac] = 1      # NC [cc_frac, 1)
     #int_type = (x > cc_frac).astype(int)  # 0 for CC, 1 for NC (vectorized)
 
     return int_type

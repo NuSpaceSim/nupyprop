@@ -67,6 +67,8 @@ def propagate_nu(e_init, nu_xc, nu_ixc, nu_bsm_xc, nu_bsm_ixc, depth_max, fac_nu
 
     active = np.ones(stats, dtype=bool)  # Track active simulations
 
+    counter = 0
+
     while np.any(active):  # Continue until all neutrinos stop
         r = np.random.random(stats)
         int_depth = transport.int_depth_nu(e_fin, nu_xc, nu_bsm_xc, fac_nu, E_nu) 
@@ -78,19 +80,11 @@ def propagate_nu(e_init, nu_xc, nu_ixc, nu_bsm_xc, nu_bsm_ixc, depth_max, fac_nu
         # Check which simulations exceeded total column depth
         exceeded = (x_0 > depth_max) & active
         active[exceeded] = False  # Stop these simulations
+        print("len of exceeded earth = ", np.sum(exceeded))
+        counter += np.sum(exceeded)
 
         # Compute interaction type
-        int_type = transport.interaction_type_nu(e_fin, nu_xc, nu_bsm_xc, fac_nu, E_nu) 
-
-        # print(len(active[active==True]))
-        temp_mask = (int_type==1)
-        temp_int = int_type[temp_mask] 
-        temp_maskcc = (int_type==0)
-        temp_intcc = int_type[temp_maskcc]
-        print(len(temp_int))
-        print("CC type=", len(temp_intcc))
-        #active[temp_mask] = False
-        #print(len(active[active==True]))
+        int_type = transport.interaction_type_nu(e_fin, nu_xc, nu_bsm_xc, fac_nu, E_nu) #0 for CC, 1 for NC, 2 for BSM
 
         # Compute energy loss
         y_fraction = transport.find_y(e_fin, nu_ixc, nu_bsm_ixc, int_type, E_nu, E_lep, yvals)
@@ -104,6 +98,8 @@ def propagate_nu(e_init, nu_xc, nu_ixc, nu_bsm_xc, nu_bsm_ixc, depth_max, fac_nu
         new_leptons = (part_type == 1) & active
         d_travel[new_leptons] = x_0[new_leptons]  # Update travel distances
         active[new_leptons] = False  # Stop these simulations
+        counter += np.sum(new_leptons)
+        print("cc:", np.sum(new_leptons))
 
         # Selecting BSM interactions
         converted = (part_type == 0) & (int_type == 2) & active # Neutrino to charged particle BSM
@@ -112,14 +108,26 @@ def propagate_nu(e_init, nu_xc, nu_ixc, nu_bsm_xc, nu_bsm_ixc, depth_max, fac_nu
         bsm_particle_mask = (part_type == 2) & active 
         d_travel[bsm_particle_mask] = x_0[bsm_particle_mask]
         active[bsm_particle_mask] = False
+        counter += np.sum(bsm_particle_mask)
+        print("bsm:", np.sum(bsm_particle_mask))
 
         # Check which events should stop due to energy loss
         energy_depleted = (e_fin <= Emin) & active
         d_travel[energy_depleted] = x_0[energy_depleted]
         active[energy_depleted] = False  # Stop simulations
+        counter += np.sum(energy_depleted)
+        print("energy_depleted:", np.sum(energy_depleted))
+
+        print("counter so far:", counter)
+        print("still active:", np.sum(active))
 
     final_mask = ~((e_fin <= Emin))# | (part_type == 0)) # this will eliminate charged leptons 
                                                        # with energy < Emin and neutrinos
+
+    print("final value of counter = ", counter)
+    print("CC = ", np.sum(part_type==1), "NC/energy depleted/left Earth = ", np.sum(part_type==0), 
+          "BSM = ", np.sum(part_type==2))
+    print("Final len of part_type = ", len(part_type), np.sum(part_type==1)+np.sum(part_type==0)+np.sum(part_type==2))
 
     return part_type[final_mask], d_travel[final_mask], e_fin[final_mask]
 

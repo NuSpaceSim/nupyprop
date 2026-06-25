@@ -206,7 +206,7 @@ def main(E_prop, angles, nu_type, cross_section_model, bsm_model, pn_model, eart
             print("Neutrino Energy = 10^(%.2f) GeV, Earth Emergence Angle = %.2f degrees" % (energy, angle), flush=True)
 
             chord, water = Data.get_trajs('water', angle, idepth, earth_model)
-            dwater = water*rho_water # depth in water [kmwe] in last or only section
+            dwater = water*rho_water # depth in water [kmwe] in last or only section                                                                                                                                                              
 
             depthE = Geometry.columndepth(angle, idepth, earth_model)*1e-5 # column depth in kmwe
 
