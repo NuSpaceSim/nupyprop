@@ -87,7 +87,7 @@ def propagate_nu(e_init, nu_xc, nu_ixc, nu_bsm_xc, nu_bsm_ixc, depth_max, fac_nu
         int_type = transport.interaction_type_nu(e_fin, nu_xc, nu_bsm_xc, fac_nu, E_nu) #0 for CC, 1 for NC, 2 for BSM
 
         # Compute energy loss
-        y_fraction = transport.find_y(e_fin, nu_ixc, nu_bsm_ixc, int_type, E_nu, E_lep, yvals)
+        y_fraction = transport.find_y(e_fin, nu_ixc, int_type, E_nu, E_lep, yvals, nu_bsm_ixc)
         e_fin[active] *= (1 - y_fraction[active])
         # print(len(e_fin[active]))
 
@@ -121,7 +121,7 @@ def propagate_nu(e_init, nu_xc, nu_ixc, nu_bsm_xc, nu_bsm_ixc, depth_max, fac_nu
         print("counter so far:", counter)
         print("still active:", np.sum(active))
 
-    final_mask = ~((e_fin <= Emin)) # | (part_type == 0))  # eliminates low-energy charged leptons and neutrino-ended events
+    final_mask = ~((e_fin <= Emin))# | (part_type == 0))  # eliminates low-energy charged leptons and neutrino-ended events
 
     if return_index:
         kept_local = np.nonzero(final_mask)[0]
@@ -375,7 +375,7 @@ def propagate_lep(e_init, angle, xc, lep_ixc, alpha, beta, d_entry, d_in, lepton
                         int_types_surv = int_types[survive_mask]
 
                         # sample y (vectorized)
-                        y = transport.find_y(e_after_int, lep_ixc, int_types_surv, E_nu, E_lep, yvals)
+                        y = transport.find_y(e_after_int, lep_ixc, int_types_surv, E_nu, E_lep, yvals, ixc_bsm_nu_arr=None)
 
                         E_new = e_after_int * (1.0 - y)
                         E_new = np.maximum(E_new, Emin)
@@ -1098,7 +1098,7 @@ def regen(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, 
     return part_type, d_exit, e_fin, Pout
 
 
-def regen_compact(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, xc_rock,
+def regen_compact(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, nu_bsm_xc, nu_bsm_ixc, ithird, xc_water, xc_rock,
                   ixc_water, ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, idepth,
                   lepton, fac_nu, prop_type, Pin, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P, earth_model):
     """Compacting regeneration step used by run_stat.
@@ -1152,7 +1152,7 @@ def regen_compact(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc
 
     # 3) propagate neutrinos; this compacts to CC->tau survivors above Emin
     kept0, _ptype, dtr, etau2 = propagate_nu(
-        e_nu[idx0], nu_xc, nu_ixc, d_left0[idx0], fac_nu,
+        e_nu[idx0], nu_xc, nu_ixc, nu_bsm_xc, nu_bsm_ixc, d_left0[idx0], fac_nu,
         stats=idx0.size,
         Emin=Emin, E_nu=E_nu, E_lep=E_lep, yvals=yvals,
         return_index=True,

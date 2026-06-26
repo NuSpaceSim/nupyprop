@@ -464,7 +464,7 @@ def interaction_type_lep(energy, xc_arr, rho, m_le, c_tau, E_lep):
 
     return int_type
 
-def find_y(energy, ixc_arr, ixc_bsm_arr, ip, E_nu, E_lep, yvals):
+def find_y(energy, ixc_arr, ip, E_nu, E_lep, yvals, ixc_bsm_arr=None):
     '''
     Stochastic determination of neutrino/lepton inelasticity.
 
@@ -474,71 +474,69 @@ def find_y(energy, ixc_arr, ixc_bsm_arr, ip, E_nu, E_lep, yvals):
         Neutrino or charged lepton energy, in GeV.
     ixc_arr : np.ndarray
         Neutrino or charged lepton integrated cross-section CDF values.
-    ixc_bsm_arr : np.ndarray
-        Neutrino BSM integrated cross-section CDF values.
     ip : int array
         Type of neutrino-nucleon or lepton-nucleon interaction.
+        0=CC, 1=NC, 2=BSM, 3=brem, 4=pair, 5=pn
     E_nu : np.ndarray
         Array of neutrino energies (for neutrinos).
     E_lep : np.ndarray
         Array of charged lepton energies (for charged leptons).
     yvals : np.ndarray
         Array of min. y values from which the cross-section CDF is calculated.
+    ixc_bsm_arr : np.ndarray or None
+        Neutrino BSM integrated cross-section CDF values. None if no BSM.
 
     Returns
     ----------
-    y_out : float array
+    y : float array
         Inelasticity, y = (E_init-E_final)/E_initial.
     '''
-    y_out = np.empty_like(energy, dtype=float)
+    is_sm_nu  = (ip == 0) | (ip == 1)
+    is_bsm_nu = (ip == 2)
+    is_lep    = ~(is_sm_nu | is_bsm_nu)
 
-    is_sm_nu  = (ip == 0) | (ip == 1)   # neutrino CC/NC
-    is_bsm_nu = (ip == 2)               # neutrino BSM
-    is_lep    = ~(is_sm_nu | is_bsm_nu) # charged lepton (brem=3, pair=4, pn=5)
+    ny = yvals.size
+    y = np.empty_like(energy, dtype=float)
 
-    # Energy index: neutrinos use E_nu, leptons use E_lep
-    energy_index = np.empty_like(ip, dtype=int)
-    if np.any(is_sm_nu | is_bsm_nu):
-        energy_index[is_sm_nu | is_bsm_nu] = np.searchsorted(E_nu, energy[is_sm_nu | is_bsm_nu])
-    if np.any(is_lep):
-        energy_index[is_lep] = np.searchsorted(E_lep, energy[is_lep])
+    def invert_cdf(cdf, u):
+        ''' Vectorized CDF inversion. cdf shape: (Nevents, Ny), u shape: (Nevents,) '''
+        k = np.sum(cdf < u[:, None], axis=1).astype(int)
+        k = np.clip(k, 1, ny - 1)
+        row = np.arange(cdf.shape[0])
+        c0 = cdf[row, k - 1]
+        c1 = cdf[row, k]
+        y0 = yvals[k - 1]
+        y1 = yvals[k]
+        den = c1 - c0
+        t = np.where(den > 0.0, (u - c0) / den, 0.0)
+        return y0 + t * (y1 - y0)
 
-    # --- SM neutrino part: ip 0/1 uses ixc_arr with i = ip ---
+    # --- SM neutrino part (CC=0, NC=1) ---
     if np.any(is_sm_nu):
-        e = energy_index[is_sm_nu]
+        e = np.clip(np.searchsorted(E_nu, energy[is_sm_nu]), 0, E_nu.size - 1)
         i = ip[is_sm_nu]  # 0 or 1
+        cdf = ixc_arr[:, e, i].T  # shape (Nevents, Ny)
+        u = np.random.random(size=e.shape)
+        y[is_sm_nu] = invert_cdf(cdf, u)
 
-        search_arr = np.asarray([ixc_arr[:, ee, ii] for ee, ii in zip(e, i)])
+    # --- BSM neutrino part (ip=2) ---
+    if np.any(is_bsm_nu) and ixc_bsm_arr is not None:
+        e = np.clip(np.searchsorted(E_nu, energy[is_bsm_nu]), 0, E_nu.size - 1)
+        i = np.zeros_like(e, dtype=int)  # single BSM channel
+        cdf = ixc_bsm_arr[:, e, i].T  # shape (Nevents, Ny)
+        u = np.random.random(size=e.shape)
+        y[is_bsm_nu] = invert_cdf(cdf, u)
 
-        dy = np.random.random(size=e.shape)
-        y_out[is_sm_nu] = np.array([np.interp(d, s, yvals) for d, s in zip(dy, search_arr)])
-
-    # --- BSM neutrino part: ip 2 uses ixc_bsm_arr (usually single channel i=0) ---
-    if np.any(is_bsm_nu):
-        e = energy_index[is_bsm_nu]
-
-        # If ixc_bsm_arr has only one interaction channel, use i=0 for all:
-        i = np.zeros_like(e, dtype=int)
-
-        search_arr = np.asarray([ixc_bsm_arr[:, ee, ii] for ee, ii in zip(e, i)])
-
-        dy = np.random.random(size=e.shape)
-        y_out[is_bsm_nu] = np.array([np.interp(d, s, yvals) for d, s in zip(dy, search_arr)])
-
-    # --- Lepton part (only if this function is also used there) ---
+    # --- Charged lepton part (brem=3, pair=4, pn=5) ---
     if np.any(is_lep):
-        e = energy_index[is_lep]
+        e = np.clip(np.searchsorted(E_lep, energy[is_lep]), 0, E_lep.size - 1)
+        i = (ip[is_lep] - 3).astype(int)  # 0=brem, 1=pair, 2=pn
+        cdf = ixc_arr[:, e, i].T  # shape (Nevents, Ny)
+        u = np.random.random(size=e.shape)
+        y[is_lep] = invert_cdf(cdf, u)
 
-        # charged leptons: brem=0, PP=1, PN=2
-        i = ip[is_lep] - 3
-
-        search_arr = np.asarray([ixc_arr[:, ee, ii] for ee, ii in zip(e, i)])
-
-        dy = np.random.random(size=e.shape)
-        y_out[is_lep] = np.array([np.interp(d, s, yvals) for d, s in zip(dy, search_arr)])
-
-    y_out = np.minimum(y_out, 1.0)
-    return y_out
+    y = np.minimum(y, 1.0)
+    return y
 
 def polarization(y, pin, theta_in, ypol, Pcthp, P):
     '''

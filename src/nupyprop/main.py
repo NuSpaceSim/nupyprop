@@ -218,7 +218,7 @@ def main(E_prop, angles, nu_type, cross_section_model, bsm_model, pn_model, eart
             # If batch_stats is provided, call Run.run_stat() n_batches times and accumulate counts.
             # Otherwise, preserve the original single-call behavior.
             if batch_stats is None:
-                no_regen, regen, e_out, p_out = Run.run_stat(
+                no_regen, regen, e_out = Run.run_stat(
                     10**energy, angle, nu_xc, nu_ixc, nu_bsm_xc, nu_bsm_ixc, depthE, dwater, xc_water, xc_rock,
                     lep_ixc_water, lep_ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock,
                     xalong, cdalong, ithird, idepth, lepton_int, fac_nu, prop_type_int, int(stats), earth_model
@@ -248,11 +248,13 @@ def main(E_prop, angles, nu_type, cross_section_model, bsm_model, pn_model, eart
                     e_out_by_key[(float(energy), float(angle))] = e_out_accum[0]
                 else:
                     e_out_by_key[(float(energy), float(angle))] = np.concatenate(e_out_accum)
-            print(len(no_regen))
-            p_no_regen = float(no_sum / denom)
-            results_nr.append((float(angle), p_no_regen))
-            p_regen = float(reg_sum / denom)
-            results_r.append((float(angle), p_regen))
+            
+            # p_no_regen = float(no_sum / denom)
+            # results_nr.append((float(angle), p_no_regen))
+            # p_regen = float(reg_sum / denom)
+            # results_r.append((float(angle), p_regen))
+
+            # print("results = ", angle, p_no_regen, p_regen)
 
     
             '''prob_no_regen = no_regen/float(stats)
@@ -327,8 +329,8 @@ def main(E_prop, angles, nu_type, cross_section_model, bsm_model, pn_model, eart
     # Backward-compatible return:
     # - If a single (energy, angle) was requested, return the single e_out array.
     # - Otherwise return a dict keyed by (log10E, angle_deg).
-    if len(E_prop) == 1 and len(angles) == 1:
-        return results_nr, results_r, e_out_by_key[(float(E_prop[0]), float(angles[0]))]
+    # if len(E_prop) == 1 and len(angles) == 1:
+    #     return results_nr, results_r, e_out_by_key[(float(E_prop[0]), float(angles[0]))]
 
     return results_nr, results_r, e_out_by_key
 
