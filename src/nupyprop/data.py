@@ -457,8 +457,10 @@ def get_ixc(part_type, model, arg, out=False):
             with importlib_resources.as_file(file) as lookup_table:
                ixc_table = Table.read(lookup_table, format='ascii.ecsv')
 
-        ixc_cc = np.asarray([ixc_table['cc_cdf_%s' % model][ixc_table['energy']==i] for i in E_nu])
-        ixc_nc = np.asarray([ixc_table['nc_cdf_%s' % model][ixc_table['energy']==i] for i in E_nu])
+        ixc_cc = np.asarray([
+        ixc_table['cc_cdf_%s' % model][np.isclose(ixc_table['energy'], i, rtol=1e-5)] for i in E_nu])
+        ixc_nc = np.asarray([ixc_table['nc_cdf_%s' % model][np.isclose(ixc_table['energy'], i, rtol=1e-5)] 
+                             for i in E_nu])
 
         ixc_arr = np.asarray([ixc_cc, ixc_nc])
 

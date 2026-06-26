@@ -11,6 +11,7 @@ import numpy as np
 import nupyprop.transport as transport
 import nupyprop.geometry as geometry
 import nupyprop.constants as const
+import matplotlib.pyplot as plt
 
 rho_water = const.rho_water # density of water, in g/cm3
 step_size = const.step_size # step size for continuous energy loss, in cm
@@ -68,6 +69,8 @@ def propagate_nu(e_init, nu_xc, nu_ixc, nu_bsm_xc, nu_bsm_ixc, depth_max, fac_nu
     active = np.ones(stats, dtype=bool)  # Track active simulations
 
     counter = 0
+    bsm_y_collected = []
+    cc_y_collected = []
 
     while np.any(active):  # Continue until all neutrinos stop
         r = np.random.random(stats)
@@ -80,7 +83,7 @@ def propagate_nu(e_init, nu_xc, nu_ixc, nu_bsm_xc, nu_bsm_ixc, depth_max, fac_nu
         # Check which simulations exceeded total column depth
         exceeded = (x_0 > depth_max) & active
         active[exceeded] = False  # Stop these simulations
-        print("len of exceeded earth = ", np.sum(exceeded))
+        # print("len of exceeded earth = ", np.sum(exceeded))
         counter += np.sum(exceeded)
 
         # Compute interaction type
@@ -94,32 +97,34 @@ def propagate_nu(e_init, nu_xc, nu_ixc, nu_bsm_xc, nu_bsm_ixc, depth_max, fac_nu
         # Check for charged leptons
         converted = (part_type == 0) & (int_type == 0) & active # Neutrino to Charged Lepton SM
         part_type[converted] = 1  # Convert neutrinos to charged leptons SM
+        cc_y_collected.append(y_fraction[converted])
 
         new_leptons = (part_type == 1) & active
         d_travel[new_leptons] = x_0[new_leptons]  # Update travel distances
         active[new_leptons] = False  # Stop these simulations
         counter += np.sum(new_leptons)
-        print("cc:", np.sum(new_leptons))
+        # print("cc:", np.sum(new_leptons))
 
         # Selecting BSM interactions
         converted = (part_type == 0) & (int_type == 2) & active # Neutrino to charged particle BSM
         part_type[converted] = 2  # Convert neutrinos to charged particles BSM
+        bsm_y_collected.append(y_fraction[converted])
 
         bsm_particle_mask = (part_type == 2) & active 
         d_travel[bsm_particle_mask] = x_0[bsm_particle_mask]
         active[bsm_particle_mask] = False
         counter += np.sum(bsm_particle_mask)
-        print("bsm:", np.sum(bsm_particle_mask))
+        # print("bsm:", np.sum(bsm_particle_mask))
 
         # Check which events should stop due to energy loss
         energy_depleted = (e_fin <= Emin) & active
         d_travel[energy_depleted] = x_0[energy_depleted]
         active[energy_depleted] = False  # Stop simulations
         counter += np.sum(energy_depleted)
-        print("energy_depleted:", np.sum(energy_depleted))
+        # print("energy_depleted:", np.sum(energy_depleted))
 
-        print("counter so far:", counter)
-        print("still active:", np.sum(active))
+        # print("counter so far:", counter)
+        # print("still active:", np.sum(active))
 
     final_mask = ~((e_fin <= Emin))# | (part_type == 0))  # eliminates low-energy charged leptons and neutrino-ended events
 
@@ -127,10 +132,28 @@ def propagate_nu(e_init, nu_xc, nu_ixc, nu_bsm_xc, nu_bsm_ixc, depth_max, fac_nu
         kept_local = np.nonzero(final_mask)[0]
         return kept_local, part_type[final_mask], d_travel[final_mask], e_fin[final_mask]
 
-    print("final value of counter = ", counter)
-    print("CC = ", np.sum(part_type==1), "NC/energy depleted/left Earth = ", np.sum(part_type==0), 
-          "BSM = ", np.sum(part_type==2))
-    print("Final len of part_type = ", len(part_type), np.sum(part_type==1)+np.sum(part_type==0)+np.sum(part_type==2))
+    # print("final value of counter = ", counter)
+    # print("CC = ", np.sum(part_type==1), "NC/energy depleted/left Earth = ", np.sum(part_type==0), 
+    #       "BSM = ", np.sum(part_type==2))
+    # print("Final len of part_type = ", len(part_type), np.sum(part_type==1)+np.sum(part_type==0)+np.sum(part_type==2))
+
+    bsm_y_all = np.concatenate(bsm_y_collected)
+    cc_y_all = np.concatenate(cc_y_collected)
+
+    print("fraction of BSM interactions with y > 0.794:", 
+      np.sum(bsm_y_all > 0.794) / len(bsm_y_all))
+
+    bsm_counts, bin_edges = np.histogram(bsm_y_all, bins=50, range=(0,1))
+    cc_counts, _ = np.histogram(cc_y_all, bins=50, range=(0,1))
+    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+
+    _, ax = plt.subplots()
+    ax.step(bin_centers, bsm_counts/bsm_counts.max(), alpha=0.7, label='BSM sampled y')
+    ax.step(bin_centers, cc_counts/cc_counts.max(), alpha=0.7, label='CC sampled y')
+    ax.set_xlabel('y')
+    ax.set_ylabel('density')
+    ax.legend()
+    plt.show()
 
     return part_type[final_mask], d_travel[final_mask], e_fin[final_mask]
 

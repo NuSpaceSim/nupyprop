@@ -15,6 +15,7 @@ import nupyprop.run as Run
 import nupyprop.constants as const
 
 import numpy as np
+import matplotlib.pyplot as plt
 from astropy.table import Table
 from collections import OrderedDict
 from collections.abc import Iterable
