@@ -3,8 +3,7 @@ nuPyProp
 
 Propagate neutrinos through the earth.
 
-A python package and command line utility, including fortran for
-performance with openMP.
+A python package and command line utility.
 
 Documentation (WIP): https://nupyprop.readthedocs.io/en/latest/
 
@@ -93,7 +92,9 @@ described as follows:
     neutrinos.
     
 13. ``-htc`` or ``--htc_mode``: High throughput computing mode. If set to yes,
-    the code will be optimized to run in high throughput computing mode.
+    the code will be optimized to run in high throughput computing mode, where the final output is not 
+    in *.h5 format. But instead individual files in *.dat format that can be then post processed for 
+    each parallel job. 
     Default is no.
     
 **Note**: This program uses OpenMP for propagating the huge number of neutrinos injected.
@@ -179,6 +180,8 @@ Model Tables
 
 Code Execution Timing Tables
 ----------------------------
+**Note**: These timing tables were made using the old nupyprop code (FORTRAN+PYTHON).
+
 .. _tau-table:
 
    ============== ================ ==================== ====== =================== ===============
@@ -243,11 +246,10 @@ package locally using a pep518 compliant build system (pip).
 
 1. Install the non-pypi required dependencies as described for users
    above.
-2. Install a fortran compiler. ex: ``sudo apt-get install gfortran``
-3. git clone the source code:
+2. git clone the source code:
    ``git clone git@github.com:NuSpaceSim/nupyprop.git``
-4. ``cd nupyprop``
-5. build and install the package in ‘editable’ mode
+3. ``cd nupyprop``
+4. build and install the package in ‘editable’ mode
    ``python3 -m pip install -e .``
 
 Developing the code on MacOS
@@ -261,11 +263,10 @@ instead, or a ``virtualenv``, or a conda environment.
 
 1. Install the non-pypi required dependencies as described for users
    above.
-2. Install a fortran compiler. ex: ``brew install gcc``
-3. git clone the source code:
+2. git clone the source code:
    ``git clone git@github.com:NuSpaceSim/nupyprop.git``
-4. ``cd nupyprop``
-5. build and install the package in ‘editable’ mode
+3. ``cd nupyprop``
+4. build and install the package in ‘editable’ mode
    ``python3 -m pip install -e .``
 
 .. This data file has been placed in the public domain.
