@@ -13,6 +13,8 @@ import nupyprop.constants as const
 N_A = const.N_A # Avogadro's number
 rho_rock = const.rho_rock # rock density
 rho_iron = const.rho_iron # iron density
+yvals_bsm = const.yvals_bsm
+print("yvals bsm =", yvals_bsm)
 
 def cd2distd(xalong, cdalong, col_depth):
     '''
@@ -498,15 +500,18 @@ def find_y(energy, ixc_arr, ip, E_nu, E_lep, yvals, ixc_bsm_arr=None):
     ny = yvals.size
     y = np.empty_like(energy, dtype=float)
 
-    def invert_cdf(cdf, u):
+    def invert_cdf(cdf, u, yv=None):
         ''' Vectorized CDF inversion. cdf shape: (Nevents, Ny), u shape: (Nevents,) '''
+        if yv is None:
+            yv = yvals          # default: SM yvals
+        ny_local = yv.size
         k = np.sum(cdf < u[:, None], axis=1).astype(int)
-        k = np.clip(k, 1, ny - 1)
+        k = np.clip(k, 1, ny_local - 1)
         row = np.arange(cdf.shape[0])
         c0 = cdf[row, k - 1]
         c1 = cdf[row, k]
-        y0 = yvals[k - 1]
-        y1 = yvals[k]
+        y0 = yv[k - 1]
+        y1 = yv[k]
         den = c1 - c0
         t = np.where(den > 0.0, (u - c0) / den, 0.0)
         return y0 + t * (y1 - y0)
@@ -525,7 +530,7 @@ def find_y(energy, ixc_arr, ip, E_nu, E_lep, yvals, ixc_bsm_arr=None):
         i = np.zeros_like(e, dtype=int)  # single BSM channel
         cdf = ixc_bsm_arr[:, e, i].T  # shape (Nevents, Ny)
         u = np.random.random(size=e.shape)
-        y[is_bsm_nu] = invert_cdf(cdf, u)
+        y[is_bsm_nu] = invert_cdf(cdf, u, yv=yvals_bsm)
 
     # --- Charged lepton part (brem=3, pair=4, pn=5) ---
     if np.any(is_lep):

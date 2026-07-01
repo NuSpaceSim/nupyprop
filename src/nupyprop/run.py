@@ -287,12 +287,12 @@ def run_stat(energy, angle, nu_xc, nu_ixc, nu_bsm_xc, nu_bsm_ixc, depthE, dwater
     plt.savefig(f"1e{np.log10(energy)}GeV_{angle}deg_dfinal_bsm.png")
     plt.show()
 
-    # bins = np.logspace(np.log10(elep[mask].min()), np.log10(elep[mask].max()), 50)
-    # plt.hist(elep[mask], bins=bins)
-    # plt.xlabel("efinal")
-    # plt.title(f"Angle={angle} - nu BSM interaction")
-    # plt.loglog()
-    # plt.savefig(f"1e{np.log10(energy)}GeV_{angle}deg_efinal_bsm.png")
-    # plt.show()
+    bins = np.logspace(np.log10(elep[mask].min()), np.log10(elep[mask].max()), 50)
+    plt.hist(elep[mask], bins=bins)
+    plt.xlabel("efinal")
+    plt.title(f"Angle={angle} - nu BSM interaction")
+    plt.loglog()
+    plt.savefig(f"1e{np.log10(energy)}GeV_{angle}deg_efinal_bsm.png")
+    plt.show()
 
     return id, dlep, elep

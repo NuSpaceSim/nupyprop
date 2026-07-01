@@ -46,7 +46,14 @@ E_lep = np.logspace(0,12,121,base=10).astype(np.float64) #for charged leptons in
 
 #inelasticity values used in interpolation for energy CDFs for neutrinos and charged leptons
 yvals = np.logspace(0,-3,31).astype(np.float64) #goes from 1 to 1e-3
-#yvals = np.logspace(-3,1,31).astype(np.float64) #goes from 1e-3 to 1
+
+# yvals for bsm process, more densely packed yvals range, 149 points between 1 to 1e-3
+y_top = np.linspace(1.0, 0.01, 100)    # 100 linear points from 1 to 0.01
+y_bottom = np.logspace(-2, -3, 50)[::-1]  # 50 log points from 0.01 to 0.001, descending
+
+yvals_bsm = np.unique(np.concatenate([y_top, y_bottom]))[::-1]
+yvals_bsm = yvals_bsm[yvals_bsm >= 1e-3]
+yvals_bsm = np.clip(yvals_bsm, 1e-3, 1.0)
 
 #Earth layers considered in PREM - Earth density model
 Rlay = np.array([1221.5, 3480.0, 5701.0, 5771.0, 5971.0, 6151.0, 6346.6, 6356.0, 6368.0, 6371.0])

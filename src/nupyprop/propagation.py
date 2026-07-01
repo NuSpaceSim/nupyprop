@@ -137,6 +137,7 @@ def propagate_nu(e_init, nu_xc, nu_ixc, nu_bsm_xc, nu_bsm_ixc, depth_max, fac_nu
     #       "BSM = ", np.sum(part_type==2))
     # print("Final len of part_type = ", len(part_type), np.sum(part_type==1)+np.sum(part_type==0)+np.sum(part_type==2))
 
+    ## Diagnostic: bsm pdf distribution should match dsigma/dy shape ##
     bsm_y_all = np.concatenate(bsm_y_collected)
     cc_y_all = np.concatenate(cc_y_collected)
 

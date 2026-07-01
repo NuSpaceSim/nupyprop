@@ -181,6 +181,22 @@ def main(E_prop, angles, nu_type, cross_section_model, bsm_model, pn_model, eart
     nu_bsm_xc, _,_,_,_,_,_ = init_xc(nu_type, ch_lepton, bsm_model, pn_model, prop_type)
     nu_bsm_ixc, _,_ = init_ixc(nu_type, ch_lepton, bsm_model, pn_model)
 
+    ## cdf plot check for Enu for BSM process ## 
+    yvals_bsm = const.yvals_bsm
+    print("yvals bsm =", yvals_bsm)
+    E_nu = const.E_nu
+    target_energy = 10**E_prop[0]  # = 1e6 GeV
+    e_idx = np.argmin(np.abs(E_nu - target_energy))  # find index in E_nu, not in E_prop
+    print(f"target energy = {target_energy}, E_nu[e_idx] = {E_nu[e_idx]}")
+    print(nu_bsm_ixc[:, e_idx, 0])
+
+    plt.plot(yvals_bsm, nu_bsm_ixc[:, e_idx, 0])
+    plt.xlabel('y')
+    plt.ylabel('CDF')
+    #plt.xscale('log')
+    plt.title('BSM CDF check at 1e6 GeV')
+    plt.show()
+
     ithird = 0 # use dn/dy in tau to neutrino
 
     if prop_type == 'stochastic':
