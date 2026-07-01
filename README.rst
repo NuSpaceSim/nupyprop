@@ -36,6 +36,33 @@ this example the name of the environment is “nupyprop”
    conda create -n nupyprop -c conda-forge -c nuspacesim nupyprop
    conda activate nupyprop
 
+Developing the code on Ubuntu
+-----------------------------
+
+These notes should help developers of this code build and install the
+package locally using a pep518 compliant build system (pip).
+
+1. git clone the source code:
+   ``git clone git@github.com:NuSpaceSim/nupyprop.git``
+2. ``cd nupyprop``
+3. build and install the package in ‘editable’ mode
+   ``python3 -m pip install -e .``
+
+Developing the code on MacOS
+----------------------------
+
+These notes should help developers of this code build and install the
+package locally using a pep518 compliant build system (pip). *Currently
+we do not support the default system python3 on MacOS* which is out of
+date and missing critical functionality. Use the homebrew python
+instead, or a ``virtualenv``, or a conda environment.
+
+1. git clone the source code:
+   ``git clone git@github.com:NuSpaceSim/nupyprop.git``
+2. ``cd nupyprop``
+3. build and install the package in ‘editable’ mode
+   ``python3 -m pip install -e .``
+
 Usage
 -----
 
@@ -237,37 +264,6 @@ in the following order:
    outgoing lepton energies.
 6. *run.py*: contains all the run parameters and variables needed for
    all the other .py files.
-
-Developing the code on Ubuntu
------------------------------
-
-These notes should help developers of this code build and install the
-package locally using a pep518 compliant build system (pip).
-
-1. Install the non-pypi required dependencies as described for users
-   above.
-2. git clone the source code:
-   ``git clone git@github.com:NuSpaceSim/nupyprop.git``
-3. ``cd nupyprop``
-4. build and install the package in ‘editable’ mode
-   ``python3 -m pip install -e .``
-
-Developing the code on MacOS
-----------------------------
-
-These notes should help developers of this code build and install the
-package locally using a pep518 compliant build system (pip). *Currently
-we do not support the default system python3 on MacOS* which is out of
-date and missing critical functionality. Use the homebrew python
-instead, or a ``virtualenv``, or a conda environment.
-
-1. Install the non-pypi required dependencies as described for users
-   above.
-2. git clone the source code:
-   ``git clone git@github.com:NuSpaceSim/nupyprop.git``
-3. ``cd nupyprop``
-4. build and install the package in ‘editable’ mode
-   ``python3 -m pip install -e .``
 
 .. This data file has been placed in the public domain.
 .. Derived from the Unicode character mappings available from
