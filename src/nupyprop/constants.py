@@ -25,6 +25,8 @@ m_p = scc.physical_constants["proton mass energy equivalent in MeV"][0]*1e-3 # p
 
 ctau_mu, ctau_tau = 6.586384e4, 8.703e-3 # c*lifetime of muons and taus in cm
 
+ithird = 0 # use dn/dy in tau to neutrino
+
 alpha_fs = scc.fine_structure #fine structure constant
 
 #Earth emergence angles

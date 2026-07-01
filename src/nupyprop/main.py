@@ -24,34 +24,6 @@ import glob
 
 rho_water = const.rho_water # g/cm^3
 
-def file_cleaner(output_type):
-    '''
-
-    Parameters
-    ----------
-    output_type : str
-        Type of output file to clean. Can be e_out, P_out, polarization_* or p_exit.
-
-    Returns
-    -------
-    NONE
-        Cleans temporary generated output files.
-
-    '''
-    if output_type == 'e_out':
-        files = glob.glob("eout_*") # cleanup of Fortran e_out files
-    elif output_type == 'P_out':
-        files = glob.glob("Pout_*") # cleanup of Fortran polarization files
-    elif output_type == 'polarization':
-        files = glob.glob("polarization_*")
-    elif output_type == 'p_exit':
-        files = glob.glob("pexit_*") # cleanup of p_exit files
-
-    for file in files:
-            os.remove(file)
-
-    return None
-
 def init_xc(nu_type, ch_lepton, nu_model, pn_model, prop_type):
     '''
 
@@ -175,7 +147,7 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, earth_model, id
 
     nu_ixc, lep_ixc_water, lep_ixc_rock = init_ixc(nu_type, ch_lepton, cross_section_model, pn_model)
 
-    ithird = 0 # use dn/dy in tau to neutrino
+    ithird = const.ithird # use dn/dy in tau to neutrino
 
     if prop_type == 'stochastic':
         prop_type_int = 1
@@ -191,21 +163,15 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, earth_model, id
 
     print("The water -> rock transition occurs at %.2f degrees" % Geometry.find_interface(idepth)[0])
     
-    results_nr = []
-    results_r = []
-    p_out = []
-    e_out = []
-    
-    #fixing to allow HTC to work here. 
-    
     for energy in sorted(E_prop):
         eout_list = []
         for angle in sorted(angles):
-            xalong, cdalong = Data.get_trajs('col', angle, idepth, earth_model)
-            
+            start_time = time.time() # start time of simulations
             print("Neutrino Energy = 10^(%.2f) GeV, Earth Emergence Angle = %.2f degrees" % (energy, angle), flush=True)
 
-            chord, water = Data.get_trajs('water', angle, idepth, earth_model)
+            xalong, cdalong = Data.get_trajs('col', angle, idepth, earth_model)
+            
+            _, water = Data.get_trajs('water', angle, idepth, earth_model)
             dwater = water*rho_water # depth in water [kmwe] in last or only section
             depthE = Geometry.columndepth(angle, idepth,model_name=earth_model)*1e-5 # column depth in kmwe
             
@@ -215,65 +181,39 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, earth_model, id
                 xalong, cdalong, ithird, idepth, lepton_int, fac_nu, prop_type_int, stats, earth_model
             )
             
+            # polarization
+            P_out_exit = make_array(p_out)
+            P_avg = -1 if P_out_exit.size == 0 else Data.sign(np.mean(P_out_exit))
 
-            
             if htc_mode == 'no': #htc mode off
-                prob_no_regen = float(np.sum(results_nr)/stats)
-                prob_regen = float(np.sum(results_r)/stats)
-                
-                with open("pexit_%.2f.dat" % energy, "a") as pexit_file:
-                    pexit_file.write("%.5e\t%.5e\t%.5e\t%.5e\n" % (10**energy,angle,prob_no_regen,prob_regen))
-                
-                P_out = make_array(p_out[e_out > 0.0])  #polarization of the exiting charged leptons
+                prob_no_regen = float(np.sum(results_nr)/stats) # exit prob. with no regeneration
+                prob_regen = float(np.sum(results_r)/stats) # exit prob. with regeneration
 
-                if P_out.size==0:
-                    P_avg = -1
-                else:
-                    P_avg = Data.sign(np.mean(P_out)) 
-                    #avg of polarization of the exiting charged leptons 
+                Data.add_pexit(ch_lepton, energy,
+                               np.array([angle]),
+                               np.array([prob_no_regen]),
+                               np.array([prob_regen]),
+                               out_file)
 
-                with open("polarization_%.2f.dat" % energy, "a") as pola_file:
-                    pola_file.write("%.5e\t%.5e\t%.5e\n" % (10**energy,angle,P_avg))
+                Data.add_polarization(ch_lepton, energy,
+                                      np.array([angle]),
+                                      np.array([P_avg]),
+                                      out_file)
                     
                 #exiting lepton's final energy
-                eout_vals = e_out[e_out > 0.0]
-                eout_vals = np.insert(eout_vals, 0, angle)
+                eout_vals = np.insert(e_out[e_out > 0.0], 0, angle)
                 eout_list.append(eout_vals)
                 
                 if elep_mode == 'yes':
                     print("I am going to print final energies in output file.")
-                    e_out = make_array(e_out[e_out > 0.0])
 
-                    e_out = Data.patch_for_astropy(e_out)
+                    e_out_exit = Data.patch_for_astropy(make_array(e_out[e_out > 0.0]))
+                    Data.add_clep_out(ch_lepton, energy, angle, e_out_exit, out_file)
 
-                    Data.add_clep_out(ch_lepton, energy, angle, e_out, out_file)
-                    
-                # Do some post processing
-                # Pexit of charged leptons
-                p_angle, p_noregen, p_regen = np.genfromtxt("pexit_%.2f.dat" % energy, usecols=(1,2,3), unpack=True)
-
-                p_angle = Data.patch_for_astropy(p_angle)
-                p_noregen = Data.patch_for_astropy(p_noregen)
-                p_regen = Data.patch_for_astropy(p_regen)
-
-                Data.add_pexit(ch_lepton, energy, p_angle, p_noregen, p_regen, out_file)
-                file_cleaner('p_exit')  # remove p_exit files
-
-                # Avg polarization of the exiting charged leptons
-                pola_angle, avg_pola = np.genfromtxt("polarization_%.2f.dat" % energy, usecols=(1,2), unpack=True)
-
-                pola_angle = Data.patch_for_astropy(pola_angle)
-                avg_pola = Data.patch_for_astropy(avg_pola)
-
-                Data.add_polarization(ch_lepton, energy, pola_angle, avg_pola, out_file)
-                file_cleaner('P_out') # remove P_out files
-                file_cleaner('polarization') #remove polarization_* files
-
-                # energy CDFs for the exiting charged leptons
-                Data.add_cdf(ch_lepton, energy, eout_list, out_file, htc_mode=False, arg=None) # adds the binned cdf values for all neutrino energies and angles to the output file.
-                file_cleaner('e_out') # remove e_out files
+                Data.add_cdf(ch_lepton, energy, eout_list, out_file, htc_mode=False, arg=None)
             
-            else: # save p_exit files with single energy and angle; no post-processing of files here in the main execution (for that, use data.process_htc_out)
+            else: # save p_exit files with single energy and angle; 
+                  # no post-processing of files here in the main execution (for that, use data.process_htc_out)
                 no_regen = np.sum(results_nr)
                 regen = np.sum(results_r)
             
@@ -285,19 +225,13 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, earth_model, id
                     for e in eout_vals:
                         eout_file.write("%.5e\n" % e)
 
-                P_out = make_array(p_out[e_out > 0.0])
-                P_avg = -1 if P_out.size == 0 else Data.sign(np.mean(P_out))
                 with open("Pout_{:.2f}_{:.1f}_{:d}.dat".format(energy, angle, job_num), "w") as pout_file:
                     pout_file.write("%.5e\n" % P_avg)
 
 
-            #end_time = time.time()
-            #print(f"It took {end_time-start_time:.2f} seconds to compute")
-
-        if htc_mode== 'no': print("Done!")
-#        else: print("Done!") # for HTC mode on
-    
-    return None
+            end_time = time.time() # end time for simulations
+            print(f"It took {end_time-start_time:.2f} seconds to compute")
+            print("Done for Neutrino Energy = 10^(%.2f) GeV, Earth Emergence Angle = %.2f degrees" % (energy, angle))
 
 # =============================================================================
 #

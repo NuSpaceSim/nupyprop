@@ -17,6 +17,7 @@ docs/build/
 pyrightconfig.json
 src/nupyprop/matplotlibrc
 src/nupyprop/interp_cdf.py
+kupari_runs/
 
 build_artifacts
 .DS_store
