@@ -2,7 +2,6 @@
 requires = ["setuptools>=46",
             "setuptools_scm[toml]>=3.4",
             "wheel",
-            "numpy>=1.22",
            ]
 build-backend = "setuptools.build_meta"
 
@@ -11,10 +10,6 @@ write_to = '_version.py'
 version_scheme = 'post-release'
 local_scheme = 'no-local-version'
 parentdir_prefix_version = 'nupyprop-'
-
-[tool.cibuildwheel]
-test-requires = "pytest"
-test-command = "pytest {project}/tests"
 
 [tool.cibuildwheel.macos]
 archs = ["x86_64"] #, "universal2", "arm64"]

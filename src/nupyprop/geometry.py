@@ -394,8 +394,6 @@ def gen_water_trajs(idepth):
 
 def find_interface(idepth):
     '''
-
-
     Parameters
     ----------
     idepth : int

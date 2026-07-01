@@ -79,7 +79,6 @@ def propagate_nu(e_init, nu_xc, nu_ixc, depth_max, fac_nu, stats, Emin, E_nu, E_
 
         # Compute energy loss
         y_fraction = transport.find_y(e_fin, nu_ixc, int_type, E_nu, E_lep, yvals)
-        #print(y_fraction)
         e_fin[active] *= (1 - y_fraction[active])
 
         # Check for charged leptons
@@ -552,7 +551,6 @@ def tau_thru_layers(
     d_water = np.asarray(d_water, dtype=float)
     depth_traj = np.asarray(depth_traj, dtype=float)
     stats = e_lep_in.size
-    
 
     lepton = np.asarray(lepton, dtype=int)
     # Broadcast scalar lepton id (e.g. 1 or 2) to per-event array
@@ -567,23 +565,20 @@ def tau_thru_layers(
     pcthf = np.ones(stats, dtype=float)
 
     # Low-energy exit
-#    print('length of e_lep_in before low energy cutoff', len(e_lep_in))
     low_energy = e_lep_in < 1e3
     if np.any(low_energy):
         part_type[low_energy] = 0
         d_fin[low_energy] = depth[low_energy]
         e_fin[low_energy] = e_lep_in[low_energy]
     active = ~low_energy
-#    print('np.sum(active) after low energy cutoff', np.sum(active)) 
+
     if not np.any(active):
         return part_type, d_fin, e_fin, pcthf
     
-    #print('length of e_lep_in after low energy cutoff', len(np.where(~low_energy)))
     ones = np.ones_like(e_lep_in)
     
     remaining = depth - depth_traj
     
-    import matplotlib.pyplot as plt
     #change to not be built off stats
     rho_now = np.full(stats, rho_water, dtype=float)
 
@@ -593,56 +588,13 @@ def tau_thru_layers(
         x_interp = transport.cd2distd(xalong, cdalong, col_depths)
         r, rho_vals = geometry.densityatx(x_interp, angle, idepth, earth_model)
 
-        if np.any(rho_vals < 1.5):
-            test_mask = rho_vals < 1.5
-            #print(np.sum(test_mask))
-            #print(np.mean(rho_vals[test_mask]))
-        
         rho_now[need_rho] = rho_vals
-        #rho_now[need_rho] = 2.60
-        # find a way to add the r < 6365.0
-#        test_mask = (r < 6365) & (rho_vals < 1.5)
-        
-#        if np.any(test_mask):
-#            idx = np.where(need_rho)[0][test_mask]
-#            active[idx] = False
             
     in_rock_now = active & (rho_now > 1.5) 
     in_water_now = active & ~in_rock_now
-    mask_ge = rho_now > 1.5
-    mask_lt = ~mask_ge
-    bins = 45
-    plt.hist(rho_now[mask_lt], bins=bins, alpha=0.4, label='rho_now <= 1.5')
-    plt.hist(rho_now[mask_ge], bins=bins, alpha=0.4, label='rho_now > 1.5')
-    plt.axvline(x=1.5, color='r', linestyle='--')
-    plt.xlabel('rho_vals')
-    plt.legend()
-#    plt.show()
-
-    bins = 60
-    plt.figure()
-    plt.hist(remaining[in_water_now], bins=bins, alpha=0.45, label='in_water_now')
-    plt.hist(remaining[in_rock_now],  bins=bins, alpha=0.45, label='in_rock_now')
-    plt.axvline(np.mean(d_water), color='k', linestyle='--', label='remaining')
-    plt.xlabel('remaining')
-    plt.ylabel('count')
-    plt.legend()
-    plt.title('Classification vs remaining')
-#    plt.show()
-    
-    plt.figure()
-    plt.hist(remaining, bins=bins, alpha=0.45, label='remaining')
-    plt.axvline(np.mean(d_water), color='k', linestyle='--', label='remaining')
-    plt.xlabel('remaining')
-    plt.ylabel('count')
-    plt.legend()
-    plt.title('Classification vs remaining')
-#    plt.show()
-    
 
     # --- Rock -> Water branch ---
     if np.any(in_rock_now):
-#        print('ROCK -> WATER: ROCK')
         rock_idx = np.where(in_rock_now)[0]
 
         d_in_rock = depth[in_rock_now] - depth_traj[in_rock_now] - d_water[in_rock_now]
@@ -655,13 +607,12 @@ def tau_thru_layers(
             idepth, earth_model, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P,
             xalong=xalong, cdalong=cdalong
         )
-        #print(f"rock leg angle={angle}: entered={np.sum(in_rock_now)} survive={np.sum(r_part==1)} decay={np.sum(r_part==0)} lowE={np.sum(r_part==2)} mean_din={np.mean(d_in_rock):.3f} mean_rd={np.mean(r_d):.3f} mean_re_surv={(np.mean(r_e[r_part==1]) if np.any(r_part==1) else np.nan):.3e}")
+        
         depth_after_rock = depth_traj[in_rock_now] + r_d
 
         # Survivors propagate through water if a water layer exists
         survivors = (r_part == 1) & (idepth != 0)
         if np.any(survivors):
-#            print('IN ROCK-> WATER: WATER ')
             surv_idx = rock_idx[survivors]
             w_part, w_d, w_e, w_cth, w_P = propagate_lep(
                 r_e[survivors], angle, xc_water, lep_ixc_water,
@@ -686,7 +637,6 @@ def tau_thru_layers(
 
     # --- Water-only branch (full remaining distance) ---
     if np.any(in_water_now):
-#        print('IN WATER ONLY: WATER PROP')
         w_part, w_d, w_e, w_cth, w_P = propagate_lep(
             e_lep_in[in_water_now], angle, xc_water, lep_ixc_water,
             alpha_water, beta_water, depth_traj[in_water_now], remaining[in_water_now],
@@ -703,46 +653,11 @@ def tau_thru_layers(
 
     return part_type, d_fin, e_fin, pcthf
 
-def distnu(r, ithird, Pin):
+def distnu_arr(r, ithird, Pin, tol=1e-3, max_iter=25):
     '''
     Determines the neutrino energy from tau decay. The energy fraction is determined by tau energy CDF
-    approximated by leptonic decay channel. Approximate (good enough) for taus; exact for muons
-
-    Args:
-        r (Float): Random number
-        ithird (IntegerL): Choice for neutrino -> charged lepton energy fraction selection
-        Pin (Float): Tau's polarization
-
-    Returns:
-        dist_val (Float): Energy fraction , y = E_nu_tau/E_tau
-    '''
-    #P = -1.0 * Pin, -1 = fully LH polarized; 0 = fully unpolarized tau
-    def fnu(y):
-
-        return y/3.0 * (5.0 - 3.0*y**2 + y**3) + (-1.0 *Pin) * (y/3.0 *(1.0 -3.0 * y**2 + 2.0 *y**3))
-
-    if ithird !=1:
-        fm = 1.0 #max value of distribution
-        ff = r*fm
-        y0 = 0.0
-        y1 = fm
-
-        while abs(y1-y0) > 0.1e-2:
-            y = (y0+y1)/2.0
-            if fnu(y) < ff:
-                y0 = y
-            else:
-                y1 = y
-            dist_val = (y0+y1)/2.0
-
-    else: # if ithird ==1; use 1/3 of energy of 3 body decay.
-        dist_val = 1.0/3.0
-
-    return dist_val
-
-
-def distnu_arr(r, ithird, Pin, tol=1e-3, max_iter=25):
-    """
+    approximated by leptonic decay channel. Approximate (good enough) for taus; exact for muons.
+    
     Vectorized sampler for the distnu distribution using batched bisection.
 
     Parameters
@@ -761,8 +676,8 @@ def distnu_arr(r, ithird, Pin, tol=1e-3, max_iter=25):
     Returns
     -------
     np.ndarray
-        Sampled energy fractions y.
-    """
+        Sampled energy fractions y, y = E_nu_tau/E_tau
+    '''
     r = np.asarray(r, dtype=float)
     ithird = np.asarray(ithird)
     Pin = np.asarray(Pin, dtype=float)
@@ -798,13 +713,15 @@ def distnu_arr(r, ithird, Pin, tol=1e-3, max_iter=25):
 
     return out
 
-
-def regen(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, xc_rock,
-          ixc_water, ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, idepth,
-          lepton, fac_nu, prop_type, Pin, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P, earth_model):
+def regen_compact(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, xc_rock,
+                  ixc_water, ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, idepth,
+                  lepton, fac_nu, prop_type, Pin, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P, earth_model):
     '''
     Regeneration loop, should take a pin and also throw out pout. pin will be used by distnu and the pout
        it throws will be used by the regen again as input in the single_stat() function.
+
+    This mirrors the scalar/Fortran logic but allows compaction by returning the mapping from inputs
+    (the arrays passed to this function) to the compacted survivor arrays.
 
     Parameters
     ----------
@@ -873,212 +790,15 @@ def regen(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, 
 
     Returns
     -------
-        part_type : integer 
-            Type of outgoing particle. 0=neutrino; 3=exit.
-        d_exit : 
-            float Distance traveled before charged lepton decays or total distance traveled by charged lepton, in kmwe.
-        e_fin : 
-            float Final particle energy, in GeV.
-        Pout : 
-            float Tau's polarization output from regen function
+    ipp3 : integer array (k,)
+        Type of outgoing particle. 0=neutrino; 3=exit.
+    dtau2 : float array (k,)
+        Distance traveled before charged lepton decays or total distance traveled by charged lepton, in kmwe.
+    ef2 : float array (k,)
+        Final particle energy, in GeV.
+    Pout : float array (k,)
+        Tau's polarization output from regen function
     '''
-
-    # Normalize inputs
-    e_lep = np.asarray(e_lep, dtype=float)
-    n = e_lep.size
-
-    def _as_float_array(x):
-        arr = np.asarray(x, dtype=float)
-        if arr.ndim == 0:
-            arr = np.full(n, float(arr.item()), dtype=float)
-        return arr
-
-    depth = _as_float_array(depth)
-    d_water = _as_float_array(d_water)
-    d_lep = _as_float_array(d_lep)
-    Pin = _as_float_array(Pin)
-
-    # Broadcast lepton id to per-event array for tau_thru_layers
-    lepton_arr = np.asarray(lepton, dtype=int)
-    if lepton_arr.ndim == 0 or lepton_arr.size == 1:
-        lepton_arr = np.full(n, int(lepton_arr.item()), dtype=int)
-    elif lepton_arr.size != n:
-        raise ValueError(f"lepton must be scalar or length {n}, got length {lepton_arr.size}")
-
-    # -------------------------
-    # 1) tau decay -> neutrino energy
-    # -------------------------
-    r = np.random.random(n)
-    frac = distnu_arr(r, ithird, Pin)
-    e_nu = frac * e_lep
-
-    # Defaults (match Fortran)
-    part_type = np.full(n, 3, dtype=int)   # 3 = exit sentinel
-    d_exit = d_lep.copy()
-    e_fin = e_nu.copy()
-    Pout = Pin.copy()
-
-    # -------------------------
-    # 2) geometry gate
-    # -------------------------
-    d_left0 = depth - d_lep
-    no_room0 = (d_left0 <= 0.0)
-    if np.any(no_room0):
-        d_exit[no_room0] = depth[no_room0]
-        # part_type stays 3, e_fin stays e_nu, Pout stays Pin
-
-    nu_active = ~no_room0
-    if not np.any(nu_active):
-        return part_type, d_exit, e_fin, Pout
-
-    # -------------------------
-    # 3) aligned neutrino propagation (no filtering)
-    # -------------------------
-    idx = np.flatnonzero(nu_active)
-    m = idx.size
-
-    # Local state arrays (size m)
-    int_part = np.zeros(m, dtype=int)            # 0 = neutrino, 1 = charged lepton
-    e_loc = e_nu[nu_active].astype(float).copy()
-    depth_max = d_left0[nu_active].astype(float)
-
-    x_0 = np.zeros(m, dtype=np.float32)          # kmwe traveled so far
-    dtr = depth_max.copy()                       # default: traveled full depth without CC
-
-    active = np.ones(m, dtype=bool)
-
-    while np.any(active):
-        rloc = np.random.random(m)
-        int_depth = transport.int_depth_nu(e_loc, nu_xc, fac_nu, E_nu)
-        step_kmwe = -int_depth * np.log(rloc) * 1e-5
-
-        x_0[active] += step_kmwe[active]
-
-        # stop if exceeded available depth
-        exceeded = (x_0 > depth_max) & active
-        if np.any(exceeded):
-            dtr[exceeded] = depth_max[exceeded]
-            active[exceeded] = False
-
-        if not np.any(active):
-            break
-
-        # interaction type: 0 -> CC, others -> NC-like
-        int_type = transport.interaction_type_nu(e_loc, nu_xc, fac_nu, E_nu)
-
-        # CC conversions
-        converted = (int_part == 0) & (int_type == 0) & active
-        if np.any(converted):
-            int_part[converted] = 1
-            dtr[converted] = x_0[converted]
-            active[converted] = False
-
-        if not np.any(active):
-            break
-
-        # energy loss for remaining active neutrinos
-        y_fraction = transport.find_y(e_loc, nu_ixc, int_type, E_nu, E_lep, yvals)
-        e_loc[active] *= (1.0 - y_fraction[active])
-
-        # stop if energy depleted
-        depleted = (e_loc <= Emin) & active
-        if np.any(depleted):
-            dtr[depleted] = x_0[depleted]
-            active[depleted] = False
-
-    etau2 = e_loc  # name consistent with Fortran/python scalar
-
-    # -------------------------
-    # 4) neutrinos at the end (int_part != 1)
-    # -------------------------
-    nu_end = (int_part != 1)
-    if np.any(nu_end):
-        end_idx = idx[nu_end]
-        part_type[end_idx] = 0
-        d_exit[end_idx] = depth[end_idx]
-        e_fin[end_idx] = etau2[nu_end]
-        Pout[end_idx] = -2.0
-
-    # -------------------------
-    # 5) taus produced by CC
-    # -------------------------
-    tau_cc = (int_part == 1)
-    if not np.any(tau_cc):
-        return part_type, d_exit, e_fin, Pout
-
-    tau_idx = idx[tau_cc]
-
-    d_lep1 = d_lep[tau_idx] + dtr[tau_cc]
-    d_left1 = d_left0[tau_idx] - dtr[tau_cc]
-    etau2_tau = etau2[tau_cc]
-
-    # Fortran "went too far" branch
-    no_room1 = (d_left1 <= 0.0)
-    if np.any(no_room1):
-        late_idx = tau_idx[no_room1]
-        part_type[late_idx] = 0
-        d_exit[late_idx] = depth[late_idx]
-        e_fin[late_idx] = etau2_tau[no_room1]
-        Pout[late_idx] = Pin[late_idx]
-
-    # Tau has room -> propagate through layers
-    tau_go = ~no_room1
-    if np.any(tau_go):
-        go_idx = tau_idx[tau_go]
-
-        ptype_sub, dexit_sub, efin_sub, Pi_sub = tau_thru_layers(
-            angle,
-            depth[go_idx],
-            d_water[go_idx],
-            d_lep1[tau_go],
-            etau2_tau[tau_go],
-            xc_water,
-            xc_rock,
-            ixc_water,
-            ixc_rock,
-            alpha_water,
-            alpha_rock,
-            beta_water,
-            beta_rock,
-            xalong,
-            cdalong,
-            idepth,
-            lepton_arr[go_idx],
-            prop_type,
-            Emin,
-            E_nu,
-            E_lep,
-            yvals,
-            ypol,
-            Pcthp,
-            P,
-            earth_model,
-            stats=len(go_idx),
-        )
-
-        part_type[go_idx] = ptype_sub
-        d_exit[go_idx] = dexit_sub
-        e_fin[go_idx] = efin_sub
-        Pout[go_idx] = Pi_sub
-
-    return part_type, d_exit, e_fin, Pout
-
-
-def regen_compact(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc_water, xc_rock,
-                  ixc_water, ixc_rock, alpha_water, alpha_rock, beta_water, beta_rock, xalong, cdalong, idepth,
-                  lepton, fac_nu, prop_type, Pin, Emin, E_nu, E_lep, yvals, ypol, Pcthp, P, earth_model):
-    """Compacting regeneration step used by run_stat.
-
-    This mirrors the scalar/Fortran logic but allows compaction by returning the mapping from inputs
-    (the arrays passed to this function) to the compacted survivor arrays.
-
-    Returns
-    -------
-    kept_local : (k,) int
-        Indices into the input arrays selecting events that regenerated into a tau (CC) and had room to propagate.
-    ipp3, dtau2, ef2, Pint : arrays (k,)
-        Outputs from tau_thru_layers aligned with kept_local.
-    """
     e_lep = np.asarray(e_lep, dtype=float)
     n = e_lep.size
 
@@ -1149,7 +869,7 @@ def regen_compact(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc
     d_lep1 = d_lep1[room1]
 
     # 5) propagate tau through layers
-    ipp3, dtau2, ef2, Pint = tau_thru_layers(
+    ipp3, dtau2, ef2, Pout = tau_thru_layers(
         angle,
         depth[kept_local],
         d_water[kept_local],
@@ -1179,4 +899,4 @@ def regen_compact(angle, e_lep, depth, d_water, d_lep, nu_xc, nu_ixc, ithird, xc
         stats=kept_local.size,
     )
 
-    return kept_local, ipp3, dtau2, ef2, Pint
+    return kept_local, ipp3, dtau2, ef2, Pout

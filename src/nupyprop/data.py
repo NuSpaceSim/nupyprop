@@ -311,7 +311,6 @@ def add_xc(part_type, xc_table, arg):
         with importlib_resources.as_file(ref) as lookup_tables:
             xc_table.write(lookup_tables, path='Charged_Leptons/%s/%s/xc' % (part_type,material), append=True, overwrite=True)
         return print("%s_sigma lookup table successfully created in %s" % (part_type, material))
-    return None
 
 def get_xc(part_type, model, arg, out=False):
     """get cross-section values; works with custom PN models
@@ -428,7 +427,6 @@ def add_ixc(part_type, ixc_table, arg):
             ixc_table.write(lookup_tables, path='Charged_Leptons/%s/%s/ixc' % (part_type,material), append=True, overwrite=True)
 
         return print("%s_sigma CDF lookup table successfully created in %s" % (part_type, material))
-    return None
 
 def get_ixc(part_type, model, arg, out=False):
     """get integrated cross-section CDF values; works with custom PN models
@@ -529,7 +527,6 @@ def get_ixc(part_type, model, arg, out=False):
             ascii.write(out_table, fnm, format='ecsv', fast_writer=True, overwrite=True)
             return print('%s cross-section CDF data saved to file %s' % (part_type,fnm))
 
-        #return np.array(ixc_arr.T)
         return np.array(ixc_arr.T)
 
 

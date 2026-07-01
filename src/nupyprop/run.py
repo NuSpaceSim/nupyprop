@@ -8,7 +8,6 @@ propagate neutrinos and charged leptons.
 
 from nupyprop import propagation
 import numpy as np
-#import matplotlib.pyplot as plt
 import nupyprop.constants as const
 
 batch_num = const.batch_num #batch size to divide the total stats
@@ -95,12 +94,11 @@ def run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, le
     # --- Create per-particle arrays ---
     energy_arr = np.full(stats, energy)       # all start with same initial energy 
     depthE_arr = np.full(stats, depthE)       # total column depth for given angle (kmwe)
-#    print('length of energy array before propagate_nu',len(energy_arr),len(depthE_arr))
+
     ############# propagate neutrinos #############
     _, dlep, elep = propagation.propagate_nu(energy_arr, nu_xc, nu_ixc, depthE_arr, fac_nu, stats, 
                                            Emin, E_nu, E_lep, yvals)
     
-    #print('length after propagate_nu', len(elep),len(dlep))
     stats_cl = len(dlep) # number of charged leptons
     if stats_cl == 0:
         # no charged leptons produced at all
@@ -153,7 +151,6 @@ def run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, le
 
         cand = np.where(elig)[0]  # candidates (size m)
         regen_count[cand] += 1
-        #print("regen: cand", cand.size)
 
         kept_local, ipp3, dtau2, ef2, Pint = propagation.regen_compact(
             angle,
@@ -188,8 +185,7 @@ def run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, le
             P,
             earth_model,
         )
-        #print("regen: kept_local", kept_local.size)
-        #print("regen: exiting after regen", np.sum((ipp3 == 1) & ((depthE_arr[cand[kept_local]] - dtau2) <= 0.0)))
+        
         # If nothing regenerated into a tau via CC, all candidates die as neutrinos
         if kept_local.size == 0:
             active[cand] = False
@@ -221,24 +217,4 @@ def run_stat(energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock, le
         if np.any(dead_local):
             active[cand[dead_local]] = False
 
-            # --- consistency checks (debug) ---
-    exit_from_energy = (e_out > 0.0)
-    exit_from_flags  = (no_regen_tot == 1) | (regen_tot == 1)
-
-    n = e_out.size
-    #print("DEBUG run_stat:")
-    #rint("  stats_cl:", n)
-    #print("  nonzero e_out:", np.count_nonzero(exit_from_energy))
-    #print("  exit flags:",   np.count_nonzero(exit_from_flags))
-    #print("  mismatches:",   np.count_nonzero(exit_from_energy != exit_from_flags))
-
-    # If mismatches are nonzero, this tells you which events disagree
-    # (only print if small enough to not spam)
-    mm = np.flatnonzero(exit_from_energy != exit_from_flags)
-    if mm.size and mm.size < 20:
-        print("  mismatch idx:", mm)
-        print("  e_out[mm]:", e_out[mm])
-        print("  no_regen_tot[mm]:", no_regen_tot[mm])
-        print("  regen_tot[mm]:", regen_tot[mm])
-        
     return no_regen_tot, regen_tot, e_out, P_out

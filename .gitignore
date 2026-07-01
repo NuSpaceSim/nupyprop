@@ -18,6 +18,9 @@ pyrightconfig.json
 src/nupyprop/matplotlibrc
 src/nupyprop/interp_cdf.py
 kupari_runs/
+*.h5
+*.png
+*.pdf
 
 build_artifacts
 .DS_store

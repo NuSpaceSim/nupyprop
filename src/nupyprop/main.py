@@ -15,8 +15,6 @@ import nupyprop.run as Run
 import nupyprop.constants as const
 
 import numpy as np
-from astropy.table import Table
-from collections import OrderedDict
 from collections.abc import Iterable
 import time
 import os
@@ -134,11 +132,16 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, earth_model, id
         Energy loss propagation type. Can be stochastic or continuous.
     elep_mode : str
         Option to print exiting charged lepton's final energy. Can be yes or no.
+    htc_mode : str
+        Opion to create files such that they can be used for 
+        high throughput computing (htc) mode, Can be yes or no.
+    job_num : int
+        Gives the job number running on cluster (only when htc mode is on. Default is 0.
 
     Returns
     -------
     NONE
-        Adds exit probability & outgoing lepton energy results to output_x.h5
+        Adds exit probability, tau polarization & outgoing lepton energy results to output_x.h5
 
     '''
     make_array = lambda x : x if isinstance(x, Iterable) else np.array([x]) # to avoid errors with single or no columns
@@ -173,7 +176,7 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, earth_model, id
             
             _, water = Data.get_trajs('water', angle, idepth, earth_model)
             dwater = water*rho_water # depth in water [kmwe] in last or only section
-            depthE = Geometry.columndepth(angle, idepth,model_name=earth_model)*1e-5 # column depth in kmwe
+            depthE = Geometry.columndepth(angle, idepth, model_name=earth_model)*1e-5 # column depth in kmwe
             
             results_nr, results_r, e_out, p_out = Run.run_stat(
                 10**energy, angle, nu_xc, nu_ixc, depthE, dwater, xc_water, xc_rock,
@@ -228,11 +231,10 @@ def main(E_prop, angles, nu_type, cross_section_model, pn_model, earth_model, id
                 with open("Pout_{:.2f}_{:.1f}_{:d}.dat".format(energy, angle, job_num), "w") as pout_file:
                     pout_file.write("%.5e\n" % P_avg)
 
-
             end_time = time.time() # end time for simulations
-            print(f"It took {end_time-start_time:.2f} seconds to compute")
-            print("Done for Neutrino Energy = 10^(%.2f) GeV, Earth Emergence Angle = %.2f degrees" % (energy, angle))
-
+            print(f"{end_time-start_time:.2f} seconds to compute \n"
+                  f" for Neutrino Energy = 10^({energy:.2f}) GeV,"
+                  f" Earth Emergence Angle = {angle:.2f} degrees")
 # =============================================================================
 #
 # =============================================================================
@@ -255,8 +257,10 @@ if __name__ == "__main__":
     nu_type = 'neutrino'
     htc_mode = 'no'
     earth_model = 'prem'
+    elep_mode = 'no'
 
-    main(e_nu, angles, nu_type, cross_section_model, pn_model,earth_model, idepth, ch_lepton, fac_nu, stats, prop_type, htc_mode)
+    main(e_nu, angles, nu_type, cross_section_model, pn_model,earth_model, idepth, ch_lepton, fac_nu, stats, 
+         prop_type, elep_mode, htc_mode)
 
     end_time = time.time()
     print(f"It took a total of {end_time-start_time:.2f} seconds to compute")
