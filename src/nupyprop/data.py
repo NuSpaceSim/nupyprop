@@ -252,10 +252,12 @@ def get_trajs(type_traj, angle, idepth, earth_model, out=False):
         sliced_table = traj_table[traj_table['beta']==angle]
         xalong = np.array(sliced_table['xalong'].T)
 
-        if earth_model == "PREM":
+        if earth_model.lower() == "prem":
             cdalong = np.array(sliced_table['cdalong_prem'].T)
-        else:
+        elif earth_model.lower() == "ak135":
             cdalong = np.array(sliced_table['cdalong_ak135'].T)
+        else:
+            raise ValueError("Earth Model Wrong")
 
         if out:
             fnm = "%s_%.2fdeg_%skm.ecsv" % (type_traj,angle,idepth)

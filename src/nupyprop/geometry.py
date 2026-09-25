@@ -190,6 +190,11 @@ def densityatx(x, beta, idepth, model_name):
         np.sqrt(r2)
     )
 
+    # Points on an Earth chord cannot lie outside the Earth.  Clamp tiny
+    # floating-point overshoots at the chord endpoints (for example,
+    # 6371.000000000001 km) before assigning a material density.
+    r = np.minimum(r, Re)
+
     # Select density model and compute density
     if model_name == "prem":
         rho_at_x = premdensity(r, idepth)  # Assuming premdensity is also vectorized
